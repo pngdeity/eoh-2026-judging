@@ -3,152 +3,226 @@
 
 <PageTitle>EOH 2026 - Judging</PageTitle>
 
-<h3>Judging</h3>
+<div class="judging-container" @onkeydown="HandleKeyDown" tabindex="0">
+    <h3>Judging</h3>
 
-<div class="row mb-3">
-    <div class="col-md-4">
-        <label class="form-label fw-bold text-uppercase">1. Select Category</label>
-        <select class="form-select border-primary" @onchange="OnCategoryChanged">
-            <option value="">-- Choose Category --</option>
-            @foreach (var cat in categories)
-            {
-                <option value="@cat.Id">@cat.Id</option>
-            }
-        </select>
+    <div class="row mb-3">
+        <div class="col-md-4">
+            <label class="form-label fw-bold text-uppercase">1. Select Category</label>
+            <select class="form-select border-primary" @onchange="OnCategoryChanged">
+                <option value="">-- Choose Category --</option>
+                @foreach (var cat in categories)
+                {
+                    <option value="@cat.Id">@cat.Id</option>
+                }
+            </select>
+        </div>
     </div>
-</div>
 
-@if (selectedCategory != null)
-{
-    <div class="card p-4 mb-4 border-start border-4 border-primary shadow-sm">
-        <h4 class="mb-3 text-primary"><i class="bi bi-filter-circle-fill me-2"></i>Partition Focus</h4>
-        <p class="text-muted small">Filter entries by judging group to focus your comparisons. Bridge nodes will automatically appear in multiple groups.</p>
-        
-        <div class="row g-3 align-items-end">
-            <div class="col-md-3">
-                <label class="form-label">Total Groups (k)</label>
-                <input type="number" class="form-control" @bind="kPartitions" min="1" />
-            </div>
-            <div class="col-md-3">
-                <label class="form-label">Overlap Rate (o)</label>
-                <input type="number" class="form-control" @bind="overlapRate" step="0.01" min="0" max="1" />
-            </div>
-            <div class="col-md-3">
-                <button class="btn btn-primary w-100" @onclick="GeneratePartitions">Activate Partitions</button>
-            </div>
-            @if (currentPartitions != null)
-            {
+    @if (selectedCategory != null)
+    {
+        <div class="card p-4 mb-4 border-start border-4 border-primary shadow-sm">
+            <h4 class="mb-3 text-primary"><i class="bi bi-filter-circle-fill me-2"></i>Partition Focus</h4>
+            <p class="text-muted small">Filter entries by judging group to focus your comparisons. Bridge nodes will automatically appear in multiple groups.</p>
+            
+            <div class="row g-3 align-items-end">
                 <div class="col-md-3">
-                    <label class="form-label fw-bold">Active Group</label>
-                    <select class="form-select bg-light fw-bold" @onchange="OnPartitionChanged">
-                        @foreach (var pId in currentPartitions.Keys)
-                        {
-                            <option value="@pId">Group @pId</option>
-                        }
-                    </select>
+                    <label class="form-label">Total Groups (k)</label>
+                    <input type="number" class="form-control" @bind="kPartitions" min="1" />
                 </div>
-            }
-        </div>
-    </div>
-
-    <div class="card p-4 mb-4 shadow-sm border-0 bg-light">
-        <h4 class="mb-3"><i class="bi bi-plus-circle-fill me-2 text-success"></i>New Comparison</h4>
-        <div class="row align-items-end g-3">
-            <div class="col-md-4">
-                <label class="form-label">Exhibit A</label>
-                <select class="form-select" @bind="entryAId">
-                    <option value="">-- Choose Exhibit --</option>
-                    @foreach (var entry in GetFilteredEntries())
-                    {
-                        <option value="@entry.Id">@entry.Id</option>
-                    }
-                </select>
-            </div>
-            <div class="col-md-2 text-center">
-                <label class="form-label">Relation</label>
-                <select class="form-select fw-bold" @bind="op">
-                    <option value="@Operator.GreaterThan">&gt; Better</option>
-                    <option value="@Operator.EqualTo">= Equal</option>
-                    <option value="@Operator.LessThan">&lt; Worse</option>
-                </select>
-            </div>
-            <div class="col-md-4">
-                <label class="form-label">Exhibit B</label>
-                <select class="form-select" @bind="entryBId">
-                    <option value="">-- Choose Exhibit --</option>
-                    @foreach (var entry in GetFilteredEntries())
-                    {
-                        <option value="@entry.Id">@entry.Id</option>
-                    }
-                </select>
-            </div>
-            <div class="col-md-2">
-                <button class="btn btn-success btn-lg w-100 shadow-sm" @onclick="AddRelation">
-                    <i class="bi bi-check-lg"></i> Submit
-                </button>
+                <div class="col-md-3">
+                    <label class="form-label">Overlap Rate (o)</label>
+                    <input type="number" class="form-control" @bind="overlapRate" step="0.01" min="0" max="1" />
+                </div>
+                <div class="col-md-3">
+                    <button class="btn btn-primary w-100" @onclick="GeneratePartitions">Activate Partitions</button>
+                </div>
+                @if (currentPartitions != null)
+                {
+                    <div class="col-md-3">
+                        <label class="form-label fw-bold">Active Group</label>
+                        <select class="form-select bg-light fw-bold" @onchange="OnPartitionChanged">
+                            @foreach (var pId in currentPartitions.Keys)
+                            {
+                                <option value="@pId">Group @pId</option>
+                            }
+                        </select>
+                    </div>
+                }
             </div>
         </div>
-        @if (!string.IsNullOrEmpty(errorMessage))
-        {
-            <div class="text-danger mt-2 fw-bold"><i class="bi bi-x-circle-fill me-1"></i>@errorMessage</div>
-        }
-    </div>
 
-    <div class="alert alert-info py-3 shadow-sm border-start border-4 border-info">
-        <h5 class="mb-2 fw-bold"><i class="bi bi-lightbulb-fill me-2"></i>Suggested Comparison</h5>
         @if (suggestedPair != null)
         {
-            <div class="d-flex align-items-center justify-content-between">
-                <span>How does <strong>@suggestedPair.Item1</strong> compare to <strong>@suggestedPair.Item2</strong>?</span>
-                <button class="btn btn-info text-white shadow-sm" @onclick="ApplySuggestion">
-                    <i class="bi bi-magic me-1"></i> Start Comparison
-                </button>
+            <div class="quick-judge-container mb-5 shadow-lg rounded p-4 bg-white border border-light">
+                <div class="text-center mb-4">
+                    <h5 class="fw-bold text-uppercase text-muted"><i class="bi bi-lightning-charge-fill me-2 text-warning"></i>Quick-Judge Mode</h5>
+                    <p class="small text-muted d-none d-md-block">Use keyboard: <span class="badge bg-dark">A</span> (Left Wins), <span class="badge bg-dark">S</span> (Equal), <span class="badge bg-dark">D</span> (Right Wins)</p>
+                </div>
+
+                <div class="row g-4 align-items-stretch">
+                    <div class="col-md-5">
+                        <div class="judge-card h-100 text-center p-5 rounded border border-2 border-primary-subtle shadow-sm"
+                             @onclick="() => RecordResult(Operator.GreaterThan)">
+                            <div class="badge bg-primary mb-3">EXHIBIT A</div>
+                            <h2 class="display-6 fw-bold mb-0">@suggestedPair.Item1</h2>
+                            <div class="mt-4 d-md-none"><span class="btn btn-primary w-100">Better</span></div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-2 d-flex flex-column justify-content-center align-items-center">
+                        <div class="tie-button p-4 rounded-circle bg-light border border-2 border-secondary-subtle text-center shadow-sm"
+                             @onclick="() => RecordResult(Operator.EqualTo)"
+                             title="They are equal in quality">
+                            <i class="bi bi-repeat fs-2 text-muted"></i>
+                            <div class="small fw-bold text-muted">TIE</div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-5">
+                        <div class="judge-card h-100 text-center p-5 rounded border border-2 border-primary-subtle shadow-sm"
+                             @onclick="() => RecordResult(Operator.LessThan)">
+                            <div class="badge bg-primary mb-3">EXHIBIT B</div>
+                            <h2 class="display-6 fw-bold mb-0">@suggestedPair.Item2</h2>
+                            <div class="mt-4 d-md-none"><span class="btn btn-primary w-100">Better</span></div>
+                        </div>
+                    </div>
+                </div>
             </div>
         }
-        else if (entries.Count > 1)
-        {
-            <span class="text-muted">No more suggestions available for this group. All pairs have been compared!</span>
-        }
-        else
-        {
-            <span class="text-muted">Add more exhibits in Setup to start comparing.</span>
-        }
-    </div>
 
-    <div class="card border-0 shadow-sm mt-4">
-        <div class="card-header bg-dark text-white py-3">
-            <h5 class="mb-0"><i class="bi bi-list-check me-2"></i>Recorded Relations (@relations.Count)</h5>
-        </div>
-        <div class="card-body p-0">
-            <table class="table table-hover mb-0">
-                <thead class="table-light">
-                    <tr>
-                        <th class="ps-4">Exhibit A</th>
-                        <th class="text-center">Relationship</th>
-                        <th>Exhibit B</th>
-                        <th class="pe-4 text-end">Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach (var rel in relations)
-                    {
-                        <tr>
-                            <td class="ps-4 fw-bold">@rel.EntryA.Id</td>
-                            <td class="text-center">
-                                <span class="badge @(rel.Operator == Operator.EqualTo ? "bg-secondary" : "bg-primary")">
-                                    @GetOpText(rel.Operator)
-                                </span>
-                            </td>
-                            <td class="fw-bold">@rel.EntryB.Id</td>
-                            <td class="pe-4 text-end">
-                                <button class="btn btn-outline-danger btn-sm" @onclick="() => DeleteRelation(rel)">
-                                    <i class="bi bi-trash-fill"></i>
+        <div class="accordion mb-4" id="manualJudgingAccordion">
+            <div class="accordion-item border-0 shadow-sm">
+                <h2 class="accordion-header">
+                    <button class="accordion-button collapsed bg-light fw-bold text-uppercase" type="button" data-bs-toggle="collapse" data-bs-target="#manualEntry">
+                        <i class="bi bi-pencil-square me-2"></i> Manual Override / Correction
+                    </button>
+                </h2>
+                <div id="manualEntry" class="accordion-collapse collapse" data-bs-parent="#manualJudgingAccordion">
+                    <div class="accordion-body">
+                        <div class="row align-items-end g-3">
+                            <div class="col-md-4">
+                                <label class="form-label">Exhibit A</label>
+                                <select class="form-select" @bind="entryAId">
+                                    <option value="">-- Choose Exhibit --</option>
+                                    @foreach (var entry in GetFilteredEntries())
+                                    {
+                                        <option value="@entry.Id">@entry.Id</option>
+                                    }
+                                </select>
+                            </div>
+                            <div class="col-md-2 text-center">
+                                <label class="form-label">Relation</label>
+                                <select class="form-select fw-bold" @bind="op">
+                                    <option value="@Operator.GreaterThan">&gt; Better</option>
+                                    <option value="@Operator.EqualTo">= Equal</option>
+                                    <option value="@Operator.LessThan">&lt; Worse</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Exhibit B</label>
+                                <select class="form-select" @bind="entryBId">
+                                    <option value="">-- Choose Exhibit --</option>
+                                    @foreach (var entry in GetFilteredEntries())
+                                    {
+                                        <option value="@entry.Id">@entry.Id</option>
+                                    }
+                                </select>
+                            </div>
+                            <div class="col-md-2">
+                                <button class="btn btn-success w-100 shadow-sm" @onclick="AddRelation">
+                                    <i class="bi bi-check-lg"></i> Submit
                                 </button>
-                            </td>
-                        </tr>
-                    }
-                </tbody>
-            </table>
+                            </div>
+                        </div>
+                        @if (!string.IsNullOrEmpty(errorMessage))
+                        {
+                            <div class="text-danger mt-2 fw-bold"><i class="bi bi-x-circle-fill me-1"></i>@errorMessage</div>
+                        }
+                    </div>
+                </div>
+            </div>
         </div>
-    </div>
-}
+
+        <div class="card border-0 shadow-sm mt-4">
+            <div class="card-header bg-dark text-white py-3">
+                <h5 class="mb-0"><i class="bi bi-list-check me-2"></i>Recorded Relations (@relations.Count)</h5>
+            </div>
+            <div class="card-body p-0">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th class="ps-4">Exhibit A</th>
+                            <th class="text-center">Relationship</th>
+                            <th>Exhibit B</th>
+                            <th class="pe-4 text-end">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var rel in relations)
+                        {
+                            <tr>
+                                <td class="ps-4 fw-bold">@rel.EntryA.Id</td>
+                                <td class="text-center">
+                                    <span class="badge @(rel.Operator == Operator.EqualTo ? "bg-secondary" : "bg-primary")">
+                                        @GetOpText(rel.Operator)
+                                    </span>
+                                </td>
+                                <td class="fw-bold">@rel.EntryB.Id</td>
+                                <td class="pe-4 text-end">
+                                    <button class="btn btn-outline-danger btn-sm" @onclick="() => DeleteRelation(rel)">
+                                        <i class="bi bi-trash-fill"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    }
+</div>
+
+<style>
+    .judging-container:focus {
+        outline: none;
+    }
+
+    .judge-card {
+        cursor: pointer;
+        transition: all 0.2s ease;
+        background-color: #fcfcfc;
+    }
+
+    .judge-card:hover {
+        background-color: #eef5ff;
+        transform: translateY(-5px);
+        border-color: var(--eoh-orange) !important;
+        box-shadow: 0 10px 20px rgba(0,0,0,0.1) !important;
+    }
+
+    .judge-card:active {
+        transform: translateY(0px);
+    }
+
+    .tie-button {
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+
+    .tie-button:hover {
+        background-color: #f0f0f0 !important;
+        transform: scale(1.1);
+        border-color: var(--eoh-orange) !important;
+    }
+
+    .tie-button:active {
+        transform: scale(0.95);
+    }
+
+    @@media (max-width: 768px) {
+        .judge-card {
+            padding: 2rem !important;
+        }
+    }
+</style>

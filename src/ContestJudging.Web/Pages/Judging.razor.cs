@@ -127,6 +127,39 @@ namespace ContestJudging.Web.Pages
             }
         }
 
+        private async Task RecordResult(Operator resultOp)
+        {
+            if (suggestedPair == null || selectedCategory == null) return;
+
+            var entryA = entries.First(e => e.Id == suggestedPair.Item1);
+            var entryB = entries.First(e => e.Id == suggestedPair.Item2);
+            var relation = new Relation(selectedCategory, entryA, resultOp, entryB);
+
+            await RelationRepository.AddAsync(relation);
+            await RefreshRelations();
+        }
+
+        private async Task HandleKeyDown(KeyboardEventArgs e)
+        {
+            if (suggestedPair == null) return;
+
+            switch (e.Key.ToLower())
+            {
+                case "a":
+                case "arrowleft":
+                    await RecordResult(Operator.GreaterThan);
+                    break;
+                case "s":
+                case "arrowdown":
+                    await RecordResult(Operator.EqualTo);
+                    break;
+                case "d":
+                case "arrowright":
+                    await RecordResult(Operator.LessThan);
+                    break;
+            }
+        }
+
         private async Task AddRelation()
         {
             errorMessage = "";
