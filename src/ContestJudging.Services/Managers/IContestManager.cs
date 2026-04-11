@@ -13,7 +13,7 @@ namespace ContestJudging.Services.Managers
         Task AddRelationAsync(Relation relation);
         Task<bool> ValidateCategoryRelationsAsync(string categoryId);
         Task<bool> CheckTotalOrderAsync(string categoryId);
-        
+
         // NEW: Orchestrates the Partitioned Judging pipeline
         Task<ValidationResult> CalculateGlobalScoresAsync(string categoryId, double maxScore);
 

@@ -5,20 +5,18 @@
     <AssemblyName>ContestJudging.Web</AssemblyName>
     <OverrideHtmlAssetPlaceholders>true</OverrideHtmlAssetPlaceholders>
     
-    <!-- Optimizations -->
-    <WasmBuildNative Condition="'$(Configuration)' == 'Release'">true</WasmBuildNative>
-    <PublishTrimmed>true</PublishTrimmed>
-    <TrimMode>full</TrimMode>
-    <InvariantGlobalization>true</InvariantGlobalization>
-    <BlazorEnableTimeZoneSupport>false</BlazorEnableTimeZoneSupport>
-    <EventSourceSupport>false</EventSourceSupport>
-    <DebuggerSupport Condition="'$(Configuration)' == 'Release'">false</DebuggerSupport>
-    <JsonSerializerIsReflectionEnabledByDefault>false</JsonSerializerIsReflectionEnabledByDefault>
+    <!-- Standard Build Settings -->
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+
+    <!-- Disable AOT and Aggressive Trimming -->
+    <WasmBuildNative>false</WasmBuildNative>
+    <PublishTrimmed>false</PublishTrimmed>
+    <JsonSerializerIsReflectionEnabledByDefault>true</JsonSerializerIsReflectionEnabledByDefault>
     
     <!-- Compression -->
     <BlazorEnableCompression>true</BlazorEnableCompression>
-    
-    <NoWarn>$(NoWarn);WASM0001</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>

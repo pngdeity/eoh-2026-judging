@@ -22,9 +22,6 @@ jobs:
         with:
           dotnet-version: '10.0.x'
 
-      - name: Install WASM Tools
-        run: dotnet workload install wasm-tools
-
       - name: Restore dependencies
         run: dotnet restore ContestJudging.slnx
 
@@ -45,7 +42,7 @@ jobs:
       - name: OSV-Scanner
         uses: google/osv-scanner-action/osv-scanner-action@v2.3.5
         with:
-          scan-args: ./
+          scan-args: ./ --allow-no-lockfiles
 
   deploy:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
@@ -62,14 +59,10 @@ jobs:
         with:
           dotnet-version: '10.0.x'
 
-      - name: Install WASM Tools
-        run: dotnet workload install wasm-tools
-
       - name: Publish Blazor WASM
         run: dotnet publish src/ContestJudging.Web/ContestJudging.Web.csproj -c Release -o release --nologo
 
       # GitHub Pages doesn't support SPA routing well by default (returns 404 on refresh)
-      # We'll copy index.html to 404.html as a common workaround
       - name: Fix SPA Routing for GitHub Pages
         run: cp release/wwwroot/index.html release/wwwroot/404.html
 

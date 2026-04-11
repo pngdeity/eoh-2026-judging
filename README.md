@@ -1,8 +1,10 @@
 # Engineering Open House 2026: Judging System
 
 [![CI/CD Pipeline](https://github.com/pngdeity/eoh-2026-judging/actions/workflows/pipeline.yml/badge.svg)](https://github.com/pngdeity/eoh-2026-judging/actions/workflows/pipeline.yml)
+![.NET 10](https://img.shields.io/badge/.NET-10.0-512bd4?logo=dotnet)
+![Built with Gemini](https://img.shields.io/badge/Built%20with-Gemini-blue?logo=googlegemini)
 
-The official judging application for Engineering Open House (EOH) 2026. Forging the Future requires an evaluation system that's just as innovative as the exhibits on display. This tool replaces traditional, arbitrary rubric grading with a fast, fair, and mathematically sound relative judging process.
+A judging application for Engineering Open House (EOH) 2026. What can be engineered necessarily can be over-engineered, and thus this project was born. This tool augments the existing points-based scoring system with a fast, fair, and mathematically sound relation-based judging process.
 
 ## The Case for Relative Judging
 
@@ -24,8 +26,8 @@ By focusing entirely on head-to-head comparisons, we build a directed graph wher
 
 We built this application to be as fast and intuitive as possible so you can spend your time talking to students, not fighting with a spreadsheet.
 
-1. **Setup Your Bracket:** Head to the **Setup** tab to define your categories (e.g., Innovation, Impact) and drop in the IDs of the projects you're evaluating. The bulk import feature lets you paste your entire list at once.
-2. **Start Comparing:** Go to the **Judging** tab. Select a category and start putting exhibits head-to-head. Our engine tracks the matrix and suggests the most critical missing comparisons to help you build a complete ranking quickly.
+1. **Setup Your Bracket:** Head to the **Setup** tab to define your categories (e.g., Innovation, Impact) and drop in the IDs of the projects you're evaluating. The **Bulk Import** feature lets you paste your entire list at once. You can also use **Partition Planning** to divide large pools of exhibits into smaller, overlapping groups, ensuring statistical connectivity while reducing judge fatigue.
+2. **Start Comparing:** Go to the **Judging** tab. Select a category and start putting exhibits head-to-head. Our engine tracks the comparison matrix and suggests the most critical missing links to help you build a complete ranking quickly. You can also filter by your assigned judging group to focus on a specific partition.
 3. **Lock In the Results:** The **Results** tab calculates the live standings. As long as there are no logical cycles in your comparisons, you'll see the final, normalized scores ready for the awards ceremony.
 
 ## Development & Deployment

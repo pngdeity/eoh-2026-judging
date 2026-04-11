@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -13,6 +14,7 @@ using Xunit;
 
 namespace ContestJudging.Tests
 {
+    [UnconditionalSuppressMessage("Trimming", "IL2026:RequiresUnreferencedCode", Justification = "Infrastructure tests require EF Core which is not trimming-safe.")]
     public class InfrastructureTests
     {
         private async Task<ContestDbContext> GetDbContextAsync()

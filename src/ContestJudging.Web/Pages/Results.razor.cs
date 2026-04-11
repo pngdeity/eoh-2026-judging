@@ -1,6 +1,7 @@
 using ContestJudging.Core.Entities;
-using ContestJudging.Services.Managers;
 using ContestJudging.Core.Interfaces.Repositories;
+using ContestJudging.Services.Managers;
+
 using Microsoft.AspNetCore.Components;
 
 namespace ContestJudging.Web.Pages
@@ -38,7 +39,7 @@ namespace ContestJudging.Web.Pages
             {
                 // We use the new consolidated manager method
                 var result = await ContestManager.CalculateGlobalScoresAsync(cat.Id, cat.MaxScore);
-                
+
                 if (!result.IsValid)
                 {
                     validationErrors.Add($"Category '{cat.Id}': {result.ErrorMessage}");

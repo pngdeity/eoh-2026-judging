@@ -1,6 +1,8 @@
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Threading.Tasks;
+
 using ContestJudging.Core.Entities;
 
 using Microsoft.EntityFrameworkCore;
@@ -38,11 +40,12 @@ namespace ContestJudging.Infrastructure.Persistence
 
     public class ContestDbContext : DbContext
     {
-        public DbSet<CategoryEntity> Categories { get; set; }
-        public DbSet<EntryEntity> Entries { get; set; }
-        public DbSet<RelationEntity> Relations { get; set; }
-        public DbSet<EntryScoreEntity> EntryScores { get; set; }
+        public DbSet<CategoryEntity> Categories { get; set; } = null!;
+        public DbSet<EntryEntity> Entries { get; set; } = null!;
+        public DbSet<RelationEntity> Relations { get; set; } = null!;
+        public DbSet<EntryScoreEntity> EntryScores { get; set; } = null!;
 
+        [RequiresUnreferencedCode("EF Core is not trimming-safe.")]
         public ContestDbContext(DbContextOptions<ContestDbContext> options) : base(options)
         {
         }

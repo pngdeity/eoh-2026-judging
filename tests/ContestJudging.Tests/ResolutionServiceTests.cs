@@ -1,7 +1,9 @@
+using System.Collections.Generic;
+
 using ContestJudging.Core.Entities;
 using ContestJudging.Services.Resolution;
+
 using Xunit;
-using System.Collections.Generic;
 
 namespace ContestJudging.Tests
 {

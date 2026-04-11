@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
+using Blazored.LocalStorage;
+
 using ContestJudging.Core.Entities;
 using ContestJudging.Core.Interfaces.Repositories;
 using ContestJudging.Services.Managers;
@@ -10,7 +12,6 @@ using ContestJudging.Services.Partitioning;
 
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Web;
-using Blazored.LocalStorage;
 
 namespace ContestJudging.Web.Pages
 {
