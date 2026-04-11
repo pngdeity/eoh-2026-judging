@@ -1,6 +1,9 @@
 :root {
     --eoh-orange: #FF5F05;
     --eoh-blue: #13294B;
+    --eoh-purple: #71426C;
+    --eoh-azure: #4D91C6;
+    --eoh-red: #923838; /* Official Judge Color */
     --eoh-light-gray: #f8f9fa;
     --eoh-border: #dee2e6;
     --eoh-font-headings: "Public Sans", "Montserrat", "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
@@ -21,37 +24,37 @@ h1, h2, h3, h4, h5, h6, .navbar-brand {
 }
 
 a, .btn-link {
-    color: var(--eoh-orange);
+    color: var(--eoh-azure);
     text-decoration: none;
     transition: color 0.2s ease-in-out;
 }
 
 a:hover {
-    color: #cc4c04;
+    color: var(--eoh-blue);
 }
 
 .btn-primary {
     color: #fff;
-    background-color: var(--eoh-orange);
-    border-color: var(--eoh-orange);
+    background-color: var(--eoh-red);
+    border-color: var(--eoh-red);
     font-weight: 600;
     text-transform: uppercase;
     border-radius: 2px;
 }
 
 .btn-primary:hover {
-    background-color: #e65604;
-    border-color: #d95104;
+    background-color: #7a2f2f;
+    border-color: #632626;
 }
 
 .btn-outline-primary {
-    color: var(--eoh-orange);
-    border-color: var(--eoh-orange);
+    color: var(--eoh-red);
+    border-color: var(--eoh-red);
     border-radius: 2px;
 }
 
 .btn-outline-primary:hover {
-    background-color: var(--eoh-orange);
+    background-color: var(--eoh-red);
     color: white;
 }
 
@@ -69,8 +72,8 @@ a:hover {
 }
 
 .btn:focus, .btn:active:focus, .btn-link.nav-link:focus, .form-control:focus, .form-check-input:focus {
-  box-shadow: 0 0 0 0.1rem white, 0 0 0 0.25rem rgba(255, 95, 5, 0.25);
-  border-color: var(--eoh-orange);
+  box-shadow: 0 0 0 0.1rem white, 0 0 0 0.25rem rgba(146, 56, 56, 0.25);
+  border-color: var(--eoh-red);
 }
 
 .content {
