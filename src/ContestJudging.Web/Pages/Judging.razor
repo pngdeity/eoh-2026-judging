@@ -1,0 +1,224 @@
+@page "/judging"
+@using ContestJudging.Core.Entities
+@using ContestJudging.Core.Interfaces.Repositories
+@inject ICategoryRepository CategoryRepository
+@inject IEntryRepository EntryRepository
+@inject IRelationRepository RelationRepository
+
+<h3>Judging</h3>
+
+<div class="row mb-3">
+    <div class="col-md-4">
+        <label class="form-label">Select Category</label>
+        <select class="form-select" @onchange="OnCategoryChanged">
+            <option value="">-- Choose Category --</option>
+            @foreach (var cat in categories)
+            {
+                <option value="@cat.Id">@cat.Id</option>
+            }
+        </select>
+    </div>
+</div>
+
+@if (selectedCategory != null)
+{
+    <div class="card p-3 mb-3">
+        <h4>New Relation</h4>
+        <div class="row align-items-end">
+            <div class="col-md-3">
+                <label class="form-label">Entry A</label>
+                <select class="form-select" @bind="entryAId">
+                    <option value="">-- Choose Entry --</option>
+                    @foreach (var entry in entries)
+                    {
+                        <option value="@entry.Id">@entry.Id</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-2 text-center">
+                <label class="form-label">Relationship</label>
+                <select class="form-select" @bind="op">
+                    <option value="@Operator.GreaterThan">is better than (>)</option>
+                    <option value="@Operator.LessThan">is worse than (&lt;)</option>
+                    <option value="@Operator.EqualTo">is equal to (=)</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Entry B</label>
+                <select class="form-select" @bind="entryBId">
+                    <option value="">-- Choose Entry --</option>
+                    @foreach (var entry in entries)
+                    {
+                        <option value="@entry.Id">@entry.Id</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-2">
+                <button class="btn btn-success w-100" @onclick="AddRelation">Add</button>
+            </div>
+        </div>
+        @if (!string.IsNullOrEmpty(errorMessage))
+        {
+            <div class="text-danger mt-2">@errorMessage</div>
+        }
+    </div>
+
+    <h4>Current Relations for @selectedCategory.Id</h4>
+    <div class="alert alert-info py-2">
+        <strong>Suggested Comparison:</strong>
+        @if (suggestedPair != null)
+        {
+            <span>How does <strong>@suggestedPair.Item1</strong> compare to <strong>@suggestedPair.Item2</strong>?</span>
+            <button class="btn btn-sm btn-outline-info ms-2" @onclick="ApplySuggestion">Set as Entry A & B</button>
+        }
+        else if (entries.Count > 1)
+        {
+            <span>All entries have at least one comparison, or no more suggestions available.</span>
+        }
+        else
+        {
+            <span>Add more entries in Setup to start comparing.</span>
+        }
+    </div>
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Entry A</th>
+                <th>Relationship</th>
+                <th>Entry B</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var rel in relations)
+            {
+                <tr>
+                    <td>@rel.EntryA.Id</td>
+                    <td>@GetOpText(rel.Operator)</td>
+                    <td>@rel.EntryB.Id</td>
+                    <td>
+                        <button class="btn btn-danger btn-sm" @onclick="() => DeleteRelation(rel)">Delete</button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private List<Category> categories = new();
+    private List<Entry> entries = new();
+    private List<Relation> relations = new();
+    
+    private Category? selectedCategory;
+    private string entryAId = "";
+    private string entryBId = "";
+    private Operator op = Operator.GreaterThan;
+    private string errorMessage = "";
+    private Tuple<string, string>? suggestedPair;
+
+    protected override async Task OnInitializedAsync()
+    {
+        categories = (await CategoryRepository.GetAllAsync()).ToList();
+        entries = (await EntryRepository.GetAllAsync()).ToList();
+    }
+
+    private async Task OnCategoryChanged(ChangeEventArgs e)
+    {
+        var categoryId = e.Value?.ToString();
+        if (string.IsNullOrEmpty(categoryId))
+        {
+            selectedCategory = null;
+            relations.Clear();
+            suggestedPair = null;
+        }
+        else
+        {
+            selectedCategory = categories.FirstOrDefault(c => c.Id == categoryId);
+            await RefreshRelations();
+        }
+    }
+
+    private async Task RefreshRelations()
+    {
+        if (selectedCategory != null)
+        {
+            relations = (await RelationRepository.GetByCategoryIdAsync(selectedCategory.Id)).ToList();
+            FindSuggestedPair();
+        }
+    }
+
+    private void FindSuggestedPair()
+    {
+        suggestedPair = null;
+        if (entries.Count < 2) return;
+
+        var existingPairs = new HashSet<(string, string)>();
+        foreach(var rel in relations)
+        {
+            existingPairs.Add((rel.EntryA.Id, rel.EntryB.Id));
+            existingPairs.Add((rel.EntryB.Id, rel.EntryA.Id));
+        }
+
+        for (int i = 0; i < entries.Count; i++)
+        {
+            for (int j = i + 1; j < entries.Count; j++)
+            {
+                var a = entries[i].Id;
+                var b = entries[j].Id;
+                if (!existingPairs.Contains((a, b)))
+                {
+                    suggestedPair = new Tuple<string, string>(a, b);
+                    return;
+                }
+            }
+        }
+    }
+
+    private void ApplySuggestion()
+    {
+        if (suggestedPair != null)
+        {
+            entryAId = suggestedPair.Item1;
+            entryBId = suggestedPair.Item2;
+        }
+    }
+
+    private async Task AddRelation()
+    {
+        errorMessage = "";
+        if (selectedCategory == null) return;
+        if (string.IsNullOrEmpty(entryAId) || string.IsNullOrEmpty(entryBId))
+        {
+            errorMessage = "Please select both entries.";
+            return;
+        }
+        if (entryAId == entryBId)
+        {
+            errorMessage = "Entry A and Entry B must be different.";
+            return;
+        }
+
+        var entryA = entries.First(e => e.Id == entryAId);
+        var entryB = entries.First(e => e.Id == entryBId);
+        var relation = new Relation(selectedCategory, entryA, op, entryB);
+
+        await RelationRepository.AddAsync(relation);
+        await RefreshRelations();
+    }
+
+    private async Task DeleteRelation(Relation rel)
+    {
+        if (selectedCategory == null) return;
+        await RelationRepository.DeleteAsync(selectedCategory.Id, rel.EntryA.Id, rel.EntryB.Id);
+        await RefreshRelations();
+    }
+
+    private string GetOpText(Operator o) => o switch
+    {
+        Operator.GreaterThan => "is better than ( > )",
+        Operator.LessThan => "is worse than ( < )",
+        Operator.EqualTo => "is equal to ( = )",
+        _ => "unknown"
+    };
+}
