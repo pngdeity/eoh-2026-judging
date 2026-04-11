@@ -36,5 +36,28 @@ namespace ContestJudging.Services.Scoring
 
             return assignedScores;
         }
+
+        public Dictionary<string, double> CalculateScoresFromStrengths(Dictionary<string, double> globalStrengths, double maxScore)
+        {
+            // Percentile for continuous strengths: rank entries by strength and use their percentile
+            var assignedScores = new Dictionary<string, double>();
+            if (globalStrengths.Count == 0) return assignedScores;
+            if (globalStrengths.Count == 1)
+            {
+                assignedScores[globalStrengths.Keys.First()] = maxScore;
+                return assignedScores;
+            }
+
+            var sortedEntries = globalStrengths.OrderBy(kvp => kvp.Value).ToList();
+            int n = sortedEntries.Count;
+
+            for (int i = 0; i < n; i++)
+            {
+                double score = ((double)i / (n - 1)) * maxScore;
+                assignedScores[sortedEntries[i].Key] = Math.Round(score, 2);
+            }
+
+            return assignedScores;
+        }
     }
 }

@@ -308,5 +308,38 @@ namespace ContestJudging.Services.Validation
             sortedTiers.Reverse();
             return sortedTiers;
         }
+
+        public ValidationResult ValidatePartitionedGraph(IEnumerable<Relation> globalRelations, IEnumerable<string> allEntryIds)
+        {
+            var relationsList = globalRelations.ToList();
+            var allEntryIdsList = allEntryIds.ToList();
+
+            // 1. Cycle Detection (and Transitive Reduction / Tie Handling)
+            if (!IsValidOrder(relationsList, allEntryIdsList))
+            {
+                return new ValidationResult(false, "The judging graph contains cycles.", 0);
+            }
+
+            // 2. Connectivity Check (Using Undirected Union-Find)
+            var connectivityUf = new UnionFind(allEntryIdsList);
+            foreach (var rel in relationsList)
+            {
+                connectivityUf.Union(rel.EntryA.Id, rel.EntryB.Id);
+            }
+
+            var uniqueRoots = new HashSet<string>();
+            foreach (var entryId in allEntryIdsList)
+            {
+                uniqueRoots.Add(connectivityUf.Find(entryId));
+            }
+
+            int componentCount = uniqueRoots.Count;
+            if (componentCount > 1)
+            {
+                return new ValidationResult(false, "The graph is not fully connected. Bridge nodes failed to overlap correctly.", componentCount);
+            }
+
+            return new ValidationResult(true, string.Empty, 1);
+        }
     }
 }

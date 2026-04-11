@@ -148,5 +148,84 @@ namespace ContestJudging.Tests
             Assert.True(result[0].Contains("B") && result[0].Contains("D"));
             Assert.True(result[1].Contains("A") && result[1].Contains("C"));
         }
+
+        [Fact]
+        public void ValidatePartitionedGraph_DisconnectedGraph_ShouldReturnInvalid()
+        {
+            // Arrange
+            var service = new GraphValidationService();
+            var cat = new Category("cat1", 10);
+            var entryA = new Entry("A");
+            var entryB = new Entry("B");
+            var entryC = new Entry("C");
+            var entryD = new Entry("D");
+            var allEntryIds = new List<string> { "A", "B", "C", "D" };
+
+            // Two disconnected components: (A>B) and (C>D)
+            var relations = new List<Relation>
+            {
+                new Relation(cat, entryA, Operator.GreaterThan, entryB),
+                new Relation(cat, entryC, Operator.GreaterThan, entryD)
+            };
+
+            // Act
+            var result = service.ValidatePartitionedGraph(relations, allEntryIds);
+
+            // Assert
+            Assert.False(result.IsValid);
+            Assert.Equal(2, result.ComponentCount);
+        }
+
+        [Fact]
+        public void ValidatePartitionedGraph_ConnectedGraph_ShouldReturnValid()
+        {
+            // Arrange
+            var service = new GraphValidationService();
+            var cat = new Category("cat1", 10);
+            var entryA = new Entry("A");
+            var entryB = new Entry("B");
+            var entryBridge = new Entry("Bridge");
+            var allEntryIds = new List<string> { "A", "B", "Bridge" };
+
+            // One connected component via Bridge: A > Bridge > B
+            var relations = new List<Relation>
+            {
+                new Relation(cat, entryA, Operator.GreaterThan, entryBridge),
+                new Relation(cat, entryBridge, Operator.GreaterThan, entryB)
+            };
+
+            // Act
+            var result = service.ValidatePartitionedGraph(relations, allEntryIds);
+
+            // Assert
+            Assert.True(result.IsValid);
+            Assert.Equal(1, result.ComponentCount);
+        }
+
+        [Fact]
+        public void ValidatePartitionedGraph_WithCycles_ShouldReturnInvalid()
+        {
+            // Arrange
+            var service = new GraphValidationService();
+            var cat = new Category("cat1", 10);
+            var entryA = new Entry("A");
+            var entryB = new Entry("B");
+            var entryC = new Entry("C");
+            var allEntryIds = new List<string> { "A", "B", "C" };
+
+            // Cycle: A > B > C > A
+            var relations = new List<Relation>
+            {
+                new Relation(cat, entryA, Operator.GreaterThan, entryB),
+                new Relation(cat, entryB, Operator.GreaterThan, entryC),
+                new Relation(cat, entryC, Operator.GreaterThan, entryA)
+            };
+
+            // Act
+            var result = service.ValidatePartitionedGraph(relations, allEntryIds);
+
+            // Assert
+            Assert.False(result.IsValid);
+        }
     }
 }
