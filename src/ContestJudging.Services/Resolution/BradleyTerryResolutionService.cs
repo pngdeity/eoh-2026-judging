@@ -78,7 +78,7 @@ namespace ContestJudging.Services.Resolution
                     {
                         nextGamma[i] = gamma[i];
                     }
-                    
+
                     maxDiff = Math.Max(maxDiff, Math.Abs(nextGamma[i] - gamma[i]));
                 }
 
@@ -105,10 +105,10 @@ namespace ContestJudging.Services.Resolution
                         }
                     }
 
-                    if (stable && maxDiff < 1e-3) 
+                    if (stable && maxDiff < 1e-3)
                     {
                         gamma = nextGamma;
-                        break; 
+                        break;
                     }
 
                     for (int i = 0; i < n; i++) lastRanks[i] = currentRanks[i];

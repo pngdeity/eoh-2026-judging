@@ -1,3 +1,5 @@
+using System.Diagnostics.CodeAnalysis;
+
 using ContestJudging.Core.Interfaces;
 using ContestJudging.Core.Interfaces.Repositories;
 using ContestJudging.Infrastructure.Persistence;
@@ -15,6 +17,7 @@ namespace ContestJudging.Services.Extensions
 {
     public static class ServiceCollectionExtensions
     {
+        [RequiresUnreferencedCode("EF Core is not trimming-safe.")]
         public static IServiceCollection AddContestJudgingServices(this IServiceCollection services, string connectionString = "Data Source=:memory:")
         {
             services.AddDbContext<ContestDbContext>(options =>
