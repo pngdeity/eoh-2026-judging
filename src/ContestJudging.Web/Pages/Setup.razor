@@ -1,8 +1,7 @@
 @page "/setup"
 @using ContestJudging.Core.Entities
-@using ContestJudging.Core.Interfaces.Repositories
-@inject ICategoryRepository CategoryRepository
-@inject IEntryRepository EntryRepository
+
+<PageTitle>EOH 2026 - Setup</PageTitle>
 
 <h3>Contest Setup</h3>
 
@@ -84,104 +83,53 @@
     </div>
 </div>
 
-@code {
-    private List<Category> categories = new();
-    private List<Entry> entries = new();
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card p-4 shadow-sm border-start border-4 border-info">
+            <h4 class="mb-3"><i class="bi bi-diagram-2-fill me-2"></i>Partition Planning</h4>
+            <p class="text-muted small">Divide exhibits into groups with "bridge nodes" to ensure statistical connectivity while reducing judge workload.</p>
+            
+            <div class="row g-3 align-items-end">
+                <div class="col-md-3">
+                    <label class="form-label">Judging Groups (k)</label>
+                    <input type="number" class="form-control" @bind="kPartitions" min="1" />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Overlap Rate (o)</label>
+                    <input type="number" class="form-control" @bind="overlapRate" step="0.01" min="0" max="1" />
+                </div>
+                <div class="col-md-3">
+                    <button class="btn btn-info text-white w-100" @onclick="GeneratePartitions">
+                        Preview Partitions
+                    </button>
+                </div>
+            </div>
 
-    private CategoryModel newCategory = new();
-    private EntryModel newEntry = new();
-    private string bulkEntriesText = "";
-
-    protected override async Task OnInitializedAsync()
-    {
-        await RefreshData();
-    }
-
-    private async Task RefreshData()
-    {
-        categories = (await CategoryRepository.GetAllAsync()).ToList();
-        entries = (await EntryRepository.GetAllAsync()).ToList();
-    }
-
-    private async Task ClearCategories()
-    {
-        foreach (var cat in categories.ToList())
-        {
-            await CategoryRepository.DeleteAsync(cat.Id);
-        }
-        await RefreshData();
-    }
-
-    private async Task ClearEntries()
-    {
-        foreach (var entry in entries.ToList())
-        {
-            await EntryRepository.DeleteAsync(entry.Id);
-        }
-        await RefreshData();
-    }
-
-    private async Task BulkImportEntries()
-    {
-        if (string.IsNullOrWhiteSpace(bulkEntriesText)) return;
-
-        var newEntries = bulkEntriesText.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries)
-            .Select(s => s.Trim())
-            .Where(s => !string.IsNullOrEmpty(s))
-            .Distinct();
-
-        foreach (var entryId in newEntries)
-        {
-            if (!entries.Any(e => e.Id == entryId))
+            @if (generatedPartitions != null)
             {
-                await EntryRepository.AddAsync(new Entry(entryId));
+                <div class="row mt-4">
+                    @foreach (var p in generatedPartitions)
+                    {
+                        <div class="col-md-4 mb-3">
+                            <div class="card h-100">
+                                <div class="card-header bg-light fw-bold">Group @p.Key</div>
+                                <div class="card-body py-2">
+                                    <ul class="list-unstyled mb-0">
+                                        @foreach (var entryId in p.Value)
+                                        {
+                                            var isBridge = generatedPartitions.Values.Count(v => v.Contains(entryId)) > 1;
+                                            <li class="py-1 @(isBridge ? "text-primary fw-bold" : "")">
+                                                @if (isBridge) { <i class="bi bi-link-45deg"></i> }
+                                                @entryId
+                                            </li>
+                                        }
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
             }
-        }
-
-        bulkEntriesText = "";
-        await RefreshData();
-    }
-
-    private async Task AddCategory()
-    {
-        if (string.IsNullOrWhiteSpace(newCategory.Id)) return;
-        
-        var category = new Category(newCategory.Id, newCategory.MaxScore);
-        await CategoryRepository.AddAsync(category);
-        newCategory = new();
-        await RefreshData();
-    }
-
-    private async Task DeleteCategory(string id)
-    {
-        await CategoryRepository.DeleteAsync(id);
-        await RefreshData();
-    }
-
-    private async Task AddEntry()
-    {
-        if (string.IsNullOrWhiteSpace(newEntry.Id)) return;
-
-        var entry = new Entry(newEntry.Id);
-        await EntryRepository.AddAsync(entry);
-        newEntry = new();
-        await RefreshData();
-    }
-
-    private async Task DeleteEntry(string id)
-    {
-        await EntryRepository.DeleteAsync(id);
-        await RefreshData();
-    }
-
-    public class CategoryModel
-    {
-        public string Id { get; set; } = string.Empty;
-        public double MaxScore { get; set; } = 10;
-    }
-
-    public class EntryModel
-    {
-        public string Id { get; set; } = string.Empty;
-    }
-}
+        </div>
+    </div>
+</div>

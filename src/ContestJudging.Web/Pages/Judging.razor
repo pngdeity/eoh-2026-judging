@@ -1,16 +1,14 @@
 @page "/judging"
 @using ContestJudging.Core.Entities
-@using ContestJudging.Core.Interfaces.Repositories
-@inject ICategoryRepository CategoryRepository
-@inject IEntryRepository EntryRepository
-@inject IRelationRepository RelationRepository
+
+<PageTitle>EOH 2026 - Judging</PageTitle>
 
 <h3>Judging</h3>
 
 <div class="row mb-3">
     <div class="col-md-4">
-        <label class="form-label">Select Category</label>
-        <select class="form-select" @onchange="OnCategoryChanged">
+        <label class="form-label fw-bold text-uppercase">1. Select Category</label>
+        <select class="form-select border-primary" @onchange="OnCategoryChanged">
             <option value="">-- Choose Category --</option>
             @foreach (var cat in categories)
             {
@@ -22,203 +20,135 @@
 
 @if (selectedCategory != null)
 {
-    <div class="card p-3 mb-3">
-        <h4>New Relation</h4>
-        <div class="row align-items-end">
+    <div class="card p-4 mb-4 border-start border-4 border-primary shadow-sm">
+        <h4 class="mb-3 text-primary"><i class="bi bi-filter-circle-fill me-2"></i>Partition Focus</h4>
+        <p class="text-muted small">Filter entries by judging group to focus your comparisons. Bridge nodes will automatically appear in multiple groups.</p>
+        
+        <div class="row g-3 align-items-end">
             <div class="col-md-3">
-                <label class="form-label">Entry A</label>
+                <label class="form-label">Total Groups (k)</label>
+                <input type="number" class="form-control" @bind="kPartitions" min="1" />
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Overlap Rate (o)</label>
+                <input type="number" class="form-control" @bind="overlapRate" step="0.01" min="0" max="1" />
+            </div>
+            <div class="col-md-3">
+                <button class="btn btn-primary w-100" @onclick="GeneratePartitions">Activate Partitions</button>
+            </div>
+            @if (currentPartitions != null)
+            {
+                <div class="col-md-3">
+                    <label class="form-label fw-bold">Active Group</label>
+                    <select class="form-select bg-light fw-bold" @onchange="OnPartitionChanged">
+                        @foreach (var pId in currentPartitions.Keys)
+                        {
+                            <option value="@pId">Group @pId</option>
+                        }
+                    </select>
+                </div>
+            }
+        </div>
+    </div>
+
+    <div class="card p-4 mb-4 shadow-sm border-0 bg-light">
+        <h4 class="mb-3"><i class="bi bi-plus-circle-fill me-2 text-success"></i>New Comparison</h4>
+        <div class="row align-items-end g-3">
+            <div class="col-md-4">
+                <label class="form-label">Exhibit A</label>
                 <select class="form-select" @bind="entryAId">
-                    <option value="">-- Choose Entry --</option>
-                    @foreach (var entry in entries)
+                    <option value="">-- Choose Exhibit --</option>
+                    @foreach (var entry in GetFilteredEntries())
                     {
                         <option value="@entry.Id">@entry.Id</option>
                     }
                 </select>
             </div>
             <div class="col-md-2 text-center">
-                <label class="form-label">Relationship</label>
-                <select class="form-select" @bind="op">
-                    <option value="@Operator.GreaterThan">is better than (>)</option>
-                    <option value="@Operator.LessThan">is worse than (&lt;)</option>
-                    <option value="@Operator.EqualTo">is equal to (=)</option>
+                <label class="form-label">Relation</label>
+                <select class="form-select fw-bold" @bind="op">
+                    <option value="@Operator.GreaterThan">&gt; Better</option>
+                    <option value="@Operator.EqualTo">= Equal</option>
+                    <option value="@Operator.LessThan">&lt; Worse</option>
                 </select>
             </div>
-            <div class="col-md-3">
-                <label class="form-label">Entry B</label>
+            <div class="col-md-4">
+                <label class="form-label">Exhibit B</label>
                 <select class="form-select" @bind="entryBId">
-                    <option value="">-- Choose Entry --</option>
-                    @foreach (var entry in entries)
+                    <option value="">-- Choose Exhibit --</option>
+                    @foreach (var entry in GetFilteredEntries())
                     {
                         <option value="@entry.Id">@entry.Id</option>
                     }
                 </select>
             </div>
             <div class="col-md-2">
-                <button class="btn btn-success w-100" @onclick="AddRelation">Add</button>
+                <button class="btn btn-success btn-lg w-100 shadow-sm" @onclick="AddRelation">
+                    <i class="bi bi-check-lg"></i> Submit
+                </button>
             </div>
         </div>
         @if (!string.IsNullOrEmpty(errorMessage))
         {
-            <div class="text-danger mt-2">@errorMessage</div>
+            <div class="text-danger mt-2 fw-bold"><i class="bi bi-x-circle-fill me-1"></i>@errorMessage</div>
         }
     </div>
 
-    <h4>Current Relations for @selectedCategory.Id</h4>
-    <div class="alert alert-info py-2">
-        <strong>Suggested Comparison:</strong>
+    <div class="alert alert-info py-3 shadow-sm border-start border-4 border-info">
+        <h5 class="mb-2 fw-bold"><i class="bi bi-lightbulb-fill me-2"></i>Suggested Comparison</h5>
         @if (suggestedPair != null)
         {
-            <span>How does <strong>@suggestedPair.Item1</strong> compare to <strong>@suggestedPair.Item2</strong>?</span>
-            <button class="btn btn-sm btn-outline-info ms-2" @onclick="ApplySuggestion">Set as Entry A & B</button>
+            <div class="d-flex align-items-center justify-content-between">
+                <span>How does <strong>@suggestedPair.Item1</strong> compare to <strong>@suggestedPair.Item2</strong>?</span>
+                <button class="btn btn-info text-white shadow-sm" @onclick="ApplySuggestion">
+                    <i class="bi bi-magic me-1"></i> Start Comparison
+                </button>
+            </div>
         }
         else if (entries.Count > 1)
         {
-            <span>All entries have at least one comparison, or no more suggestions available.</span>
+            <span class="text-muted">No more suggestions available for this group. All pairs have been compared!</span>
         }
         else
         {
-            <span>Add more entries in Setup to start comparing.</span>
+            <span class="text-muted">Add more exhibits in Setup to start comparing.</span>
         }
     </div>
-    <table class="table table-striped">
-        <thead>
-            <tr>
-                <th>Entry A</th>
-                <th>Relationship</th>
-                <th>Entry B</th>
-                <th>Actions</th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach (var rel in relations)
-            {
-                <tr>
-                    <td>@rel.EntryA.Id</td>
-                    <td>@GetOpText(rel.Operator)</td>
-                    <td>@rel.EntryB.Id</td>
-                    <td>
-                        <button class="btn btn-danger btn-sm" @onclick="() => DeleteRelation(rel)">Delete</button>
-                    </td>
-                </tr>
-            }
-        </tbody>
-    </table>
-}
 
-@code {
-    private List<Category> categories = new();
-    private List<Entry> entries = new();
-    private List<Relation> relations = new();
-    
-    private Category? selectedCategory;
-    private string entryAId = "";
-    private string entryBId = "";
-    private Operator op = Operator.GreaterThan;
-    private string errorMessage = "";
-    private Tuple<string, string>? suggestedPair;
-
-    protected override async Task OnInitializedAsync()
-    {
-        categories = (await CategoryRepository.GetAllAsync()).ToList();
-        entries = (await EntryRepository.GetAllAsync()).ToList();
-    }
-
-    private async Task OnCategoryChanged(ChangeEventArgs e)
-    {
-        var categoryId = e.Value?.ToString();
-        if (string.IsNullOrEmpty(categoryId))
-        {
-            selectedCategory = null;
-            relations.Clear();
-            suggestedPair = null;
-        }
-        else
-        {
-            selectedCategory = categories.FirstOrDefault(c => c.Id == categoryId);
-            await RefreshRelations();
-        }
-    }
-
-    private async Task RefreshRelations()
-    {
-        if (selectedCategory != null)
-        {
-            relations = (await RelationRepository.GetByCategoryIdAsync(selectedCategory.Id)).ToList();
-            FindSuggestedPair();
-        }
-    }
-
-    private void FindSuggestedPair()
-    {
-        suggestedPair = null;
-        if (entries.Count < 2) return;
-
-        var existingPairs = new HashSet<(string, string)>();
-        foreach(var rel in relations)
-        {
-            existingPairs.Add((rel.EntryA.Id, rel.EntryB.Id));
-            existingPairs.Add((rel.EntryB.Id, rel.EntryA.Id));
-        }
-
-        for (int i = 0; i < entries.Count; i++)
-        {
-            for (int j = i + 1; j < entries.Count; j++)
-            {
-                var a = entries[i].Id;
-                var b = entries[j].Id;
-                if (!existingPairs.Contains((a, b)))
-                {
-                    suggestedPair = new Tuple<string, string>(a, b);
-                    return;
-                }
-            }
-        }
-    }
-
-    private void ApplySuggestion()
-    {
-        if (suggestedPair != null)
-        {
-            entryAId = suggestedPair.Item1;
-            entryBId = suggestedPair.Item2;
-        }
-    }
-
-    private async Task AddRelation()
-    {
-        errorMessage = "";
-        if (selectedCategory == null) return;
-        if (string.IsNullOrEmpty(entryAId) || string.IsNullOrEmpty(entryBId))
-        {
-            errorMessage = "Please select both entries.";
-            return;
-        }
-        if (entryAId == entryBId)
-        {
-            errorMessage = "Entry A and Entry B must be different.";
-            return;
-        }
-
-        var entryA = entries.First(e => e.Id == entryAId);
-        var entryB = entries.First(e => e.Id == entryBId);
-        var relation = new Relation(selectedCategory, entryA, op, entryB);
-
-        await RelationRepository.AddAsync(relation);
-        await RefreshRelations();
-    }
-
-    private async Task DeleteRelation(Relation rel)
-    {
-        if (selectedCategory == null) return;
-        await RelationRepository.DeleteAsync(selectedCategory.Id, rel.EntryA.Id, rel.EntryB.Id);
-        await RefreshRelations();
-    }
-
-    private string GetOpText(Operator o) => o switch
-    {
-        Operator.GreaterThan => "is better than ( > )",
-        Operator.LessThan => "is worse than ( < )",
-        Operator.EqualTo => "is equal to ( = )",
-        _ => "unknown"
-    };
+    <div class="card border-0 shadow-sm mt-4">
+        <div class="card-header bg-dark text-white py-3">
+            <h5 class="mb-0"><i class="bi bi-list-check me-2"></i>Recorded Relations (@relations.Count)</h5>
+        </div>
+        <div class="card-body p-0">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th class="ps-4">Exhibit A</th>
+                        <th class="text-center">Relationship</th>
+                        <th>Exhibit B</th>
+                        <th class="pe-4 text-end">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var rel in relations)
+                    {
+                        <tr>
+                            <td class="ps-4 fw-bold">@rel.EntryA.Id</td>
+                            <td class="text-center">
+                                <span class="badge @(rel.Operator == Operator.EqualTo ? "bg-secondary" : "bg-primary")">
+                                    @GetOpText(rel.Operator)
+                                </span>
+                            </td>
+                            <td class="fw-bold">@rel.EntryB.Id</td>
+                            <td class="pe-4 text-end">
+                                <button class="btn btn-outline-danger btn-sm" @onclick="() => DeleteRelation(rel)">
+                                    <i class="bi bi-trash-fill"></i>
+                                </button>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
 }
