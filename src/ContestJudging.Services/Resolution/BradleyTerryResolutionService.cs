@@ -20,9 +20,6 @@ namespace ContestJudging.Services.Resolution
             var idToIndex = allEntryIdsList.Select((id, index) => new { id, index })
                                           .ToDictionary(x => x.id, x => x.index);
 
-            // Win matrix W[i, j] = number of times i beat j
-            // Count matrix N[i, j] = total comparisons between i and j
-            double[,] wins = new double[n, n];
             double[,] totalComparisons = new double[n, n];
             double[] totalWins = new double[n];
 
@@ -33,22 +30,18 @@ namespace ContestJudging.Services.Resolution
 
                 if (rel.Operator == Operator.GreaterThan)
                 {
-                    wins[idxA, idxB]++;
                     totalWins[idxA]++;
                     totalComparisons[idxA, idxB]++;
                     totalComparisons[idxB, idxA]++;
                 }
                 else if (rel.Operator == Operator.LessThan)
                 {
-                    wins[idxB, idxA]++;
                     totalWins[idxB]++;
                     totalComparisons[idxA, idxB]++;
                     totalComparisons[idxB, idxA]++;
                 }
                 else if (rel.Operator == Operator.EqualTo)
                 {
-                    wins[idxA, idxB] += 0.5;
-                    wins[idxB, idxA] += 0.5;
                     totalWins[idxA] += 0.5;
                     totalWins[idxB] += 0.5;
                     totalComparisons[idxA, idxB]++;
@@ -58,6 +51,8 @@ namespace ContestJudging.Services.Resolution
 
             // MLE Iterative Scaling (Bradley-Terry)
             double[] gamma = Enumerable.Repeat(1.0, n).ToArray();
+            int[] lastRanks = new int[n];
+
             for (int iter = 0; iter < MaxIterations; iter++)
             {
                 double[] nextGamma = new double[n];
@@ -87,9 +82,37 @@ namespace ContestJudging.Services.Resolution
                     maxDiff = Math.Max(maxDiff, Math.Abs(nextGamma[i] - gamma[i]));
                 }
 
-                // Normalize gamma to prevent overflow/underflow
+                // Normalize gamma
                 double sum = nextGamma.Sum();
                 for (int i = 0; i < n; i++) nextGamma[i] /= sum;
+
+                // TRICKY OPTIMIZATION #4: MLE Early-Exit based on Rank Stability
+                if (iter > 50 && iter % 10 == 0)
+                {
+                    var currentRanks = nextGamma
+                        .Select((val, idx) => new { val, idx })
+                        .OrderByDescending(x => x.val)
+                        .Select((x, rank) => new { x.idx, rank })
+                        .ToDictionary(x => x.idx, x => x.rank);
+
+                    bool stable = true;
+                    for (int i = 0; i < n; i++)
+                    {
+                        if (currentRanks[i] != lastRanks[i])
+                        {
+                            stable = false;
+                            break;
+                        }
+                    }
+
+                    if (stable && maxDiff < 1e-3) 
+                    {
+                        gamma = nextGamma;
+                        break; 
+                    }
+
+                    for (int i = 0; i < n; i++) lastRanks[i] = currentRanks[i];
+                }
 
                 gamma = nextGamma;
                 if (maxDiff < ConvergenceThreshold) break;
@@ -98,7 +121,6 @@ namespace ContestJudging.Services.Resolution
             var results = new Dictionary<string, double>();
             for (int i = 0; i < n; i++)
             {
-                // We use Log(gamma) as the continuous strength metric as it's more standard for BT
                 results[allEntryIdsList[i]] = Math.Log(gamma[i]);
             }
 
