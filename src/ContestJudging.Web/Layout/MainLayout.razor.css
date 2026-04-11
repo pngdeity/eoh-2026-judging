@@ -6,6 +6,35 @@
 
 main {
     flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+
+.footer {
+    background-color: var(--eoh-blue);
+    color: white;
+    border-top: 3px solid var(--eoh-orange);
+    z-index: 10;
+}
+
+.github-link {
+    transition: all 0.2s ease-in-out;
+    display: inline-block;
+}
+
+.github-link:hover {
+    transform: translateY(-3px);
+    color: var(--eoh-orange) !important;
+}
+
+.text-white-50 {
+    color: rgba(255, 255, 255, 0.6) !important;
+}
+
+.smaller {
+    font-size: 0.75rem;
+    letter-spacing: 0.05rem;
 }
 
 .sidebar {
