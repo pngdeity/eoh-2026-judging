@@ -1,0 +1,71 @@
+@page "/theory"
+
+<PageTitle>Mathematical Foundations - EOH 2026</PageTitle>
+
+<div class="container mt-4 mb-5">
+    <div class="row">
+        <div class="col-lg-9 mx-auto">
+            <h1 class="display-4 mb-4 border-bottom pb-2">Mathematical Foundations</h1>
+            
+            <p class="lead text-muted italic">
+                A formal treatment of the partitioning logic and statistical resolution engine employed by the EOH 2026 Relative Judging System.
+            </p>
+
+            <section class="mt-5">
+                <h2 class="h3">I. The Problem of Sparse Comparisons</h2>
+                <p>
+                    In a traditional contest with $N$ entries, a total ordering requires $\binom{N}{2}$ pairwise comparisons. As $N$ grows, the workload becomes $O(N^2)$, which is infeasible for human judges. To mitigate this, we employ <strong>Partitioned Judging</strong>. We divide the population into $k$ subsets, but this introduces a new risk: <em>disjoint graphs</em>. Without overlapping data, it is mathematically impossible to compare an entry in Group A with an entry in Group B.
+                </p>
+                <p>
+                    We resolve this by designating $B$ entries as <strong>Bridge Nodes</strong>. These nodes appear in <em>every</em> partition, acting as common baselines that allow us to project local ranks onto a global manifold.
+                </p>
+            </section>
+
+            <section class="mt-5 p-4 bg-light border-start border-4 border-primary">
+                <h2 class="h3">II. The Bradley-Terry Model</h2>
+                <p>
+                    Once the relational data is collected, we treat the results not as a fixed hierarchy, but as a set of probabilistic outcomes. We assume each entry $i$ has an underlying "strength" $\gamma_i > 0$. The probability that entry $i$ is judged superior to entry $j$ is given by the <a href="https://en.wikipedia.org/wiki/Bradley%E2%80%93Terry_model" target="_blank">Bradley-Terry Model</a><sup>1</sup>:
+                </p>
+                <div class="text-center my-4">
+                    <h4 class="fw-bold">$$P(i > j) = \frac{\gamma_i}{\gamma_i + \gamma_j}$$</h4>
+                </div>
+                <p>
+                    To find the most likely values for $\gamma$, we maximize the <strong>Likelihood Function</strong> $L(\gamma)$:
+                </p>
+                <div class="text-center my-3">
+                    $$L(\gamma) = \prod_{i=1}^n \prod_{j=1}^n \left( \frac{\gamma_i}{\gamma_i + \gamma_j} \right)^{w_{ij}}$$
+                </div>
+                <p>
+                    where $w_{ij}$ is the number of times $i$ beat $j$. Since this function is concave, we find the global maximum using an <strong>Iterative Scaling Algorithm</strong><sup>2</sup>.
+                </p>
+            </section>
+
+            <section class="mt-5">
+                <h2 class="h3">III. Convergence and Normalization</h2>
+                <p>
+                    The system iteratively updates the strength parameters until the change between iterations falls below a threshold $\epsilon = 10^{-6}$. To ensure numerical stability across different categories, the final vector $\vec{\gamma}$ is normalized such that $\sum \gamma_i = 1$. 
+                </p>
+                <p>
+                    For the final cardinal score, we operate in the <strong>Log-Stength Space</strong>. The natural logarithm of $\gamma$ provides a linear interval scale where the distance between scores represents a constant ratio of "winning probability," satisfying the requirements for a fair and transitive leaderboard.
+                </p>
+            </section>
+
+            <section class="mt-5 border-top pt-4">
+                <h5 class="text-muted">References & Further Reading</h5>
+                <ol class="small text-muted">
+                    <li><a href="https://en.wikipedia.org/wiki/Bradley%E2%80%93Terry_model" target="_blank">Wikipedia: Bradley-Terry Model</a></li>
+                    <li><a href="https://mathworld.wolfram.com/MaximumLikelihoodEstimator.html" target="_blank">Wolfram MathWorld: Maximum Likelihood Estimator</a></li>
+                    <li>Hunter, D. R. (2004). "MM algorithms for generalized Bradley-Terry models." <em>The Annals of Statistics</em>.</li>
+                </ol>
+            </section>
+        </div>
+    </div>
+</div>
+
+<style>
+    section p {
+        line-height: 1.8;
+        font-size: 1.1rem;
+    }
+    .italic { font-style: italic; }
+</style>
