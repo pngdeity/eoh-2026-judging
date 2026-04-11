@@ -58,6 +58,8 @@ using (var scope = host.Services.CreateScope())
 
 await host.RunAsync();
 
+// Local functions are allowed at the end of top-level statements, 
+// but we must ensure no other code follows them.
 [UnconditionalSuppressMessage("Trimming", "IL2026:RequiresUnreferencedCode", Justification = "EF Core initialization is required at startup. Risk is mitigated by TrimmingSafetyTests.")]
 static void AddServices(IServiceCollection services)
 {

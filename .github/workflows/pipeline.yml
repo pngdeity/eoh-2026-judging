@@ -22,13 +22,28 @@ jobs:
         with:
           dotnet-version: '10.0.x'
 
+      - name: Cache WASM Tools
+        id: cache-wasm-tools
+        uses: actions/cache@v4
+        with:
+          path: ~/.dotnet/workloads
+          key: ${{ runner.os }}-wasm-tools-${{ hashFiles('**/*.csproj', '**/Directory.Build.props') }}
+
+      - name: Install WASM Tools
+        if: steps.cache-wasm-tools.outputs.cache-hit != 'true'
+        run: dotnet workload install wasm-tools
+
       - name: Restore dependencies
         run: dotnet restore ContestJudging.slnx
 
       - name: Check Formatting
         run: dotnet format ContestJudging.slnx --verify-no-changes
 
+      - name: Clean
+        run: dotnet clean ContestJudging.slnx --configuration Release
+
       - name: Build
+        # wasm-tools are required to link native SQLite assets even without AOT
         run: dotnet build ContestJudging.slnx --configuration Release --no-restore
 
       - name: Run Tests
@@ -59,10 +74,22 @@ jobs:
         with:
           dotnet-version: '10.0.x'
 
+      - name: Cache WASM Tools
+        id: cache-wasm-tools-deploy
+        uses: actions/cache@v4
+        with:
+          path: ~/.dotnet/workloads
+          key: ${{ runner.os }}-wasm-tools-${{ hashFiles('**/*.csproj', '**/Directory.Build.props') }}
+
+      - name: Install WASM Tools
+        if: steps.cache-wasm-tools-deploy.outputs.cache-hit != 'true'
+        run: dotnet workload install wasm-tools
+
       - name: Publish Blazor WASM
         run: dotnet publish src/ContestJudging.Web/ContestJudging.Web.csproj -c Release -o release --nologo
 
       # GitHub Pages doesn't support SPA routing well by default (returns 404 on refresh)
+      # We'll copy index.html to 404.html as a common workaround
       - name: Fix SPA Routing for GitHub Pages
         run: cp release/wwwroot/index.html release/wwwroot/404.html
 
