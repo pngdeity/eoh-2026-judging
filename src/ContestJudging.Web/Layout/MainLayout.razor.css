@@ -9,7 +9,7 @@ main {
 }
 
 .sidebar {
-    background-color: var(--eoh-blue);
+    background: linear-gradient(180deg, var(--eoh-blue) 0%, var(--eoh-purple) 100%);
     border-right: 2px solid var(--eoh-orange);
 }
 
