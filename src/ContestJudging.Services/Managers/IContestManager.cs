@@ -16,5 +16,9 @@ namespace ContestJudging.Services.Managers
         
         // NEW: Orchestrates the Partitioned Judging pipeline
         Task<ValidationResult> CalculateGlobalScoresAsync(string categoryId, double maxScore);
+
+        // TRICKY OPTIMIZATION #2
+        Task<byte[]> ExportDataAsync();
+        Task ImportDataAsync(byte[] data);
     }
 }

@@ -5,9 +5,12 @@ using System.Threading.Tasks;
 
 using ContestJudging.Core.Entities;
 using ContestJudging.Core.Interfaces.Repositories;
+using ContestJudging.Services.Managers;
 using ContestJudging.Services.Partitioning;
 
 using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components.Web;
+using Blazored.LocalStorage;
 
 namespace ContestJudging.Web.Pages
 {
@@ -17,6 +20,8 @@ namespace ContestJudging.Web.Pages
         [Inject] private IEntryRepository EntryRepository { get; set; } = default!;
         [Inject] private IRelationRepository RelationRepository { get; set; } = default!;
         [Inject] private IPartitionService PartitionService { get; set; } = default!;
+        [Inject] private IContestManager ContestManager { get; set; } = default!;
+        [Inject] private ILocalStorageService LocalStorage { get; set; } = default!;
 
         private List<Category> categories = new();
         private List<Entry> entries = new();
@@ -63,6 +68,17 @@ namespace ContestJudging.Web.Pages
             {
                 relations = (await RelationRepository.GetByCategoryIdAsync(selectedCategory.Id)).ToList();
                 FindSuggestedPair();
+                await BackupDatabase();
+            }
+        }
+
+        private async Task BackupDatabase()
+        {
+            // TRICKY OPTIMIZATION #2: Save to LocalStorage
+            var data = await ContestManager.ExportDataAsync();
+            if (data.Length > 0)
+            {
+                await LocalStorage.SetItemAsStringAsync("db_backup", Convert.ToBase64String(data));
             }
         }
 

@@ -1,5 +1,6 @@
 using System.Collections.Generic;
-
+using System.IO;
+using System.Threading.Tasks;
 using ContestJudging.Core.Entities;
 
 using Microsoft.EntityFrameworkCore;
@@ -56,6 +57,23 @@ namespace ContestJudging.Infrastructure.Persistence
             modelBuilder.Entity<EntryScoreEntity>()
                 .HasIndex(es => new { es.EntryId, es.CategoryId })
                 .IsUnique();
+        }
+
+        // TRICKY OPTIMIZATION #2: Database Export
+        public async Task<byte[]> ExportDatabaseAsync()
+        {
+            var path = "contest.db";
+            if (File.Exists(path))
+            {
+                return await File.ReadAllBytesAsync(path);
+            }
+            return Array.Empty<byte>();
+        }
+
+        public async Task ImportDatabaseAsync(byte[] data)
+        {
+            var path = "contest.db";
+            await File.WriteAllBytesAsync(path, data);
         }
     }
 }
