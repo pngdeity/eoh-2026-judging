@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using ContestJudging.Core.Entities;
 using ContestJudging.Core.Interfaces;
 using ContestJudging.Core.Interfaces.Repositories;
+using ContestJudging.Infrastructure.Persistence;
 using ContestJudging.Services.Resolution;
 using ContestJudging.Services.Validation;
 
@@ -19,6 +20,7 @@ namespace ContestJudging.Services.Managers
         private readonly IValidationService _validationService;
         private readonly IGlobalRankingService _globalRankingService;
         private readonly IScoringStrategy _scoringStrategy;
+        private readonly ContestDbContext _context;
 
         public ContestManager(
             ICategoryRepository categoryRepository,
@@ -26,7 +28,8 @@ namespace ContestJudging.Services.Managers
             IRelationRepository relationRepository,
             IValidationService validationService,
             IGlobalRankingService globalRankingService,
-            IScoringStrategy scoringStrategy)
+            IScoringStrategy scoringStrategy,
+            ContestDbContext context)
         {
             _categoryRepository = categoryRepository;
             _entryRepository = entryRepository;
@@ -34,6 +37,7 @@ namespace ContestJudging.Services.Managers
             _validationService = validationService;
             _globalRankingService = globalRankingService;
             _scoringStrategy = scoringStrategy;
+            _context = context;
         }
 
         public async Task AddCategoryAsync(Category category)
@@ -110,6 +114,16 @@ namespace ContestJudging.Services.Managers
             }
 
             return validationResult;
+        }
+
+        public async Task<byte[]> ExportDataAsync()
+        {
+            return await _context.ExportDatabaseAsync();
+        }
+
+        public async Task ImportDataAsync(byte[] data)
+        {
+            await _context.ImportDatabaseAsync(data);
         }
     }
 }

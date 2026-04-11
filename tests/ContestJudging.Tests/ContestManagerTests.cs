@@ -27,7 +27,7 @@ namespace ContestJudging.Tests
             var mockResolution = new Mock<IGlobalRankingService>();
             var mockScoring = new Mock<IScoringStrategy>();
 
-            var manager = new ContestManager(mockCatRepo.Object, mockEntryRepo.Object, mockRelRepo.Object, mockValidation.Object, mockResolution.Object, mockScoring.Object);
+            var manager = new ContestManager(mockCatRepo.Object, mockEntryRepo.Object, mockRelRepo.Object, mockValidation.Object, mockResolution.Object, mockScoring.Object, null!);
 
             var cat = new Category("cat1", 10);
             var entryA = new Entry("A");
@@ -61,7 +61,7 @@ namespace ContestJudging.Tests
             var mockResolution = new Mock<IGlobalRankingService>();
             var mockScoring = new Mock<IScoringStrategy>();
 
-            var manager = new ContestManager(mockCatRepo.Object, mockEntryRepo.Object, mockRelRepo.Object, mockValidation.Object, mockResolution.Object, mockScoring.Object);
+            var manager = new ContestManager(mockCatRepo.Object, mockEntryRepo.Object, mockRelRepo.Object, mockValidation.Object, mockResolution.Object, mockScoring.Object, null!);
 
             var cat = new Category("cat1", 10);
             var entryA = new Entry("A");
@@ -98,7 +98,7 @@ namespace ContestJudging.Tests
             var mockResolution = new Mock<IGlobalRankingService>();
             var mockScoring = new Mock<IScoringStrategy>();
 
-            var manager = new ContestManager(mockCatRepo.Object, mockEntryRepo.Object, mockRelRepo.Object, mockValidation.Object, mockResolution.Object, mockScoring.Object);
+            var manager = new ContestManager(mockCatRepo.Object, mockEntryRepo.Object, mockRelRepo.Object, mockValidation.Object, mockResolution.Object, mockScoring.Object, null!);
 
             var cat = new Category("cat1", 10);
             var entryA = new Entry("A");
