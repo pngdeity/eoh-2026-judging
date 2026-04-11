@@ -7,11 +7,16 @@
     
     <!-- Optimizations -->
     <WasmBuildNative Condition="'$(Configuration)' == 'Release'">true</WasmBuildNative>
+    <PublishTrimmed>true</PublishTrimmed>
+    <TrimMode>full</TrimMode>
     <InvariantGlobalization>true</InvariantGlobalization>
     <BlazorEnableTimeZoneSupport>false</BlazorEnableTimeZoneSupport>
     <EventSourceSupport>false</EventSourceSupport>
     <DebuggerSupport Condition="'$(Configuration)' == 'Release'">false</DebuggerSupport>
     <JsonSerializerIsReflectionEnabledByDefault>false</JsonSerializerIsReflectionEnabledByDefault>
+    
+    <!-- Compression -->
+    <BlazorEnableCompression>true</BlazorEnableCompression>
     
     <NoWarn>$(NoWarn);WASM0001</NoWarn>
   </PropertyGroup>
