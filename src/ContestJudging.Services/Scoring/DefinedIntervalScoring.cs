@@ -34,5 +34,24 @@ namespace ContestJudging.Services.Scoring
 
             return assignedScores;
         }
+
+        public Dictionary<string, double> CalculateScoresFromStrengths(Dictionary<string, double> globalStrengths, double maxScore)
+        {
+            // Fallback to simple linear scaling if strengths are provided to a tiered scoring system
+            var assignedScores = new Dictionary<string, double>();
+            if (globalStrengths.Count == 0) return assignedScores;
+
+            double minStrength = globalStrengths.Values.Min();
+            double maxStrength = globalStrengths.Values.Max();
+            double range = maxStrength - minStrength;
+
+            foreach (var kvp in globalStrengths)
+            {
+                double normalized = range < 1e-9 ? 1.0 : (kvp.Value - minStrength) / range;
+                assignedScores[kvp.Key] = Math.Round(normalized * maxScore, 2);
+            }
+
+            return assignedScores;
+        }
     }
 }
