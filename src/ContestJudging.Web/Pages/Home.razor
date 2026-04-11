@@ -1,0 +1,66 @@
+@page "/"
+
+<PageTitle>EOH 2026 - Contest Judging</PageTitle>
+
+<div class="container mt-4">
+    <div class="hero-section text-center p-5 mb-5 bg-dark text-white shadow" style="background: linear-gradient(rgba(19, 41, 75, 0.8), rgba(19, 41, 75, 0.8)), url('https://www.eohillinois.org/wp-content/uploads/2023/10/EOH_Logo_2024_White.png') no-repeat center; background-size: contain;">
+        <h1 class="display-3 mb-3">Forging the Future</h1>
+        <p class="lead mb-4">Official Relative Judging System for Engineering Open House 2026</p>
+        <div class="d-flex justify-content-center gap-3">
+            <a href="setup" class="btn btn-primary btn-lg px-5">Get Started</a>
+            <a href="results" class="btn btn-outline-light btn-lg px-5">View Leaderboard</a>
+        </div>
+    </div>
+    
+    <div class="row text-start g-4">
+        <div class="col-md-4">
+            <div class="card h-100 shadow-sm border-0">
+                <div class="card-body p-4">
+                    <h5 class="card-title"><i class="bi bi-gear-wide-connected me-2"></i>1. Setup</h5>
+                    <p class="card-text text-muted">Create judging categories and drop in your exhibit list. Got a lot of teams? Use the bulk import feature to set up the bracket in seconds.</p>
+                    <a href="setup" class="btn btn-link p-0 fw-bold">Configure Projects &rarr;</a>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card h-100 shadow-sm border-0">
+                <div class="card-body p-4">
+                    <h5 class="card-title text-success"><i class="bi bi-cpu-fill me-2"></i>2. Judging</h5>
+                    <p class="card-text text-muted">Put exhibits head-to-head. The system tracks the match-ups and suggests which pairs need to be compared next to build a complete ranking.</p>
+                    <a href="judging" class="btn btn-link p-0 fw-bold">Start Comparisons &rarr;</a>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card h-100 shadow-sm border-0">
+                <div class="card-body p-4">
+                    <h5 class="card-title text-warning"><i class="bi bi-bar-chart-fill me-2"></i>3. Results</h5>
+                    <p class="card-text text-muted">Check out the live standings. As judges make their calls, the leaderboard updates automatically using either linear or percentile scoring.</p>
+                    <a href="results" class="btn btn-link p-0 fw-bold">Analyze Results &rarr;</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="mt-5 p-5 bg-light rounded shadow-sm border-start border-4 border-orange">
+        <div class="row align-items-center">
+            <div class="col-lg-8">
+                <h2 class="mb-3">Why Relative Judging?</h2>
+                <p class="lead text-muted">With hundreds of brilliant exhibits on display across campus, maintaining consistent scoring is a serious challenge.</p>
+                <p>Instead of assigning arbitrary numbers on a rubric, relative judging asks a simpler question: "Is Project A more innovative than Project B?" By focusing entirely on these direct match-ups, we eliminate score inflation and ensure the fairest possible ranking for everyone involved.</p>
+            </div>
+            <div class="col-lg-4 text-center d-none d-lg-block">
+                <i class="bi bi-diagram-3" style="font-size: 8rem; color: var(--eoh-orange); opacity: 0.2;"></i>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .border-orange {
+        border-color: var(--eoh-orange) !important;
+    }
+    .hero-section {
+        border-bottom: 5px solid var(--eoh-orange);
+    }
+</style>

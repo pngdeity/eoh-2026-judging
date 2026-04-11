@@ -1,0 +1,187 @@
+@page "/setup"
+@using ContestJudging.Core.Entities
+@using ContestJudging.Core.Interfaces.Repositories
+@inject ICategoryRepository CategoryRepository
+@inject IEntryRepository EntryRepository
+
+<h3>Contest Setup</h3>
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <h4>Categories</h4>
+            @if (categories.Any())
+            {
+                <button class="btn btn-outline-danger btn-sm" @onclick="ClearCategories">Clear All</button>
+            }
+        </div>
+        <div class="card p-3 mb-3">
+            <EditForm Model="@newCategory" OnValidSubmit="AddCategory">
+                <DataAnnotationsValidator />
+                <ValidationSummary />
+
+                <div class="mb-3">
+                    <label class="form-label">Category Name (ID)</label>
+                    <InputText class="form-control" @bind-Value="newCategory.Id" />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Maximum Score</label>
+                    <InputNumber class="form-control" @bind-Value="newCategory.MaxScore" />
+                </div>
+                <button type="submit" class="btn btn-primary">Add Category</button>
+            </EditForm>
+        </div>
+
+        <ul class="list-group">
+            @foreach (var cat in categories)
+            {
+                <li class="list-group-item d-flex justify-content-between align-items-center">
+                    @cat.Id (Max: @cat.MaxScore)
+                    <button class="btn btn-danger btn-sm" @onclick="() => DeleteCategory(cat.Id)">Delete</button>
+                </li>
+            }
+        </ul>
+    </div>
+
+    <div class="col-md-6">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <h4>Entries (Teams/Projects)</h4>
+            @if (entries.Any())
+            {
+                <button class="btn btn-outline-danger btn-sm" @onclick="ClearEntries">Clear All</button>
+            }
+        </div>
+        <div class="card p-3 mb-3">
+            <EditForm Model="@newEntry" OnValidSubmit="AddEntry">
+                <DataAnnotationsValidator />
+                <ValidationSummary />
+
+                <div class="mb-3">
+                    <label class="form-label">Entry Name (ID)</label>
+                    <InputText class="form-control" @bind-Value="newEntry.Id" />
+                </div>
+                <button type="submit" class="btn btn-primary">Add Entry</button>
+            </EditForm>
+        </div>
+
+        <ul class="list-group">
+            @foreach (var entry in entries)
+            {
+                <li class="list-group-item d-flex justify-content-between align-items-center">
+                    @entry.Id
+                    <button class="btn btn-danger btn-sm" @onclick="() => DeleteEntry(entry.Id)">Delete</button>
+                </li>
+            }
+        </ul>
+        <div class="card p-3 mb-3 mt-4">
+            <h4>Bulk Import Entries</h4>
+            <div class="mb-3">
+                <label class="form-label">Entry Names (one per line)</label>
+                <textarea class="form-control" rows="5" @bind="bulkEntriesText" placeholder="Entry 1&#10;Entry 2&#10;Entry 3"></textarea>
+            </div>
+            <button class="btn btn-secondary" @onclick="BulkImportEntries">Import Entries</button>
+        </div>
+    </div>
+</div>
+
+@code {
+    private List<Category> categories = new();
+    private List<Entry> entries = new();
+
+    private CategoryModel newCategory = new();
+    private EntryModel newEntry = new();
+    private string bulkEntriesText = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await RefreshData();
+    }
+
+    private async Task RefreshData()
+    {
+        categories = (await CategoryRepository.GetAllAsync()).ToList();
+        entries = (await EntryRepository.GetAllAsync()).ToList();
+    }
+
+    private async Task ClearCategories()
+    {
+        foreach (var cat in categories.ToList())
+        {
+            await CategoryRepository.DeleteAsync(cat.Id);
+        }
+        await RefreshData();
+    }
+
+    private async Task ClearEntries()
+    {
+        foreach (var entry in entries.ToList())
+        {
+            await EntryRepository.DeleteAsync(entry.Id);
+        }
+        await RefreshData();
+    }
+
+    private async Task BulkImportEntries()
+    {
+        if (string.IsNullOrWhiteSpace(bulkEntriesText)) return;
+
+        var newEntries = bulkEntriesText.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries)
+            .Select(s => s.Trim())
+            .Where(s => !string.IsNullOrEmpty(s))
+            .Distinct();
+
+        foreach (var entryId in newEntries)
+        {
+            if (!entries.Any(e => e.Id == entryId))
+            {
+                await EntryRepository.AddAsync(new Entry(entryId));
+            }
+        }
+
+        bulkEntriesText = "";
+        await RefreshData();
+    }
+
+    private async Task AddCategory()
+    {
+        if (string.IsNullOrWhiteSpace(newCategory.Id)) return;
+        
+        var category = new Category(newCategory.Id, newCategory.MaxScore);
+        await CategoryRepository.AddAsync(category);
+        newCategory = new();
+        await RefreshData();
+    }
+
+    private async Task DeleteCategory(string id)
+    {
+        await CategoryRepository.DeleteAsync(id);
+        await RefreshData();
+    }
+
+    private async Task AddEntry()
+    {
+        if (string.IsNullOrWhiteSpace(newEntry.Id)) return;
+
+        var entry = new Entry(newEntry.Id);
+        await EntryRepository.AddAsync(entry);
+        newEntry = new();
+        await RefreshData();
+    }
+
+    private async Task DeleteEntry(string id)
+    {
+        await EntryRepository.DeleteAsync(id);
+        await RefreshData();
+    }
+
+    public class CategoryModel
+    {
+        public string Id { get; set; } = string.Empty;
+        public double MaxScore { get; set; } = 10;
+    }
+
+    public class EntryModel
+    {
+        public string Id { get; set; } = string.Empty;
+    }
+}

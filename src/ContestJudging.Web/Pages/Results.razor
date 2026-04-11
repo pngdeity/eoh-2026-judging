@@ -1,0 +1,191 @@
+@page "/results"
+@using ContestJudging.Core.Entities
+@using ContestJudging.Core.Interfaces.Repositories
+@using ContestJudging.Services.Validation
+@using ContestJudging.Services.Scoring
+@using ContestJudging.Core.Interfaces
+@inject ICategoryRepository CategoryRepository
+@inject IEntryRepository EntryRepository
+@inject IRelationRepository RelationRepository
+@inject IValidationService ValidationService
+
+<h3>Results</h3>
+
+<div class="mb-3">
+    <label class="form-label">Scoring Strategy</label>
+    <select class="form-select" @bind="selectedStrategyType">
+        <option value="linear">Linear Spacing</option>
+        <option value="percentile">Percentile</option>
+    </select>
+</div>
+
+<button class="btn btn-primary mb-3 shadow-sm" @onclick="CalculateResults">
+    <i class="bi bi-calculator-fill me-2"></i>Calculate Results
+</button>
+
+@if (validationErrors.Any())
+{
+    var hasCycles = validationErrors.Any(e => e.Contains("cycles"));
+    <div class="alert @(hasCycles ? "alert-danger" : "alert-warning") border-start border-4 shadow-sm mb-4">
+        <h4 class="alert-heading fw-bold">
+            <i class="bi @(hasCycles ? "bi-exclamation-octagon-fill" : "bi-exclamation-triangle-fill") me-2"></i>
+            Validation @(hasCycles ? "Errors" : "Warnings")
+        </h4>
+        <ul class="mb-0">
+            @foreach (var error in validationErrors)
+            {
+                <li>@error</li>
+            }
+        </ul>
+    </div>
+}
+
+@if (leaderboard.Any())
+{
+    <div class="card border-0 shadow-sm mt-4">
+        <div class="card-header bg-blue text-white py-3">
+            <h4 class="mb-0 fw-bold text-uppercase"><i class="bi bi-trophy-fill me-2"></i>Official Leaderboard</h4>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th class="ps-4">Rank</th>
+                            <th>Exhibit ID</th>
+                            @foreach (var cat in categories)
+                            {
+                                <th>@cat.Id</th>
+                            }
+                            <th class="pe-4 text-end">Total Score</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @{ int rank = 1; }
+                        @foreach (var item in leaderboard)
+                        {
+                            <tr class="@(rank == 1 ? "table-success" : "")">
+                                <td class="ps-4 fw-bold">#@rank</td>
+                                <td class="fw-semibold">@item.Entry.Id</td>
+                                @foreach (var cat in categories)
+                                {
+                                    <td>@item.Entry.Scores.GetValueOrDefault(cat.Id, 0).ToString("N2")</td>
+                                }
+                                <td class="pe-4 text-end fw-bold text-orange">@item.Entry.TotalScore.ToString("N2")</td>
+                            </tr>
+                            rank++;
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+}
+
+<style>
+    .bg-blue {
+        background-color: var(--eoh-blue);
+    }
+    .text-orange {
+        color: var(--eoh-orange);
+    }
+</style>
+
+@code {
+    private List<Category> categories = new();
+    private List<Entry> entries = new();
+    private string selectedStrategyType = "linear";
+    private List<string> validationErrors = new();
+    private List<LeaderboardItem> leaderboard = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        categories = (await CategoryRepository.GetAllAsync()).ToList();
+        entries = (await EntryRepository.GetAllAsync()).ToList();
+    }
+
+    private async Task CalculateResults()
+    {
+        validationErrors.Clear();
+        leaderboard.Clear();
+
+        var allEntries = (await EntryRepository.GetAllAsync()).ToList();
+        var allEntryIds = allEntries.Select(e => e.Id).ToList();
+
+        if (!allEntryIds.Any())
+        {
+            validationErrors.Add("No entries defined. Please go to Setup.");
+            return;
+        }
+
+        bool hasCriticalErrors = false;
+
+        // 1. Validate all categories
+        foreach (var cat in categories)
+        {
+            var relations = (await RelationRepository.GetByCategoryIdAsync(cat.Id)).ToList();
+            
+            // Check if all entries are represented
+            var entriesInRelations = new HashSet<string>();
+            foreach(var r in relations)
+            {
+                entriesInRelations.Add(r.EntryA.Id);
+                entriesInRelations.Add(r.EntryB.Id);
+            }
+            
+            var missingEntries = allEntryIds.Where(id => !entriesInRelations.Contains(id)).ToList();
+            if (missingEntries.Any() && allEntryIds.Count > 1)
+            {
+                validationErrors.Add($"Category '{cat.Id}' is missing relations for: {string.Join(", ", missingEntries)}. They will be ranked lowest.");
+            }
+
+            if (!ValidationService.IsValidOrder(relations, allEntryIds))
+            {
+                validationErrors.Add($"Category '{cat.Id}' has logical cycles. Please correct them in Judging page.");
+                hasCriticalErrors = true;
+            }
+            else if (!ValidationService.IsTotalOrder(relations, allEntryIds))
+            {
+                validationErrors.Add($"Category '{cat.Id}' does not have a total order. Some entries are incomparable and will be assigned tied scores.");
+            }
+        }
+
+        if (hasCriticalErrors) return;
+
+        // 2. Calculate scores
+        IScoringStrategy strategy = selectedStrategyType switch
+        {
+            "percentile" => new PercentileScoring(),
+            _ => new LinearSpacingScoring()
+        };
+
+        foreach (var cat in categories)
+        {
+            var relations = await RelationRepository.GetByCategoryIdAsync(cat.Id);
+            var tiers = ValidationService.GetSortedTiers(relations, allEntryIds);
+            var scores = strategy.CalculateScores(tiers, cat.MaxScore);
+
+            foreach (var kvp in scores)
+            {
+                var entry = allEntries.First(e => e.Id == kvp.Key);
+                entry.SetScore(cat, kvp.Value);
+            }
+        }
+
+        // 3. Persist results
+        foreach (var entry in allEntries)
+        {
+            await EntryRepository.UpdateAsync(entry);
+        }
+
+        leaderboard = allEntries
+            .Select(e => new LeaderboardItem { Entry = e })
+            .OrderByDescending(i => i.Entry.TotalScore)
+            .ToList();
+    }
+
+    public class LeaderboardItem
+    {
+        public Entry Entry { get; set; } = default!;
+    }
+}

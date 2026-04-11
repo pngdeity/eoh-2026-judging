@@ -1,0 +1,11 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/ContestJudging.Core/ContestJudging.Core.csproj" />
+    <Project Path="src/ContestJudging.Infrastructure/ContestJudging.Infrastructure.csproj" />
+    <Project Path="src/ContestJudging.Services/ContestJudging.Services.csproj" />
+    <Project Path="src/ContestJudging.Web/ContestJudging.Web.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/ContestJudging.Tests/ContestJudging.Tests.csproj" />
+  </Folder>
+</Solution>
