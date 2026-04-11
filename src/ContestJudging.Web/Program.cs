@@ -12,6 +12,9 @@ builder.RootComponents.Add<HeadOutlet>("head::after");
 
 builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri(builder.HostEnvironment.BaseAddress) });
 
+// Initialize SQLite
+SQLitePCL.Batteries_V2.Init();
+
 // Register Contest Judging services with in-memory SQLite
 builder.Services.AddContestJudgingServices("Data Source=contest.db");
 
