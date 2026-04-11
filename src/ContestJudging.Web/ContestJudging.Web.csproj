@@ -8,6 +8,10 @@
     <!-- Optimizations -->
     <WasmBuildNative Condition="'$(Configuration)' == 'Release'">true</WasmBuildNative>
     <InvariantGlobalization>true</InvariantGlobalization>
+    <BlazorEnableTimeZoneSupport>false</BlazorEnableTimeZoneSupport>
+    <EventSourceSupport>false</EventSourceSupport>
+    <DebuggerSupport Condition="'$(Configuration)' == 'Release'">false</DebuggerSupport>
+    <JsonSerializerIsReflectionEnabledByDefault>false</JsonSerializerIsReflectionEnabledByDefault>
     
     <NoWarn>$(NoWarn);WASM0001</NoWarn>
   </PropertyGroup>
