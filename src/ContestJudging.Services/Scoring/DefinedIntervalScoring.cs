@@ -21,18 +21,15 @@ namespace ContestJudging.Services.Scoring
 
             if (k == 0) return assignedScores;
 
-            // sortedTiers is [lowest, ..., highest]
-            // We want to map highest (k-1) to rankPoints[0], ..., lowest (0) to rankPoints[k-1]
             for (int i = 0; i < k; i++)
             {
                 int rankIndex = k - 1 - i;
-                double tierScore = rankIndex < rankPoints.Count ? rankPoints[rankIndex] : 0;
+                double tierScore = rankIndex < _rankPoints.Count ? _rankPoints[rankIndex] : 0;
 
                 foreach (var entryId in sortedTiers[i])
                 {
                     assignedScores[entryId] = tierScore;
                 }
-            }
             }
 
             return assignedScores;
