@@ -88,6 +88,9 @@ jobs:
       - name: Publish Blazor WASM
         run: dotnet publish src/ContestJudging.Web/ContestJudging.Web.csproj -c Release -o release --nologo
 
+      - name: Rewrite base href for GitHub Pages
+        run: sed -i 's/<base href="\/" \/>/<base href="\/eoh-2026-judging\/" \/>/g' release/wwwroot/index.html
+
       # GitHub Pages doesn't support SPA routing well by default (returns 404 on refresh)
       # We'll copy index.html to 404.html as a common workaround
       - name: Fix SPA Routing for GitHub Pages
