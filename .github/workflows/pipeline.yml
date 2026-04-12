@@ -24,7 +24,7 @@ jobs:
 
       - name: Cache WASM Tools
         id: cache-wasm-tools
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ~/.dotnet/workloads
           key: ${{ runner.os }}-wasm-tools-${{ hashFiles('**/*.csproj', '**/Directory.Build.props') }}
@@ -76,7 +76,7 @@ jobs:
 
       - name: Cache WASM Tools
         id: cache-wasm-tools-deploy
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ~/.dotnet/workloads
           key: ${{ runner.os }}-wasm-tools-${{ hashFiles('**/*.csproj', '**/Directory.Build.props') }}
