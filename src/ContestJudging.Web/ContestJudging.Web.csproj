@@ -11,12 +11,15 @@
     <ImplicitUsings>enable</ImplicitUsings>
 
     <!-- Disable AOT and Aggressive Trimming -->
-    <WasmBuildNative>false</WasmBuildNative>
+    <WasmBuildNative>true</WasmBuildNative>
     <PublishTrimmed>false</PublishTrimmed>
     <JsonSerializerIsReflectionEnabledByDefault>true</JsonSerializerIsReflectionEnabledByDefault>
     
     <!-- Compression -->
     <BlazorEnableCompression>true</BlazorEnableCompression>
+    
+    <!-- Suppress expected warnings -->
+    <NoWarn>$(NoWarn);WASM0001;IL2111</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
