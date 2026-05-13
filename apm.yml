@@ -1,0 +1,12 @@
+name: eoh-2026-judging
+version: 1.0.0
+description: APM project for eoh-2026-judging
+author: pngdeity
+targets:
+- opencode
+- copilot
+dependencies:
+  apm:
+  - /home/nathan/repos/pngdeity/apm-user-repository/packages/development-practices
+includes: auto
+scripts: {}
