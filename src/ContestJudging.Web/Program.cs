@@ -1,10 +1,8 @@
 using System.Diagnostics.CodeAnalysis;
+using System.IO;
 
 using Blazored.LocalStorage;
 
-using ContestJudging.Core.Interfaces;
-// ContestDbContext reference is required here because the WASM host
-// must resolve the scope to ensure the database is created at startup.
 using ContestJudging.Infrastructure.Persistence;
 using ContestJudging.Services.Extensions;
 using ContestJudging.Web;
@@ -12,6 +10,7 @@ using ContestJudging.Web;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.JSInterop;
 
 var builder = WebAssemblyHostBuilder.CreateDefault(args);
 builder.RootComponents.Add<App>("#app");
@@ -29,8 +28,13 @@ AddServices(builder.Services);
 
 var host = builder.Build();
 
-var backupService = host.Services.GetRequiredService<IBackupService>();
-await backupService.TryRestoreBackupAsync();
+var js = host.Services.GetRequiredService<IJSRuntime>();
+var backupBase64 = await js.InvokeAsync<string>("localStorage.getItem", "db_backup");
+if (!string.IsNullOrEmpty(backupBase64))
+{
+    var backupBytes = Convert.FromBase64String(backupBase64);
+    await File.WriteAllBytesAsync("contest.db", backupBytes);
+}
 
 using (var scope = host.Services.CreateScope())
 {
