@@ -1,3 +1,7 @@
+// CancellationToken is threaded through all async methods but individual
+// operations (SQLite queries, localStorage) may not support cancellation
+// in all environments. True cancellation tests require integration-level setup.
+
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -15,6 +19,8 @@ using Xunit;
 
 namespace ContestJudging.Tests
 {
+    [Trait("Category", "Unit")]
+    [Trait("Category", "Unit")]
     public class ContestManagerTests
     {
         [Fact]
@@ -27,7 +33,8 @@ namespace ContestJudging.Tests
             var mockResolution = new Mock<IGlobalRankingService>();
             var mockScoring = new Mock<IScoringStrategy>();
 
-            var manager = new ContestManager(mockCatRepo.Object, mockEntryRepo.Object, mockRelRepo.Object, mockValidation.Object, mockResolution.Object, mockScoring.Object, null!);
+            var mockBackup = new Mock<IDatabaseBackupService>();
+            var manager = new ContestManager(mockCatRepo.Object, mockEntryRepo.Object, mockRelRepo.Object, mockValidation.Object, mockResolution.Object, mockScoring.Object, mockBackup.Object);
 
             var cat = new Category("cat1", 10);
             var entryA = new Entry("A");
@@ -61,7 +68,8 @@ namespace ContestJudging.Tests
             var mockResolution = new Mock<IGlobalRankingService>();
             var mockScoring = new Mock<IScoringStrategy>();
 
-            var manager = new ContestManager(mockCatRepo.Object, mockEntryRepo.Object, mockRelRepo.Object, mockValidation.Object, mockResolution.Object, mockScoring.Object, null!);
+            var mockBackup = new Mock<IDatabaseBackupService>();
+            var manager = new ContestManager(mockCatRepo.Object, mockEntryRepo.Object, mockRelRepo.Object, mockValidation.Object, mockResolution.Object, mockScoring.Object, mockBackup.Object);
 
             var cat = new Category("cat1", 10);
             var entryA = new Entry("A");
@@ -98,7 +106,8 @@ namespace ContestJudging.Tests
             var mockResolution = new Mock<IGlobalRankingService>();
             var mockScoring = new Mock<IScoringStrategy>();
 
-            var manager = new ContestManager(mockCatRepo.Object, mockEntryRepo.Object, mockRelRepo.Object, mockValidation.Object, mockResolution.Object, mockScoring.Object, null!);
+            var mockBackup = new Mock<IDatabaseBackupService>();
+            var manager = new ContestManager(mockCatRepo.Object, mockEntryRepo.Object, mockRelRepo.Object, mockValidation.Object, mockResolution.Object, mockScoring.Object, mockBackup.Object);
 
             var cat = new Category("cat1", 10);
             var entryA = new Entry("A");
@@ -126,6 +135,46 @@ namespace ContestJudging.Tests
             Assert.Equal(10.0, entryA.Scores["cat1"]);
             Assert.Equal(5.0, entryB.Scores["cat1"]);
             mockEntryRepo.Verify(r => r.UpdateAsync(It.IsAny<Entry>()), Times.Exactly(2));
+        }
+
+        [Fact]
+        public async Task ExportDataAsync_DelegatesToBackupService()
+        {
+            var expectedData = new byte[] { 1, 2, 3 };
+            var mockBackup = new Mock<IDatabaseBackupService>();
+            mockBackup.Setup(b => b.ExportAsync()).ReturnsAsync(expectedData);
+            var manager = new ContestManager(
+                Mock.Of<ICategoryRepository>(),
+                Mock.Of<IEntryRepository>(),
+                Mock.Of<IRelationRepository>(),
+                Mock.Of<IValidationService>(),
+                Mock.Of<IGlobalRankingService>(),
+                Mock.Of<IScoringStrategy>(),
+                mockBackup.Object);
+
+            var result = await manager.ExportDataAsync();
+
+            Assert.Equal(expectedData, result);
+            mockBackup.Verify(b => b.ExportAsync(), Times.Once);
+        }
+
+        [Fact]
+        public async Task ImportDataAsync_DelegatesToBackupService()
+        {
+            var mockBackup = new Mock<IDatabaseBackupService>();
+            var manager = new ContestManager(
+                Mock.Of<ICategoryRepository>(),
+                Mock.Of<IEntryRepository>(),
+                Mock.Of<IRelationRepository>(),
+                Mock.Of<IValidationService>(),
+                Mock.Of<IGlobalRankingService>(),
+                Mock.Of<IScoringStrategy>(),
+                mockBackup.Object);
+            var data = new byte[] { 1, 2, 3 };
+
+            await manager.ImportDataAsync(data);
+
+            mockBackup.Verify(b => b.ImportAsync(data), Times.Once);
         }
     }
 }

@@ -4,9 +4,18 @@ using System.Linq;
 
 namespace ContestJudging.Services.Partitioning
 {
-    public class PartitionService : IPartitionService
+    public sealed class PartitionService : IPartitionService
     {
-        private readonly Random _random = new();
+        // System.Random is acceptable here — used only for partition shuffling,
+        // not for cryptographic purposes. Seeded for test determinism.
+        private readonly Random _random;
+
+        public PartitionService() : this(new Random()) { }
+
+        public PartitionService(Random random)
+        {
+            _random = random;
+        }
 
         public Dictionary<string, HashSet<string>> GeneratePartitions(
             IEnumerable<string> allEntryIds,
@@ -18,7 +27,9 @@ namespace ContestJudging.Services.Partitioning
 
             var allEntryIdsList = allEntryIds.ToList();
             int n = allEntryIdsList.Count;
-            int bCount = (int)Math.Round(n * overlapRate);
+            int bCount = overlapRate > 0
+                ? Math.Max(1, (int)Math.Round(n * overlapRate))
+                : 0;
 
             // Shuffling to select random bridge nodes
             var shuffled = allEntryIdsList.OrderBy(x => _random.Next()).ToList();

@@ -1,0 +1,165 @@
+{
+  "agent_id": "P2-A",
+  "pass": 2,
+  "domain": "architecture",
+  "status": "success",
+  "findings": [
+    {
+      "id": "ARCH-001",
+      "title": "Web project directly references Infrastructure layer — SQLitePCL init and ContestDbContext resolved in UI startup",
+      "severity": "medium",
+      "category": "architecture",
+      "files": [
+        "src/ContestJudging.Web/Program.cs:5",
+        "src/ContestJudging.Web/Program.cs:21",
+        "src/ContestJudging.Web/Program.cs:34",
+        "src/ContestJudging.Web/ContestJudging.Web.csproj:29",
+        "src/ContestJudging.Web/ContestJudging.Web.csproj:30",
+        "src/ContestJudging.Web/ContestJudging.Web.csproj:36"
+      ],
+      "evidence_snippet": "// Program.cs:5 — namespace import\nusing ContestJudging.Infrastructure.Persistence;\n\n// Program.cs:21 — SQLite native init in UI layer\nSQLitePCL.Batteries_V2.Init();\n\n// Program.cs:34 — UI layer resolves Infrastructure DbContext directly\nvar context = scope.ServiceProvider.GetRequiredService<ContestDbContext>();\n\n// Web.csproj:29-30,36 — duplicated EF Core/SQLite packages and Infrastructure project reference\n<PackageReference Include=\"Microsoft.EntityFrameworkCore.Sqlite\" />\n<PackageReference Include=\"SQLitePCLRaw.bundle_e_sqlite3\" />\n<ProjectReference Include=\"..\\ContestJudging.Infrastructure\\...\" />",
+      "rule_violated": "Clean Architecture: Dependency Rule — outer layers (Web) must not depend on inner layers (Infrastructure) for anything except DI composition",
+      "remediation": "1) Remove Infrastructure ProjectReference and EF Core/SQLite PackageReferences from Web.csproj. 2) Move SQLitePCL.Batteries_V2.Init() into ServiceCollectionExtensions.AddContestJudgingServices(). 3) Replace direct ContestDbContext resolution in Program.cs with an IDatabaseInitializer abstraction or move database restore into Services. 4) Web should only call builder.Services.AddContestJudgingServices() as its single composition entry point.",
+      "effort": "medium",
+      "status": "open",
+      "related_findings": ["STRUCT-001", "ARCH-002", "ARCH-005"]
+    },
+    {
+      "id": "ARCH-002",
+      "title": "ContestManager (Services/Application layer) directly depends on concrete ContestDbContext from Infrastructure",
+      "severity": "high",
+      "category": "architecture",
+      "files": [
+        "src/ContestJudging.Services/Managers/ContestManager.cs:9",
+        "src/ContestJudging.Services/Managers/ContestManager.cs:23",
+        "src/ContestJudging.Services/Managers/ContestManager.cs:32",
+        "tests/ContestJudging.Tests/ContestManagerTests.cs:30",
+        "tests/ContestJudging.Tests/ContestManagerTests.cs:64",
+        "tests/ContestJudging.Tests/ContestManagerTests.cs:101"
+      ],
+      "evidence_snippet": "// ContestManager.cs:9 — imports Infrastructure namespace\nusing ContestJudging.Infrastructure.Persistence;\n\n// ContestManager.cs:23,32 — concrete Infrastructure dependency in constructor\nprivate readonly ContestDbContext _context;\npublic ContestManager(..., ContestDbContext context) { _context = context; }\n\n// ContestManagerTests.cs:30,64,101 — tests forced to pass null! for unmockable concrete dependency\nvar manager = new ContestManager(mockCatRepo.Object, mockEntryRepo.Object, mockRelRepo.Object, mockValidation.Object, mockResolution.Object, mockScoring.Object, null!);",
+      "rule_violated": "SOLID: Dependency Inversion Principle — high-level modules (Services/ContestManager) must not depend on low-level modules (Infrastructure/ContestDbContext); both should depend on abstractions. Clean Architecture: inner layers must not know about outer layer concretions.",
+      "remediation": "1) Extract an IDatabaseBackupService interface (export/import byte array) into Core.Interfaces. 2) Implement DatabaseBackupService in Infrastructure with raw file I/O. 3) Have ContestManager depend on IDatabaseBackupService instead of ContestDbContext. 4) Remove ExportDatabaseAsync/ImportDatabaseAsync from ContestDbContext (fixing ARCH-004). 5) Update tests to use the mockable IDatabaseBackupService abstraction.",
+      "effort": "small",
+      "status": "open",
+      "related_findings": ["ARCH-001", "ARCH-004"]
+    },
+    {
+      "id": "ARCH-003",
+      "title": "Service interfaces (IValidationService, IPartitionService, IGlobalRankingService, IContestManager) defined in Services project instead of Core",
+      "severity": "medium",
+      "category": "architecture",
+      "files": [
+        "src/ContestJudging.Services/Validation/IValidationService.cs:1",
+        "src/ContestJudging.Services/Partitioning/IPartitionService.cs:1",
+        "src/ContestJudging.Services/Resolution/IGlobalRankingService.cs:1",
+        "src/ContestJudging.Services/Managers/IContestManager.cs:1",
+        "src/ContestJudging.Web/Pages/Setup.razor.cs:11",
+        "src/ContestJudging.Web/Pages/Judging.razor.cs:11",
+        "src/ContestJudging.Web/Pages/Results.razor.cs:3"
+      ],
+      "evidence_snippet": "// Four service interfaces live in Services project, not Core:\n// IValidationService.cs:1 — namespace ContestJudging.Services.Validation\n// IPartitionService.cs:1 — namespace ContestJudging.Services.Partitioning\n// IGlobalRankingService.cs:1 — namespace ContestJudging.Services.Resolution\n// IContestManager.cs:1 — namespace ContestJudging.Services.Managers\n\n// Contrast with correctly-placed interfaces in Core:\n// IScoringStrategy (Core.Interfaces), ICategoryRepository (Core.Interfaces.Repositories)\n\n// Web pages must import Services namespaces to use these interfaces:\n// Setup.razor.cs:11 — using ContestJudging.Services.Partitioning;\n// Results.razor.cs:3 — using ContestJudging.Services.Managers;",
+      "rule_violated": "SOLID: Dependency Inversion Principle — abstractions should be owned by the policy-defining layer (Core or Application.Abstractions), not the implementation layer. Clean Architecture: Dependency Rule — all compile-time dependencies point inward.",
+      "remediation": "1) Move IValidationService, IPartitionService, IGlobalRankingService, and IContestManager to ContestJudging.Core.Interfaces. 2) Update using directives in all implementations and Web consumers. 3) Consider a separate ContestJudging.Core.Interfaces.Services sub-namespace or a ContestJudging.Application.Abstractions project for service-level abstractions distinct from domain abstractions.",
+      "effort": "medium",
+      "status": "open",
+      "related_findings": ["ARCH-008"]
+    },
+    {
+      "id": "ARCH-004",
+      "title": "ContestDbContext violates Single Responsibility — mixes ORM configuration with raw file I/O export/import",
+      "severity": "medium",
+      "category": "architecture",
+      "files": [
+        "src/ContestJudging.Infrastructure/Persistence/ContestDbContext.cs:66",
+        "src/ContestJudging.Infrastructure/Persistence/ContestDbContext.cs:76"
+      ],
+      "evidence_snippet": "// ContestDbContext.cs:66-74 — raw file I/O in EF Core DbContext\npublic async Task<byte[]> ExportDatabaseAsync()\n{\n    var path = \"contest.db\";\n    if (File.Exists(path))\n    {\n        return await File.ReadAllBytesAsync(path);\n    }\n    return Array.Empty<byte>();\n}\n\n// ContestDbContext.cs:76-79 — raw file I/O in EF Core DbContext\npublic async Task ImportDatabaseAsync(byte[] data)\n{\n    var path = \"contest.db\";\n    await File.WriteAllBytesAsync(path, data);\n}",
+      "rule_violated": "SOLID: Single Responsibility Principle — a class should have only one reason to change. ContestDbContext should change only when the data model changes, not when the backup persistence mechanism changes. Clean Code: separation of concerns — data access and file I/O backup are distinct responsibilities that should not be co-located.",
+      "remediation": "1) Move ExportDatabaseAsync and ImportDatabaseAsync into a dedicated DatabaseBackupService class in Infrastructure. 2) Inject database path via configuration instead of hardcoding 'contest.db'. 3) Register IDatabaseBackupService in DI. 4) Remove these methods from ContestDbContext entirely. This also enables fixing ARCH-002 by giving ContestManager a mockable abstraction for backup operations.",
+      "effort": "small",
+      "status": "open",
+      "related_findings": ["ARCH-002"]
+    },
+    {
+      "id": "ARCH-005",
+      "title": "Composition root (ServiceCollectionExtensions.AddContestJudgingServices) in Services layer instead of outermost layer",
+      "severity": "low",
+      "category": "architecture",
+      "files": [
+        "src/ContestJudging.Services/Extensions/ServiceCollectionExtensions.cs:5",
+        "src/ContestJudging.Services/Extensions/ServiceCollectionExtensions.cs:6",
+        "src/ContestJudging.Services/Extensions/ServiceCollectionExtensions.cs:21",
+        "src/ContestJudging.Web/Program.cs:7",
+        "src/ContestJudging.Web/Program.cs:64"
+      ],
+      "evidence_snippet": "// ServiceCollectionExtensions.cs:5-6 — Services layer imports Infrastructure namespaces to do DI\nusing ContestJudging.Infrastructure.Persistence;\nusing ContestJudging.Infrastructure.Repositories;\n\n// ServiceCollectionExtensions.cs:21 — DI composition lives in Services project\npublic static IServiceCollection AddContestJudgingServices(this IServiceCollection services, string connectionString)\n\n// Program.cs:7 — Web imports the Services extension\nusing ContestJudging.Services.Extensions;\n\n// Program.cs:64 — Web wraps Services DI in a local function (does not move composition root)\nstatic void AddServices(IServiceCollection services) { services.AddContestJudgingServices(\"Data Source=contest.db\"); }",
+      "rule_violated": "Clean Architecture Composition Root pattern — the composition root should be as close to the application entry point (the outermost layer, Web) as possible. Only the entry-point assembly should reference all other assemblies. Inner layers should not need knowledge of concrete implementations from outer layers.",
+      "remediation": "1) Move ServiceCollectionExtensions.AddContestJudgingServices to the Web project (or a Web DI folder). 2) Remove the Services → Infrastructure project reference. 3) Services should only reference Core and define interfaces there (see ARCH-003). 4) Register all implementations from the Web composition root, where references to all projects are natural.",
+      "effort": "medium",
+      "status": "open",
+      "related_findings": ["ARCH-001", "ARCH-002", "ARCH-003"]
+    },
+    {
+      "id": "ARCH-006",
+      "title": "Two IScoringStrategy implementations exist but are never registered in DI container",
+      "severity": "low",
+      "category": "architecture",
+      "files": [
+        "src/ContestJudging.Services/Extensions/ServiceCollectionExtensions.cs:33",
+        "src/ContestJudging.Services/Scoring/PercentileScoring.cs:1",
+        "src/ContestJudging.Services/Scoring/DefinedIntervalScoring.cs:1"
+      ],
+      "evidence_snippet": "// ServiceCollectionExtensions.cs:33 — only LinearSpacingScoring is registered\nservices.AddScoped<IScoringStrategy, LinearSpacingScoring>();\n\n// PercentileScoring.cs exists and is tested (ScoringStrategyTests) but never wired in DI\n// DefinedIntervalScoring.cs exists and is tested (ScoringStrategyTests) but never wired in DI\n// DefinedIntervalScoring also has a parameterized constructor (IEnumerable<double> rankPoints)\n// which cannot be registered via simple AddScoped<,> — needs a factory registration",
+      "rule_violated": "Principle of Least Surprise — multiple strategy implementations exist but only one is wired in DI. If the alternatives are dead code they should be removed; if they're live, they should be selectable via configuration. YAGNI — code that ships but can never be reached from the application entry point is dead weight.",
+      "remediation": "1) If PercentileScoring and DefinedIntervalScoring are production features: add a configuration mechanism (enum, settings key) to select the active scoring strategy at startup. 2) For DefinedIntervalScoring, implement a factory registration that reads rank points from configuration. 3) If they are legacy/experimental: delete the unused implementation files and their tests.",
+      "effort": "trivial",
+      "status": "open",
+      "related_findings": ["CQ-001"]
+    },
+    {
+      "id": "ARCH-007",
+      "title": "AddScoped DbContext lifetime in Blazor WASM — DbContext effectively singleton, change tracker grows unbounded",
+      "severity": "informational",
+      "category": "architecture",
+      "files": [
+        "src/ContestJudging.Services/Extensions/ServiceCollectionExtensions.cs:23",
+        "src/ContestJudging.Web/Program.cs:21"
+      ],
+      "evidence_snippet": "// ServiceCollectionExtensions.cs:23 — AddDbContext registers as Scoped by default\nservices.AddDbContext<ContestDbContext>(options => options.UseSqlite(connectionString));\n\n// In Blazor WASM, Scoped == Singleton unless OwningComponentBase is used.\n// The codebase never uses OwningComponentBase.\n// All 8 service registrations use AddScoped.\n//\n// EF Core DbContext accumulates tracked entities in the ChangeTracker.\n// A DbContext living for the entire browser session will:\n//   - Grow the change tracker with every Add/Update/Delete operation\n//   - Never release memory for discarded entities\n//   - Degrade SaveChangesAsync performance over time\n//\n// Program.cs:21 — SQLitePCL.Batteries_V2.Init() happens once at startup, so\n// EnsureCreatedAsync (line 56) only runs once, but the DbContext persists forever.",
+      "rule_violated": "EF Core best practices — DbContext instances should be short-lived per unit-of-work. In Blazor WASM, AddDbContextFactory<T> should be used to create short-lived contexts per operation, or ChangeTracker.Clear() should be called periodically to prevent unbounded memory growth.",
+      "remediation": "1) Replace AddDbContext<ContestDbContext> with AddDbContextFactory<ContestDbContext>. 2) Update repositories to inject IDbContextFactory<ContestDbContext> and create/dispose DbContext per operation. 3) Alternatively, call context.ChangeTracker.Clear() after batch operations (e.g., after CalculateGlobalScoresAsync in ContestManager). 4) The startup database restore in Program.cs should create a temporary context and dispose it immediately.",
+      "effort": "medium",
+      "status": "open",
+      "related_findings": ["ARCH-001"]
+    },
+    {
+      "id": "ARCH-008",
+      "title": "No consistent rule for interface placement — repository interfaces in Core, service interfaces in Services",
+      "severity": "informational",
+      "category": "architecture",
+      "files": [
+        "src/ContestJudging.Core/Interfaces/IScoringStrategy.cs:1",
+        "src/ContestJudging.Core/Interfaces/Repositories/ICategoryRepository.cs:1",
+        "src/ContestJudging.Core/Interfaces/Repositories/IEntryRepository.cs:1",
+        "src/ContestJudging.Core/Interfaces/Repositories/IRelationRepository.cs:1",
+        "src/ContestJudging.Services/Validation/IValidationService.cs:1",
+        "src/ContestJudging.Services/Partitioning/IPartitionService.cs:1",
+        "src/ContestJudging.Services/Resolution/IGlobalRankingService.cs:1",
+        "src/ContestJudging.Services/Managers/IContestManager.cs:1"
+      ],
+      "evidence_snippet": "// Four interfaces correctly in Core:\n// IScoringStrategy in ContestJudging.Core.Interfaces\n// ICategoryRepository, IEntryRepository, IRelationRepository in ContestJudging.Core.Interfaces.Repositories\n\n// Four interfaces in Services (alongside their implementations):\n// IValidationService in ContestJudging.Services.Validation\n// IPartitionService in ContestJudging.Services.Partitioning\n// IGlobalRankingService in ContestJudging.Services.Resolution\n// IContestManager in ContestJudging.Services.Managers\n\n// No documented rationale for the split. No Architectural Decision Record.",
+      "rule_violated": "Architecture consistency — mixed interface placement strategies create confusion for developers and make onboarding harder. A single, documented rule should govern where interfaces live.",
+      "remediation": "1) Adopt a single rule: all interfaces go in Core (ContestJudging.Core.Interfaces). 2) Move IValidationService, IPartitionService, IGlobalRankingService, and IContestManager to Core. 3) Document the rule in AGENTS.md or the project README under an 'Architecture' section. 4) Consider a Core.Interfaces.Services sub-namespace or a dedicated Application.Abstractions project for service-level interfaces to distinguish them from domain abstractions.",
+      "effort": "small",
+      "status": "open",
+      "related_findings": ["ARCH-003"]
+    }
+  ],
+  "metrics": {
+    "files_scanned": 32,
+    "findings_count": 8,
+    "lines_of_code": 2800
+  },
+  "errors": []
+}

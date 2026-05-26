@@ -1,0 +1,51 @@
+dotnet format ContestJudging.slnx --verbosity diagnostic
+
+The dotnet runtime version is '10.0.8'.
+Formatting code files in workspace '/home/nathan/repos/pngdeity/eoh-2026-judging/ContestJudging.slnx'.
+
+Loading workspace.
+  Determining projects to restore...
+  All projects are up-to-date for restore.
+Project ContestJudging.Core is using configuration from '.editorconfig'.
+Project ContestJudging.Infrastructure is using configuration from '.editorconfig'.
+Project ContestJudging.Services is using configuration from '.editorconfig'.
+Project ContestJudging.Web is using configuration from '.editorconfig'.
+Project ContestJudging.E2ETests is using configuration from '.editorconfig'.
+Project ContestJudging.Tests is using configuration from '.editorconfig'.
+Project ContestJudging.Web.Tests is using configuration from '.editorconfig'.
+Complete in 17716ms.
+
+Determining formattable files.
+Complete in 827ms.
+
+Running formatters.
+
+Running Code Style analysis.
+Determining diagnostics...
+Running 3 analyzers on each project.
+Complete in 10205ms.
+Fixing diagnostics...
+Complete in 4ms.
+Analysis complete in 10209ms.
+
+Running Analyzer Reference analysis.
+Determining diagnostics...
+Running analyzers on all projects.
+Complete in 6864ms.
+Fixing diagnostics...
+Running 2 analyzers on ContestJudging.Web.Tests.
+Complete in 1230ms.
+Analysis complete in 8094ms.
+
+Complete in 20869ms.
+
+Formatted code file '/home/nathan/repos/pngdeity/eoh-2026-judging/tests/ContestJudging.Web.Tests/ModelValidationTests.cs'.
+Formatted 1 of 68 files.
+Format complete in 39495ms.
+
+EXIT_CODE=0
+
+SUMMARY:
+  Changes made: YES (1 file)
+  File changed: tests/ContestJudging.Web.Tests/ModelValidationTests.cs
+  Errors: None

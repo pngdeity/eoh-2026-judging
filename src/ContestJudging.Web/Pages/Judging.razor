@@ -63,16 +63,20 @@
                 <div class="row g-4 align-items-stretch">
                     <div class="col-md-5">
                         <div class="judge-card h-100 text-center p-5 rounded border border-2 border-primary-subtle shadow-sm"
-                             @onclick="() => RecordResult(Operator.GreaterThan)">
+                             role="button" tabindex="0" aria-label="Vote @suggestedPair.Value.A better than @suggestedPair.Value.B"
+                             @onclick="() => RecordResult(Operator.GreaterThan)"
+                             @onkeydown="(KeyboardEventArgs e) => HandleCardKeyDown(e, Operator.GreaterThan)">
                             <div class="badge bg-primary mb-3">EXHIBIT A</div>
-                            <h2 class="display-6 fw-bold mb-0">@suggestedPair.Item1</h2>
+                            <h2 class="display-6 fw-bold mb-0">@suggestedPair.Value.A</h2>
                             <div class="mt-4 d-md-none"><span class="btn btn-primary w-100">Better</span></div>
                         </div>
                     </div>
 
                     <div class="col-md-2 d-flex flex-column justify-content-center align-items-center">
                         <div class="tie-button p-4 rounded-circle bg-light border border-2 border-secondary-subtle text-center shadow-sm"
+                             role="button" tabindex="0" aria-label="Mark @suggestedPair.Value.A and @suggestedPair.Value.B as equal"
                              @onclick="() => RecordResult(Operator.EqualTo)"
+                             @onkeydown="(KeyboardEventArgs e) => HandleCardKeyDown(e, Operator.EqualTo)"
                              title="They are equal in quality">
                             <i class="bi bi-repeat fs-2 text-muted"></i>
                             <div class="small fw-bold text-muted">TIE</div>
@@ -81,9 +85,11 @@
 
                     <div class="col-md-5">
                         <div class="judge-card h-100 text-center p-5 rounded border border-2 border-primary-subtle shadow-sm"
-                             @onclick="() => RecordResult(Operator.LessThan)">
+                             role="button" tabindex="0" aria-label="Vote @suggestedPair.Value.B better than @suggestedPair.Value.A"
+                             @onclick="() => RecordResult(Operator.LessThan)"
+                             @onkeydown="(KeyboardEventArgs e) => HandleCardKeyDown(e, Operator.LessThan)">
                             <div class="badge bg-primary mb-3">EXHIBIT B</div>
-                            <h2 class="display-6 fw-bold mb-0">@suggestedPair.Item2</h2>
+                            <h2 class="display-6 fw-bold mb-0">@suggestedPair.Value.B</h2>
                             <div class="mt-4 d-md-none"><span class="btn btn-primary w-100">Better</span></div>
                         </div>
                     </div>
@@ -91,15 +97,18 @@
             </div>
         }
 
-        <div class="accordion mb-4" id="manualJudgingAccordion">
-            <div class="accordion-item border-0 shadow-sm">
-                <h2 class="accordion-header">
-                    <button class="accordion-button collapsed bg-light fw-bold text-uppercase" type="button" data-bs-toggle="collapse" data-bs-target="#manualEntry">
+        <div class="mb-4">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-light">
+                    <button class="accordion-button @(showManualOverride ? "" : "collapsed") bg-light fw-bold text-uppercase shadow-none w-100 btn text-start border-0"
+                            type="button"
+                            @onclick="() => showManualOverride = !showManualOverride">
                         <i class="bi bi-pencil-square me-2"></i> Manual Override / Correction
                     </button>
-                </h2>
-                <div id="manualEntry" class="accordion-collapse collapse" data-bs-parent="#manualJudgingAccordion">
-                    <div class="accordion-body">
+                </div>
+                @if (showManualOverride)
+                {
+                    <div class="card-body">
                         <div class="row align-items-end g-3">
                             <div class="col-md-4">
                                 <label class="form-label">Exhibit A</label>
@@ -140,7 +149,7 @@
                             <div class="text-danger mt-2 fw-bold"><i class="bi bi-x-circle-fill me-1"></i>@errorMessage</div>
                         }
                     </div>
-                </div>
+                }
             </div>
         </div>
 
@@ -159,8 +168,7 @@
                         </tr>
                     </thead>
                     <tbody>
-                        @foreach (var rel in relations)
-                        {
+                        <Virtualize Items="@relations" Context="rel">
                             <tr>
                                 <td class="ps-4 fw-bold">@rel.EntryA.Id</td>
                                 <td class="text-center">
@@ -175,7 +183,7 @@
                                     </button>
                                 </td>
                             </tr>
-                        }
+                        </Virtualize>
                     </tbody>
                 </table>
             </div>

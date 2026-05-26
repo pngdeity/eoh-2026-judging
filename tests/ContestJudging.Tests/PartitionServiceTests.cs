@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -7,13 +8,15 @@ using Xunit;
 
 namespace ContestJudging.Tests
 {
+    [Trait("Category", "Unit")]
+    [Trait("Category", "Unit")]
     public class PartitionServiceTests
     {
         [Fact]
         public void GeneratePartitions_ShouldMaintainBridgeNodes()
         {
             // Arrange
-            var service = new PartitionService();
+            var service = new PartitionService(new Random(42));
             var allEntryIds = Enumerable.Range(1, 100).Select(i => i.ToString()).ToList();
             int k = 2;
             double overlap = 0.10; // 10% overlap
@@ -38,7 +41,7 @@ namespace ContestJudging.Tests
         public void GeneratePartitions_WithNoOverlap_ShouldHaveDisjointSets()
         {
             // Arrange
-            var service = new PartitionService();
+            var service = new PartitionService(new Random(42));
             var allEntryIds = Enumerable.Range(1, 10).Select(i => i.ToString()).ToList();
             int k = 2;
             double overlap = 0.0;

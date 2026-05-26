@@ -1,8 +1,14 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+
 using ContestJudging.Core.Entities;
 using ContestJudging.Core.Interfaces.Repositories;
 using ContestJudging.Services.Managers;
 
 using Microsoft.AspNetCore.Components;
+using Microsoft.Extensions.Logging;
 
 namespace ContestJudging.Web.Pages
 {
@@ -11,20 +17,31 @@ namespace ContestJudging.Web.Pages
         [Inject] private ICategoryRepository CategoryRepository { get; set; } = default!;
         [Inject] private IEntryRepository EntryRepository { get; set; } = default!;
         [Inject] private IContestManager ContestManager { get; set; } = default!;
+        [Inject] private ILogger<Results> Logger { get; set; } = default!;
 
         private List<Category> categories = new();
         private List<Entry> entries = new();
         private List<string> validationErrors = new();
         private List<LeaderboardItem> leaderboard = new();
+        private string errorMessage = "";
 
         protected override async Task OnInitializedAsync()
         {
-            categories = (await CategoryRepository.GetAllAsync()).ToList();
-            entries = (await EntryRepository.GetAllAsync()).ToList();
+            try
+            {
+                categories = (await CategoryRepository.GetAllAsync()).ToList();
+                entries = (await EntryRepository.GetAllAsync()).ToList();
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Failed to load categories or entries on results page");
+                errorMessage = "Failed to load data. Please refresh the page or contact support.";
+            }
         }
 
         private async Task CalculateResults()
         {
+            errorMessage = "";
             validationErrors.Clear();
             leaderboard.Clear();
 
@@ -37,33 +54,54 @@ namespace ContestJudging.Web.Pages
             bool anyError = false;
             foreach (var cat in categories)
             {
-                // We use the new consolidated manager method
-                var result = await ContestManager.CalculateGlobalScoresAsync(cat.Id, cat.MaxScore);
+                try
+                {
+                    var result = await ContestManager.CalculateGlobalScoresAsync(cat.Id, cat.MaxScore);
 
-                if (!result.IsValid)
-                {
-                    validationErrors.Add($"Category '{cat.Id}': {result.ErrorMessage}");
-                    if (result.ErrorMessage.Contains("cycles")) anyError = true;
+                    if (!result.IsValid)
+                    {
+                        validationErrors.Add($"Category '{cat.Id}': {result.ErrorMessage}");
+                        if (result.ErrorMessage.Contains("cycles")) anyError = true;
+                    }
+                    else if (result.ComponentCount > 1)
+                    {
+                        validationErrors.Add($"Category '{cat.Id}' warning: Graph has {result.ComponentCount} disconnected components.");
+                    }
                 }
-                else if (result.ComponentCount > 1)
+                catch (Exception ex)
                 {
-                    validationErrors.Add($"Category '{cat.Id}' warning: Graph has {result.ComponentCount} disconnected components.");
+                    Logger.LogError(ex, "Failed to calculate scores for category {CategoryId}", cat.Id);
+                    errorMessage = $"Failed to calculate results for category '{cat.Id}'. Please try again.";
+                    return;
                 }
             }
 
             if (anyError) return;
 
-            // Refresh entries with new scores
-            var allEntries = (await EntryRepository.GetAllAsync()).ToList();
-            leaderboard = allEntries
-                .Select(e => new LeaderboardItem { Entry = e })
-                .OrderByDescending(i => i.Entry.TotalScore)
-                .ToList();
+            try
+            {
+                var allEntries = (await EntryRepository.GetAllAsync()).ToList();
+                leaderboard = allEntries
+                    .Select(e => new LeaderboardItem { Entry = e })
+                    .OrderByDescending(i => i.Entry.TotalScore)
+                    .ToList();
+
+                for (int i = 0; i < leaderboard.Count; i++)
+                {
+                    leaderboard[i].Rank = i + 1;
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Failed to load entries for leaderboard");
+                errorMessage = "Failed to load leaderboard data. Please try again.";
+            }
         }
 
         public class LeaderboardItem
         {
             public Entry Entry { get; set; } = default!;
+            public int Rank { get; set; }
         }
     }
 }

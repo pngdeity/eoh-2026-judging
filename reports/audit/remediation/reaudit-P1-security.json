@@ -1,0 +1,221 @@
+{
+  "agent_id": "PA1-D",
+  "pass": "reaudit-1",
+  "domain": "security",
+  "status": "complete",
+  "original_findings": 8,
+  "original_resolved": 1,
+  "new_findings": 3,
+  "total_open": 10,
+  "security_trend": "slightly_worse",
+  "findings": [
+    {
+      "id": "RA-SEC-R01",
+      "title": "SEC-001: Missing Content-Security-Policy header remains (reaudit confirmation)",
+      "severity": "medium",
+      "category": "security-misconfiguration",
+      "original_id": "SEC-001",
+      "remediation_status": "open",
+      "files": [
+        "src/ContestJudging.Web/wwwroot/index.html:4"
+      ],
+      "evidence_snippet": "<!-- index.html:4-15 -- no CSP meta tag present -->\n<head>\n    <meta charset=\"utf-8\" />\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\" />\n    <title>EOH 2026 Contest Judging</title>\n    <base href=\"/\" />\n    ...\n</head>",
+      "rule_violated": "OWASP A05:2021 Security Misconfiguration, CWE-1021",
+      "remediation": "Add a Content-Security-Policy meta tag with directives appropriate for Blazor WASM: default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; connect-src 'self'; img-src 'self' data:;",
+      "effort": "small",
+      "status": "open"
+    },
+    {
+      "id": "RA-SEC-R02",
+      "title": "SEC-002: Insecure Random still used in PartitionService default constructor",
+      "severity": "medium",
+      "category": "weak-cryptography",
+      "original_id": "SEC-002",
+      "remediation_status": "open",
+      "files": [
+        "src/ContestJudging.Services/Partitioning/PartitionService.cs:9",
+        "src/ContestJudging.Services/Partitioning/PartitionService.cs:11"
+      ],
+      "evidence_snippet": "// PartitionService.cs:9,11\nprivate readonly Random _random;\npublic PartitionService() : this(new Random()) { }\n// Default constructor still uses new Random() — unseeded, non-crypto",
+      "rule_violated": "CWE-338 Use of Cryptographically Weak PRNG",
+      "remediation": "Replace new Random() in default constructor with RandomNumberGenerator-based shuffling, or use Random.Shared with documentation acknowledging non-cryptographic use.",
+      "effort": "trivial",
+      "status": "open"
+    },
+    {
+      "id": "RA-SEC-R03",
+      "title": "SEC-003: Hardcoded connection string remains — now in 3 locations",
+      "severity": "low",
+      "category": "hardcoded-configuration",
+      "original_id": "SEC-003",
+      "remediation_status": "open",
+      "files": [
+        "src/ContestJudging.Web/Program.cs:47",
+        "src/ContestJudging.Services/Extensions/ServiceCollectionExtensions.cs:21",
+        "src/ContestJudging.Services/Extensions/ServiceCollectionExtensions.cs:35"
+      ],
+      "evidence_snippet": "// Program.cs:47\nservices.AddContestJudgingServices(\"Data Source=contest.db\");\n\n// ServiceCollectionExtensions.cs:21\npublic static IServiceCollection AddContestJudgingServices(this IServiceCollection services, string connectionString = \"Data Source=:memory:\")\n\n// ServiceCollectionExtensions.cs:35\nnew DatabaseBackupService(\"contest.db\")",
+      "rule_violated": "Hardcoded configuration values should be externalized",
+      "remediation": "Move database path to a single configuration source (appsettings.json or constant). Remove default parameters to force explicit configuration.",
+      "effort": "trivial",
+      "status": "open"
+    },
+    {
+      "id": "RA-SEC-R04",
+      "title": "SEC-004: Database backup still lacks integrity verification (magic header only)",
+      "severity": "medium",
+      "category": "data-integrity",
+      "original_id": "SEC-004",
+      "remediation_status": "partial",
+      "files": [
+        "src/ContestJudging.Infrastructure/Persistence/DatabaseBackupService.cs:25",
+        "src/ContestJudging.Services/Managers/BackupService.cs:23"
+      ],
+      "evidence_snippet": "// DatabaseBackupService.cs:25-29 — validates file format, not data integrity\nvar magic = \"SQLite format 3\\0\"u8;\nfor (int i = 0; i < 16; i++)\n{\n    if (data[i] != magic[i])\n        throw new ArgumentException(\"Not a valid SQLite database file\");\n}\n\n// BackupService.cs:23 — raw base64 in localStorage, no checksum\nvar base64 = Convert.ToBase64String(dbData);\nawait _localStorage.SetItemAsync(\"db_backup\", base64);",
+      "rule_violated": "CWE-345 Insufficient Verification of Data Authenticity",
+      "remediation": "Append an HMAC-SHA256 or SHA-256 checksum to the backup payload before base64 encoding. Verify on restore and reject if integrity check fails.",
+      "effort": "small",
+      "status": "partial"
+    },
+    {
+      "id": "RA-SEC-R05",
+      "title": "SEC-005: Exception message exposure fixed (reaudit confirmation)",
+      "severity": "informational",
+      "category": "information-leakage",
+      "original_id": "SEC-005",
+      "remediation_status": "fixed",
+      "files": [
+        "src/ContestJudging.Web/Program.cs"
+      ],
+      "evidence_snippet": "// Original Console.WriteLine with ex.Message removed. BackupService.cs now uses ILogger:\n_logger.LogError(ex, \"Failed to restore database from backup\");\n// No Console.Write* calls remain in production code.",
+      "rule_violated": "CWE-209 Generation of Error Message Containing Sensitive Information",
+      "remediation": "Previously resolved — confirmed fixed.",
+      "effort": "trivial",
+      "status": "resolved"
+    },
+    {
+      "id": "RA-SEC-R06",
+      "title": "SEC-006: Missing *.db pattern in .gitignore remains",
+      "severity": "medium",
+      "category": "git-hygiene",
+      "original_id": "SEC-006",
+      "remediation_status": "open",
+      "files": [
+        ".gitignore:1"
+      ],
+      "evidence_snippet": "// .gitignore has *.dbmdl (line 244) but no *.db or *.sqlite pattern.\n// Application creates contest.db as its SQLite database file.",
+      "rule_violated": "Database files containing contest data should not be committed to version control",
+      "remediation": "Add *.db, *.sqlite, and *.sqlite3 patterns to .gitignore.",
+      "effort": "trivial",
+      "status": "open"
+    },
+    {
+      "id": "RA-SEC-R07",
+      "title": "SEC-007: No authentication on administrative operations remains (deferred)",
+      "severity": "medium",
+      "category": "missing-authentication",
+      "original_id": "SEC-007",
+      "remediation_status": "deferred",
+      "files": [
+        "src/ContestJudging.Web/Pages/Setup.razor.cs:59",
+        "src/ContestJudging.Web/Pages/Setup.razor.cs:68",
+        "src/ContestJudging.Web/Pages/Judging.razor.cs:147",
+        "src/ContestJudging.Web/Pages/Judging.razor.cs:180"
+      ],
+      "evidence_snippet": "// Setup.razor.cs:57-63 — unprotected data clearing\nprivate async Task ClearCategories()\n{\n    foreach (var cat in categories.ToList())\n    {\n        await CategoryRepository.DeleteAsync(cat.Id);\n    }\n    await RefreshData();\n}",
+      "rule_violated": "CWE-306 Missing Authentication for Critical Function",
+      "remediation": "Add passphrase gate on Setup page or document trusted-device deployment model. Deferred per original remediation plan.",
+      "effort": "small",
+      "status": "deferred"
+    },
+    {
+      "id": "RA-SEC-R08",
+      "title": "SEC-008: Client-side SQLite architecture unchanged (still informational)",
+      "severity": "informational",
+      "category": "architecture-awareness",
+      "original_id": "SEC-008",
+      "remediation_status": "accepted",
+      "files": [
+        "src/ContestJudging.Web/Program.cs:21",
+        "src/ContestJudging.Infrastructure/Persistence/ContestDbContext.cs:41"
+      ],
+      "evidence_snippet": "// Program.cs:21 — SQLite initializes in browser WebAssembly\nSQLitePCL.Batteries_V2.Init();",
+      "rule_violated": "Blazor WASM runs entirely client-side; all data is accessible via browser DevTools",
+      "remediation": "Document the trust model. If data confidentiality is needed, implement a backend API with server-side persistence.",
+      "effort": "trivial",
+      "status": "open"
+    },
+    {
+      "id": "RA-SEC-N01",
+      "title": "Hardcoded database path now duplicated in 3 code locations",
+      "severity": "low",
+      "category": "hardcoded-configuration",
+      "original_id": null,
+      "remediation_status": "new",
+      "files": [
+        "src/ContestJudging.Web/Program.cs:47",
+        "src/ContestJudging.Services/Extensions/ServiceCollectionExtensions.cs:21",
+        "src/ContestJudging.Services/Extensions/ServiceCollectionExtensions.cs:35"
+      ],
+      "evidence_snippet": "// Three separate hardcoded database references:\n// 1) Program.cs:47 — \"Data Source=contest.db\"\n// 2) ServiceCollectionExtensions.cs:21 — \"Data Source=:memory:\" (default)\n// 3) ServiceCollectionExtensions.cs:35 — \"contest.db\" (new, for DatabaseBackupService)\n\n// If the path changes, all three must be updated independently.",
+      "rule_violated": "Duplicate hardcoded values create maintenance risk and inconsistent configuration",
+      "remediation": "Introduce a single configuration value (from appsettings.json or a shared constant) used by all three sites.",
+      "effort": "trivial",
+      "status": "new"
+    },
+    {
+      "id": "RA-SEC-N02",
+      "title": "DatabaseBackupService lacks path canonicalization",
+      "severity": "informational",
+      "category": "path-traversal",
+      "original_id": null,
+      "remediation_status": "new",
+      "files": [
+        "src/ContestJudging.Infrastructure/Persistence/DatabaseBackupService.cs:9"
+      ],
+      "evidence_snippet": "// DatabaseBackupService.cs:9-12\npublic DatabaseBackupService(string dbPath = \"contest.db\")\n{\n    _dbPath = dbPath;  // no Path.GetFullPath, no directory validation\n}\n\n// ExportAsync reads and ImportAsync writes to _dbPath directly.",
+      "rule_violated": "CWE-22 Improper Limitation of a Pathname to a Restricted Directory",
+      "remediation": "Add _dbPath = Path.GetFullPath(dbPath); and optionally validate the resolved path is within an expected directory.",
+      "effort": "trivial",
+      "status": "new"
+    },
+    {
+      "id": "RA-SEC-N03",
+      "title": "Schema version check in BackupService bypassable via localStorage tampering",
+      "severity": "informational",
+      "category": "data-integrity",
+      "original_id": null,
+      "remediation_status": "new",
+      "files": [
+        "src/ContestJudging.Services/Managers/BackupService.cs:33"
+      ],
+      "evidence_snippet": "// BackupService.cs:33-34 — schema version stored as separate, unauthenticated localStorage key\nvar storedVersion = await _localStorage.GetItemAsync<int>(\"db_schema_version\");\nif (storedVersion != CurrentSchemaVersion)\n{\n    _logger.LogWarning(\"Schema version mismatch: stored={Stored}, current={Current}. Discarding backup.\",\n        storedVersion, CurrentSchemaVersion);\n    await _localStorage.RemoveItemAsync(\"db_backup\");\n    await _localStorage.RemoveItemAsync(\"db_schema_version\");\n    return null;\n}\n\n// Attacker can set db_schema_version to match CurrentSchemaVersion alongside tampered db_backup.",
+      "rule_violated": "CWE-345 Insufficient Verification of Data Authenticity",
+      "remediation": "Combine schema version and data into a single signed/checksummed payload, or accept that localStorage is inherently untrusted in a WASM application.",
+      "effort": "small",
+      "status": "new"
+    }
+  ],
+  "metrics": {
+    "files_scanned": 31,
+    "findings_count": 11,
+    "lines_of_code": 1720,
+    "original_resolved": 1,
+    "partially_resolved": 2,
+    "still_open": 5,
+    "new_findings": 3,
+    "security_trend": "slightly_worse"
+  },
+  "scan_coverage": {
+    "hardcoded_secrets": "clean",
+    "hardcoded_urls": "clean (test-only localhost, acceptable)",
+    "sql_injection": "clean (EF Core parameterized queries throughout)",
+    "input_validation": "adequate (ID length checks, null checks, data annotations)",
+    "insecure_random": "SEC-002 confirmed open",
+    "path_traversal": "RA-SEC-N02 (low, currently non-exploitable)",
+    "information_leakage": "SEC-005 fixed; ILogger structured logging in place",
+    "csp_header": "SEC-001 confirmed open",
+    "gitignore": "SEC-006 confirmed open",
+    "nuget_cves": "none detected (manual review of recent .NET 10 preview versions)"
+  }
+}

@@ -1,0 +1,207 @@
+{
+  "agent_id": "P2-D",
+  "pass": 2,
+  "domain": "efcore",
+  "status": "success",
+  "findings": [
+    {
+      "id": "EF-001",
+      "title": "No database migration files; schema managed exclusively via EnsureCreatedAsync()",
+      "severity": "high",
+      "category": "schema-management",
+      "files": [
+        "src/ContestJudging.Infrastructure/Persistence/ContestDbContext.cs:53",
+        "src/ContestJudging.Web/Program.cs:56"
+      ],
+      "evidence_snippet": "// Zero migration files in the repository (glob **/Migrations/** returns empty).\n// Program.cs:56: await context.Database.EnsureCreatedAsync();\n// ContestDbContext.cs:53-63: OnModelCreating configures schema but no migration snapshot exists.",
+      "rule_violated": "EF Core best practice: EnsureCreated() is for testing/in-memory scenarios only. Production apps must use migrations for versioned, upgradeable schema management.",
+      "remediation": "Run 'dotnet ef migrations add InitialCreate' to generate a migration. Replace EnsureCreatedAsync() with Database.MigrateAsync() in Program.cs. This preserves data across schema changes and tracks model snapshots.",
+      "effort": "small",
+      "status": "open"
+    },
+    {
+      "id": "EF-002",
+      "title": "Missing foreign key relationships in entity configuration",
+      "severity": "high",
+      "category": "schema-design",
+      "files": [
+        "src/ContestJudging.Infrastructure/Persistence/ContestDbContext.cs:54"
+      ],
+      "evidence_snippet": "// OnModelCreating only configures keys + one unique index:\nmodelBuilder.Entity<CategoryEntity>().HasKey(c => c.Id);\nmodelBuilder.Entity<EntryEntity>().HasKey(e => e.Id);\nmodelBuilder.Entity<RelationEntity>().HasKey(r => r.Id);\nmodelBuilder.Entity<EntryScoreEntity>().HasKey(es => es.Id);\nmodelBuilder.Entity<EntryScoreEntity>().HasIndex(es => new { es.EntryId, es.CategoryId }).IsUnique();\n// Zero .HasOne(), .HasForeignKey(), or .OnDelete() calls.",
+      "rule_violated": "EF Core schema integrity: without explicit FK configuration, referential integrity is not enforced at the database level. SQLite has FK enforcement off by default.",
+      "remediation": "Add Fluent API relationships (HasOne/WithMany/HasForeignKey/OnDelete) for EntryEntity->EntryScoreEntity, EntryScoreEntity->CategoryEntity, and RelationEntity->CategoryEntity. Enable foreign keys at connection open. Remove manual cascade deletion code in repository DeleteAsync methods after FKs are configured.",
+      "effort": "small",
+      "status": "open"
+    },
+    {
+      "id": "EF-003",
+      "title": "Database restore overwrites file with active DbContext connection; swallowed exception masks data loss",
+      "severity": "high",
+      "category": "error-handling",
+      "files": [
+        "src/ContestJudging.Web/Program.cs:35",
+        "src/ContestJudging.Web/Program.cs:47",
+        "src/ContestJudging.Web/Program.cs:49",
+        "src/ContestJudging.Web/Program.cs:56"
+      ],
+      "evidence_snippet": "// Program.cs:34-35: DbContext resolved, connection opened\nvar context = scope.ServiceProvider.GetRequiredService<ContestDbContext>();\n// Program.cs:47: raw file overwrite while DbContext is connected\nawait contestManager.ImportDataAsync(backupBytes);\n// Program.cs:49: all exceptions swallowed with ex.Message only\ncatch (Exception ex) { Console.WriteLine($\"Failed to restore database: {ex.Message}\"); }\n// Program.cs:56: runs after potentially-corrupted restore\nawait context.Database.EnsureCreatedAsync();",
+      "rule_violated": "Best practice: never overwrite an open database file via raw filesystem I/O. Never swallow exceptions silently when data operations are at stake.",
+      "remediation": "Restructure startup: check LocalStorage for backup before creating the DbContext scope. Dispose of existing connection, restore file, then create fresh DbContext. Log ex.ToString() instead of ex.Message. Set an error flag for UI notification.",
+      "effort": "medium",
+      "status": "open",
+      "related_findings": [
+        "CQ-003"
+      ]
+    },
+    {
+      "id": "EF-004",
+      "title": "O(n*m) client-side join in SqliteEntryRepository queries",
+      "severity": "medium",
+      "category": "performance",
+      "files": [
+        "src/ContestJudging.Infrastructure/Repositories/SqliteRepositories.cs:87",
+        "src/ContestJudging.Infrastructure/Repositories/SqliteRepositories.cs:91",
+        "src/ContestJudging.Infrastructure/Repositories/SqliteRepositories.cs:107",
+        "src/ContestJudging.Infrastructure/Repositories/SqliteRepositories.cs:115"
+      ],
+      "evidence_snippet": "// GetByIdAsync (line 87) and GetAllAsync (line 107):\nvar categories = await _context.Categories.ToListAsync();\n// Inside nested loops (lines 91, 115):\nvar categoryEntity = categories.FirstOrDefault(c => c.Id == scoreEntity.CategoryId);\n// O(N*M) linear scan in C# instead of single SQL JOIN",
+      "rule_violated": "EF Core query efficiency: prefer database-side JOINs over client-side correlation loops. O(n*m) vs O(n) with SQL JOIN.",
+      "remediation": "Add a Category navigation property to EntryScoreEntity. Configure FK in OnModelCreating. Use .Include(e => e.Scores).ThenInclude(s => s.Category) and access scoreEntity.Category directly. This emits a single SQL JOIN.",
+      "effort": "small",
+      "status": "open",
+      "related_findings": [
+        "CQ-007"
+      ]
+    },
+    {
+      "id": "EF-005",
+      "title": "Missing .AsNoTracking() on all read-only repository queries",
+      "severity": "medium",
+      "category": "performance",
+      "files": [
+        "src/ContestJudging.Infrastructure/Repositories/SqliteRepositories.cs:30",
+        "src/ContestJudging.Infrastructure/Repositories/SqliteRepositories.cs:80",
+        "src/ContestJudging.Infrastructure/Repositories/SqliteRepositories.cs:103",
+        "src/ContestJudging.Infrastructure/Repositories/SqliteRepositories.cs:200"
+      ],
+      "evidence_snippet": "// GetAllAsync (line 30): await _context.Categories.ToListAsync();\n// GetByIdAsync (line 80): await _context.Entries.Include(e => e.Scores).FirstOrDefaultAsync(...);\n// GetAllAsync (line 103): await _context.Entries.Include(e => e.Scores).ToListAsync();\n// GetByCategoryIdAsync (line 200): await _context.Relations.Where(...).ToListAsync();\n// All lack .AsNoTracking(); entities are tracked but never mutated in these read paths.",
+      "rule_violated": "EF Core performance best practice: use .AsNoTracking() for read-only queries to avoid change tracker overhead.",
+      "remediation": "Add .AsNoTracking() to GetAllAsync, GetByIdAsync, and GetByCategoryIdAsync queries. For UpdateAsync methods that mutate entities, keep tracking enabled.",
+      "effort": "trivial",
+      "status": "open"
+    },
+    {
+      "id": "EF-006",
+      "title": "CalculateGlobalScoresAsync performs individual entry updates without transaction wrapping",
+      "severity": "medium",
+      "category": "transactions",
+      "files": [
+        "src/ContestJudging.Services/Managers/ContestManager.cs:107",
+        "src/ContestJudging.Services/Managers/ContestManager.cs:112"
+      ],
+      "evidence_snippet": "// ContestManager.cs:106-114: each entry update commits independently\nforeach (var entry in entries)\n{\n    if (scores.TryGetValue(entry.Id, out double score))\n    {\n        entry.SetScore(category, score);\n        await _entryRepository.UpdateAsync(entry); // calls SaveChangesAsync internally\n    }\n}\n// No BeginTransaction / CommitTransaction wrapping. Partial updates possible on failure.",
+      "rule_violated": "ACID best practice: multi-entity mutations representing a single logical operation must be wrapped in a transaction.",
+      "remediation": "Wrap the scoring loop in a transaction via _context.Database.BeginTransactionAsync(). Alternatively, refactor UpdateAsync to not call SaveChangesAsync internally and batch all changes in a single SaveChangesAsync call at the end of the loop.",
+      "effort": "small",
+      "status": "open"
+    },
+    {
+      "id": "EF-007",
+      "title": "Connection string hardcoded in Program.cs rather than sourced from configuration",
+      "severity": "low",
+      "category": "configuration",
+      "files": [
+        "src/ContestJudging.Web/Program.cs:66"
+      ],
+      "evidence_snippet": "// Program.cs:66: hardcoded connection string\nservices.AddContestJudgingServices(\"Data Source=contest.db\");\n// ServiceCollectionExtensions.cs:21 has misleading :memory: default never used by caller",
+      "rule_violated": "Twelve-Factor App / .NET conventions: configuration should come from appsettings.json, environment variables, or configuration providers.",
+      "remediation": "Read connection string from builder.Configuration.GetConnectionString(\"ContestDb\") or appsettings. Store the DB path there. This also makes swapping to :memory: for tests trivial.",
+      "effort": "trivial",
+      "status": "open"
+    },
+    {
+      "id": "EF-008",
+      "title": "Missing indexes on frequently queried foreign key columns",
+      "severity": "low",
+      "category": "schema-design",
+      "files": [
+        "src/ContestJudging.Infrastructure/Persistence/ContestDbContext.cs:54"
+      ],
+      "evidence_snippet": "// RelationEntity.CategoryId used in WHERE at SqliteRepositories.cs:57, 173, 201 — no index.\n// EntryScoreEntity.EntryId used in WHERE at SqliteRepositories.cs:176 — no separate index (only covered by composite unique).\n// OnModelCreating has zero .HasIndex() calls beyond the single composite unique on EntryScoreEntity.",
+      "rule_violated": "Database performance: index columns used in WHERE and JOIN clauses.",
+      "remediation": "Add .HasIndex(r => r.CategoryId) on RelationEntity and .HasIndex(es => es.EntryId) on EntryScoreEntity in OnModelCreating.",
+      "effort": "trivial",
+      "status": "open"
+    },
+    {
+      "id": "EF-009",
+      "title": "No error handling around SaveChangesAsync calls in repository methods",
+      "severity": "low",
+      "category": "error-handling",
+      "files": [
+        "src/ContestJudging.Infrastructure/Repositories/SqliteRepositories.cs:38",
+        "src/ContestJudging.Infrastructure/Repositories/SqliteRepositories.cs:47",
+        "src/ContestJudging.Infrastructure/Repositories/SqliteRepositories.cs:64",
+        "src/ContestJudging.Infrastructure/Repositories/SqliteRepositories.cs:140",
+        "src/ContestJudging.Infrastructure/Repositories/SqliteRepositories.cs:163",
+        "src/ContestJudging.Infrastructure/Repositories/SqliteRepositories.cs:180",
+        "src/ContestJudging.Infrastructure/Repositories/SqliteRepositories.cs:228",
+        "src/ContestJudging.Infrastructure/Repositories/SqliteRepositories.cs:238"
+      ],
+      "evidence_snippet": "// All 8 SaveChangesAsync() calls lack try/catch. Example:\nawait _context.Categories.AddAsync(entity);\nawait _context.SaveChangesAsync();\n// No handling for DbUpdateException, constraint violations, or I/O errors.",
+      "rule_violated": "Defensive programming: persistence operations should catch and wrap data-access exceptions with domain-meaningful error types.",
+      "remediation": "Wrap SaveChangesAsync() in try/catch. Catch DbUpdateException and inspect its inner exception to provide user-actionable messages. Re-throw as a custom domain exception or log with context.",
+      "effort": "small",
+      "status": "open"
+    },
+    {
+      "id": "EF-010",
+      "title": "EntryScoreEntity has redundant surrogate key alongside natural composite unique constraint",
+      "severity": "low",
+      "category": "schema-design",
+      "files": [
+        "src/ContestJudging.Infrastructure/Persistence/ContestDbContext.cs:24",
+        "src/ContestJudging.Infrastructure/Persistence/ContestDbContext.cs:60"
+      ],
+      "evidence_snippet": "// EntryScoreEntity: auto-increment int Id as PK (line 26)\n// Plus unique composite index on (EntryId, CategoryId) (lines 60-62)\n// The surrogate Id is never referenced by any FK and never used in any query.",
+      "rule_violated": "Schema normalization: avoid redundant surrogate keys when the natural key is sufficient and no referencing FKs require it.",
+      "remediation": "Remove the Id property and make (EntryId, CategoryId) the composite primary key via modelBuilder.Entity<EntryScoreEntity>().HasKey(es => new { es.EntryId, es.CategoryId }).",
+      "effort": "trivial",
+      "status": "open"
+    },
+    {
+      "id": "EF-011",
+      "title": "DbContext class holds file I/O methods violating Single Responsibility Principle",
+      "severity": "informational",
+      "category": "architecture",
+      "files": [
+        "src/ContestJudging.Infrastructure/Persistence/ContestDbContext.cs:65",
+        "src/ContestJudging.Infrastructure/Persistence/ContestDbContext.cs:76"
+      ],
+      "evidence_snippet": "// ContestDbContext contains raw file I/O methods bypassing EF Core:\npublic async Task<byte[]> ExportDatabaseAsync() {\n    if (File.Exists(\"contest.db\")) return await File.ReadAllBytesAsync(\"contest.db\");\n    return Array.Empty<byte>();\n}\npublic async Task ImportDatabaseAsync(byte[] data) {\n    await File.WriteAllBytesAsync(\"contest.db\", data);\n}",
+      "rule_violated": "Single Responsibility Principle: the DbContext should only be responsible for database access and entity modeling, not filesystem I/O.",
+      "remediation": "Move ExportDatabaseAsync and ImportDatabaseAsync into a separate DatabaseBackupService registered in DI. The existing ContestManager delegates to these methods so refactoring is localized.",
+      "effort": "small",
+      "status": "open"
+    },
+    {
+      "id": "EF-012",
+      "title": "No .IsRequired() or .HasMaxLength() configuration on string entity properties",
+      "severity": "informational",
+      "category": "schema-design",
+      "files": [
+        "src/ContestJudging.Infrastructure/Persistence/ContestDbContext.cs:54"
+      ],
+      "evidence_snippet": "// OnModelCreating only configures keys and one index.\n// All string properties (CategoryEntity.Id, EntryEntity.Id, EntryScoreEntity.EntryId/CategoryId,\n// RelationEntity.CategoryId/EntryAId/EntryBId) lack .IsRequired() and .HasMaxLength().\n// EF Core defaults to nvarchar(max) nullable — semantically imprecise for non-null PK/FK columns.",
+      "rule_violated": "EF Core schema precision: explicit column constraints improve model clarity and enable database-level validation.",
+      "remediation": "Add .IsRequired() and .HasMaxLength(256) to all string PK/FK properties in OnModelCreating.",
+      "effort": "trivial",
+      "status": "open"
+    }
+  ],
+  "metrics": {
+    "files_scanned": 10,
+    "findings_count": 12,
+    "lines_of_code": 500
+  }
+}

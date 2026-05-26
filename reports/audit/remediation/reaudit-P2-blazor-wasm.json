@@ -1,0 +1,179 @@
+{
+  "agent_id": "PA2-C",
+  "pass": "remediation-reaudit",
+  "domain": "blazor-wasm",
+  "status": "complete",
+  "base_report": "reports/audit/findings-P2-blazor-wasm.json",
+  "summary": {
+    "original_findings": 10,
+    "fully_fixed": 2,
+    "partially_fixed": 1,
+    "still_open": 7,
+    "new_issues": 2,
+    "severity_reduced": 0,
+    "risk_reduction_pct": 20
+  },
+  "remediated_findings": [
+    {
+      "original_id": "BW-004",
+      "title": "Bootstrap accordion replaced with Blazor-native @if toggle",
+      "status": "fixed",
+      "verification": {
+        "no_data_bs_toggle": "Judging.razor:97-101 — uses @onclick, no data-bs-toggle attributes",
+        "showManualOverride_field": "Judging.razor.cs:35 — private bool showManualOverride;",
+        "at_if_conditional": "Judging.razor:103 — @if (showManualOverride) wraps card-body",
+        "no_bootstrap_js": "index.html — no <script src=...bootstrap...> tag",
+        "bootstrap_css_only": "index.html:10 — only <link> for bootstrap CSS",
+        "visual_regression": "none — accordion-button CSS is pure CSS (::after pseudo-element, .collapsed toggle), no JS required"
+      }
+    },
+    {
+      "original_id": "BW-008",
+      "title": "Console.WriteLine replaced with ILogger<BackupService>",
+      "status": "fixed",
+      "verification": {
+        "no_console_writeline": "Program.cs — restore logic moved to BackupService",
+        "log_warning": "BackupService.cs:37 — _logger.LogWarning for schema mismatch",
+        "log_information": "BackupService.cs:53 — _logger.LogInformation for successful restore",
+        "log_error": "BackupService.cs:56 — _logger.LogError(ex, ...) for restore failure"
+      }
+    }
+  ],
+  "partially_fixed_findings": [
+    {
+      "original_id": "BW-007",
+      "title": "Restore integrity verification — schema version + header check added, post-restore validation missing",
+      "status": "partially_fixed",
+      "what_is_fixed": [
+        "BackupService.cs:34-41 — schema version check with safe discard on mismatch",
+        "DatabaseBackupService.cs:23-30 — SQLite header magic bytes validation (16-byte 'SQLite format 3\\0')"
+      ],
+      "what_remains": [
+        "No post-restore DB integrity check (PRAGMA integrity_check or SELECT 1) — corrupted pages could pass header validation"
+      ],
+      "sufficiency_assessment": "Acceptable for current threat model. Adding post-restore integrity check would provide defense-in-depth."
+    }
+  ],
+  "still_open_findings": [
+    {
+      "original_id": "BW-001",
+      "title": "OnInitializedAsync methods lack exception handling",
+      "status": "open",
+      "files_affected": [
+        "Setup.razor.cs:37-39 — await RefreshData() with no try-catch",
+        "Judging.razor.cs:44-48 — CategoryRepo/EntryRepo calls with no try-catch",
+        "Results.razor.cs:20-24 — CategoryRepo/EntryRepo calls with no try-catch"
+      ],
+      "severity": "medium",
+      "category": "lifecycle"
+    },
+    {
+      "original_id": "BW-002",
+      "title": "Excessive backup calls still triggered on every CRUD mutation",
+      "status": "open",
+      "files_affected": [
+        "Setup.razor.cs:42-46 — RefreshData() calls BackupDatabase() on every load + add/delete/clear",
+        "Judging.razor.cs:66-74 — RefreshRelations() calls BackupDatabase() on every category change + relation add/delete"
+      ],
+      "severity": "medium",
+      "category": "performance",
+      "note": "IBackupService abstraction cleans up code but does not change excessive invocation pattern"
+    },
+    {
+      "original_id": "BW-003",
+      "title": "No localStorage quota check before storing backup",
+      "status": "open",
+      "files_affected": [
+        "BackupService.cs:21-26 — SaveBackupAsync has no size threshold check, no QuotaExceededError handling"
+      ],
+      "severity": "medium",
+      "category": "data-loss"
+    },
+    {
+      "original_id": "BW-005",
+      "title": "Interactive div elements missing ARIA roles, keyboard handlers, tabindex",
+      "status": "open",
+      "files_affected": [
+        "Judging.razor:64-71 — judge-card div missing role='button', tabindex, @onkeydown",
+        "Judging.razor:73-80 — tie-button div missing role='button', tabindex, @onkeydown",
+        "Judging.razor:82-89 — judge-card div missing role='button', tabindex, @onkeydown",
+        "NavMenu.razor:4 — navbar-toggler button missing aria-label"
+      ],
+      "severity": "medium",
+      "category": "accessibility"
+    },
+    {
+      "original_id": "BW-006",
+      "title": "Large lists rendered without Virtualize component",
+      "status": "open",
+      "files_affected": [
+        "Setup.razor:35-42 — categories @foreach",
+        "Setup.razor:67-74 — entries @foreach",
+        "Judging.razor:165-181 — relations @foreach",
+        "Results.razor:55-67 — leaderboard @foreach"
+      ],
+      "severity": "medium",
+      "category": "performance"
+    },
+    {
+      "original_id": "BW-009",
+      "title": "Orphaned weather.json scaffold file still present",
+      "status": "open",
+      "files_affected": [
+        "src/ContestJudging.Web/wwwroot/sample-data/weather.json"
+      ],
+      "severity": "low",
+      "category": "dead-code"
+    },
+    {
+      "original_id": "BW-010",
+      "title": "Infrastructure leak still present in Program.cs",
+      "status": "open",
+      "files_affected": [
+        "Program.cs:5 — using ContestJudging.Infrastructure.Persistence",
+        "Program.cs:34-38 — CreateScope + EnsureCreatedAsync on ContestDbContext"
+      ],
+      "severity": "informational",
+      "category": "architecture",
+      "note": "Restore path abstracted via IBackupService (improvement), but direct Infrastructure references remain"
+    }
+  ],
+  "new_issues": [
+    {
+      "id": "RA-BW-001",
+      "title": "Scoped IBackupService resolved from root service provider",
+      "severity": "low",
+      "category": "lifecycle",
+      "files": [
+        "src/ContestJudging.Web/Program.cs:31"
+      ],
+      "evidence_snippet": "var backupService = host.Services.GetRequiredService<IBackupService>();\n// IBackupService registered as Scoped in ServiceCollectionExtensions.cs:36",
+      "rule_violated": "DI best practice: scoped services should be resolved within a scope, not from root provider",
+      "remediation": "Wrap restore in using (var scope = host.Services.CreateScope()) { var svc = scope.ServiceProvider.GetRequiredService<IBackupService>(); ... }",
+      "effort": "trivial",
+      "status": "open",
+      "practical_impact": "Works in Blazor WASM due to implicit root scope wrapping, but violates intended lifetime management"
+    },
+    {
+      "id": "RA-BW-002",
+      "title": "No post-restore database integrity validation",
+      "severity": "low",
+      "category": "data-integrity",
+      "files": [
+        "src/ContestJudging.Infrastructure/Persistence/DatabaseBackupService.cs:31"
+      ],
+      "evidence_snippet": "await File.WriteAllBytesAsync(_dbPath, data);\n// No PRAGMA integrity_check, no SELECT 1 to verify restored file is not corrupt",
+      "rule_violated": "Defensive programming: header magic bytes check doesn't validate internal page consistency",
+      "remediation": "Open a temporary SQLite connection after WriteAllBytesAsync and run PRAGMA integrity_check or SELECT 1",
+      "effort": "trivial",
+      "status": "open",
+      "related_findings": ["BW-007"]
+    }
+  ],
+  "architecture_observations": {
+    "backup_service_design": "Well-designed abstraction with clean interface, schema versioning, proper logging. Only gap is post-restore integrity check.",
+    "startup_flow": "Correct ordering: restore -> ensure created -> run. No race conditions or ordering issues.",
+    "accordion_visual_regression": "None. accordion-button CSS is pure CSS (::after pseudo-element, .collapsed toggle), no JS required.",
+    "calling_pattern_unchanged": "IBackupService abstraction did not change excessive backup invocation pattern — still called on every CRUD mutation."
+  }
+}

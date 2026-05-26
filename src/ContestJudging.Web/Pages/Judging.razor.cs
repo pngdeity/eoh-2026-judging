@@ -3,26 +3,27 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
-using Blazored.LocalStorage;
-
 using ContestJudging.Core.Entities;
+using ContestJudging.Core.Interfaces;
 using ContestJudging.Core.Interfaces.Repositories;
 using ContestJudging.Services.Managers;
 using ContestJudging.Services.Partitioning;
 
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Web;
+using Microsoft.Extensions.Logging;
 
 namespace ContestJudging.Web.Pages
 {
-    public partial class Judging
+    public partial class Judging : IAsyncDisposable
     {
         [Inject] private ICategoryRepository CategoryRepository { get; set; } = default!;
         [Inject] private IEntryRepository EntryRepository { get; set; } = default!;
         [Inject] private IRelationRepository RelationRepository { get; set; } = default!;
         [Inject] private IPartitionService PartitionService { get; set; } = default!;
         [Inject] private IContestManager ContestManager { get; set; } = default!;
-        [Inject] private ILocalStorageService LocalStorage { get; set; } = default!;
+        [Inject] private IBackupService BackupService { get; set; } = default!;
+        [Inject] private ILogger<Judging> Logger { get; set; } = default!;
 
         private List<Category> categories = new();
         private List<Entry> entries = new();
@@ -33,18 +34,42 @@ namespace ContestJudging.Web.Pages
         private string entryBId = "";
         private Operator op = Operator.GreaterThan;
         private string errorMessage = "";
-        private Tuple<string, string>? suggestedPair;
+        private bool showManualOverride;
+        private (string A, string B)? suggestedPair;
 
-        // Partition Filtering
         private int kPartitions = 1;
         private double overlapRate = 0.1;
         private Dictionary<string, HashSet<string>>? currentPartitions;
         private string? selectedPartitionId;
+        private bool _needsBackup;
 
         protected override async Task OnInitializedAsync()
         {
-            categories = (await CategoryRepository.GetAllAsync()).ToList();
-            entries = (await EntryRepository.GetAllAsync()).ToList();
+            try
+            {
+                categories = (await CategoryRepository.GetAllAsync()).ToList();
+                entries = (await EntryRepository.GetAllAsync()).ToList();
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Failed to initialize {Page}", GetType().Name);
+                errorMessage = "Failed to load page data.";
+            }
+        }
+
+        public async ValueTask DisposeAsync()
+        {
+            if (_needsBackup)
+            {
+                try
+                {
+                    await BackupDatabase();
+                }
+                catch (Exception ex)
+                {
+                    Logger.LogError(ex, "Failed to save backup on dispose");
+                }
+            }
         }
 
         private async Task OnCategoryChanged(ChangeEventArgs e)
@@ -69,17 +94,15 @@ namespace ContestJudging.Web.Pages
             {
                 relations = (await RelationRepository.GetByCategoryIdAsync(selectedCategory.Id)).ToList();
                 FindSuggestedPair();
-                await BackupDatabase();
             }
         }
 
         private async Task BackupDatabase()
         {
-            // TRICKY OPTIMIZATION #2: Save to LocalStorage
             var data = await ContestManager.ExportDataAsync();
             if (data.Length > 0)
             {
-                await LocalStorage.SetItemAsStringAsync("db_backup", Convert.ToBase64String(data));
+                await BackupService.SaveBackupAsync(data);
             }
         }
 
@@ -128,7 +151,7 @@ namespace ContestJudging.Web.Pages
                     var b = filteredEntries[j].Id;
                     if (!existingPairs.Contains((a, b)))
                     {
-                        suggestedPair = new Tuple<string, string>(a, b);
+                        suggestedPair = (a, b);
                         return;
                     }
                 }
@@ -139,8 +162,8 @@ namespace ContestJudging.Web.Pages
         {
             if (suggestedPair != null)
             {
-                entryAId = suggestedPair.Item1;
-                entryBId = suggestedPair.Item2;
+                entryAId = suggestedPair.Value.A;
+                entryBId = suggestedPair.Value.B;
             }
         }
 
@@ -148,11 +171,12 @@ namespace ContestJudging.Web.Pages
         {
             if (suggestedPair == null || selectedCategory == null) return;
 
-            var entryA = entries.First(e => e.Id == suggestedPair.Item1);
-            var entryB = entries.First(e => e.Id == suggestedPair.Item2);
+            var entryA = entries.First(e => e.Id == suggestedPair.Value.A);
+            var entryB = entries.First(e => e.Id == suggestedPair.Value.B);
             var relation = new Relation(selectedCategory, entryA, resultOp, entryB);
 
             await RelationRepository.AddAsync(relation);
+            _needsBackup = true;
             await RefreshRelations();
         }
 
@@ -177,6 +201,14 @@ namespace ContestJudging.Web.Pages
             }
         }
 
+        private async Task HandleCardKeyDown(KeyboardEventArgs e, Operator resultOp)
+        {
+            if (e.Key == "Enter" || e.Key == " ")
+            {
+                await RecordResult(resultOp);
+            }
+        }
+
         private async Task AddRelation()
         {
             errorMessage = "";
@@ -197,6 +229,7 @@ namespace ContestJudging.Web.Pages
             var relation = new Relation(selectedCategory, entryA, op, entryB);
 
             await RelationRepository.AddAsync(relation);
+            _needsBackup = true;
             await RefreshRelations();
         }
 
@@ -204,6 +237,7 @@ namespace ContestJudging.Web.Pages
         {
             if (selectedCategory == null) return;
             await RelationRepository.DeleteAsync(selectedCategory.Id, rel.EntryA.Id, rel.EntryB.Id);
+            _needsBackup = true;
             await RefreshRelations();
         }
 

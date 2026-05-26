@@ -1,26 +1,28 @@
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Threading.Tasks;
 
-using Blazored.LocalStorage;
-
 using ContestJudging.Core.Entities;
+using ContestJudging.Core.Interfaces;
 using ContestJudging.Core.Interfaces.Repositories;
 using ContestJudging.Services.Managers;
 using ContestJudging.Services.Partitioning;
 
 using Microsoft.AspNetCore.Components;
+using Microsoft.Extensions.Logging;
 
 namespace ContestJudging.Web.Pages
 {
-    public partial class Setup
+    public partial class Setup : IAsyncDisposable
     {
         [Inject] private ICategoryRepository CategoryRepository { get; set; } = default!;
         [Inject] private IEntryRepository EntryRepository { get; set; } = default!;
         [Inject] private IPartitionService PartitionService { get; set; } = default!;
         [Inject] private IContestManager ContestManager { get; set; } = default!;
-        [Inject] private ILocalStorageService LocalStorage { get; set; } = default!;
+        [Inject] private IBackupService BackupService { get; set; } = default!;
+        [Inject] private ILogger<Setup> Logger { get; set; } = default!;
 
         private List<Category> categories = new();
         private List<Entry> entries = new();
@@ -28,31 +30,52 @@ namespace ContestJudging.Web.Pages
         private CategoryModel newCategory = new();
         private EntryModel newEntry = new();
         private string bulkEntriesText = "";
+        private string errorMessage = "";
 
-        // Partitioning State
         private int kPartitions = 2;
         private double overlapRate = 0.1;
         private Dictionary<string, HashSet<string>>? generatedPartitions;
+        private bool _needsBackup;
 
         protected override async Task OnInitializedAsync()
         {
-            await RefreshData();
+            try
+            {
+                await RefreshData();
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Failed to initialize {Page}", GetType().Name);
+            }
+        }
+
+        public async ValueTask DisposeAsync()
+        {
+            if (_needsBackup)
+            {
+                try
+                {
+                    await BackupDatabase();
+                }
+                catch (Exception ex)
+                {
+                    Logger.LogError(ex, "Failed to save backup on dispose");
+                }
+            }
         }
 
         private async Task RefreshData()
         {
             categories = (await CategoryRepository.GetAllAsync()).ToList();
             entries = (await EntryRepository.GetAllAsync()).ToList();
-            await BackupDatabase();
         }
 
         private async Task BackupDatabase()
         {
-            // TRICKY OPTIMIZATION #2: Save to LocalStorage
             var data = await ContestManager.ExportDataAsync();
             if (data.Length > 0)
             {
-                await LocalStorage.SetItemAsStringAsync("db_backup", Convert.ToBase64String(data));
+                await BackupService.SaveBackupAsync(data);
             }
         }
 
@@ -62,6 +85,7 @@ namespace ContestJudging.Web.Pages
             {
                 await CategoryRepository.DeleteAsync(cat.Id);
             }
+            _needsBackup = true;
             await RefreshData();
         }
 
@@ -71,6 +95,7 @@ namespace ContestJudging.Web.Pages
             {
                 await EntryRepository.DeleteAsync(entry.Id);
             }
+            _needsBackup = true;
             await RefreshData();
         }
 
@@ -92,6 +117,7 @@ namespace ContestJudging.Web.Pages
             }
 
             bulkEntriesText = "";
+            _needsBackup = true;
             await RefreshData();
         }
 
@@ -101,6 +127,7 @@ namespace ContestJudging.Web.Pages
 
             var category = new Category(newCategory.Id, newCategory.MaxScore);
             await CategoryRepository.AddAsync(category);
+            _needsBackup = true;
             newCategory = new();
             await RefreshData();
         }
@@ -108,6 +135,7 @@ namespace ContestJudging.Web.Pages
         private async Task DeleteCategory(string id)
         {
             await CategoryRepository.DeleteAsync(id);
+            _needsBackup = true;
             await RefreshData();
         }
 
@@ -117,6 +145,7 @@ namespace ContestJudging.Web.Pages
 
             var entry = new Entry(newEntry.Id);
             await EntryRepository.AddAsync(entry);
+            _needsBackup = true;
             newEntry = new();
             await RefreshData();
         }
@@ -124,6 +153,7 @@ namespace ContestJudging.Web.Pages
         private async Task DeleteEntry(string id)
         {
             await EntryRepository.DeleteAsync(id);
+            _needsBackup = true;
             await RefreshData();
         }
 

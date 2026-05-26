@@ -1,0 +1,278 @@
+{
+  "agent_id": "PA1-C",
+  "pass": 2,
+  "domain": "tests",
+  "based_on": "reports/audit/findings-P1-tests.json",
+  "branch": "fix/audit-remediate",
+  "status": "improved",
+  "original_findings_count": 13,
+  "resolved_count": 4,
+  "partially_resolved_count": 2,
+  "unresolved_count": 7,
+  "new_findings_count": 5,
+  "metrics": {
+    "original_test_count": 33,
+    "current_test_count": 59,
+    "delta": "+26 (+79%)",
+    "source_files": 31,
+    "test_files": 11,
+    "test_to_source_ratio": 0.35,
+    "fact_count": 53,
+    "theory_count": 3,
+    "nunit_test_count": 2,
+    "trait_count": 0,
+    "skipped_tests": 0,
+    "source_lines": 1907,
+    "test_lines": 1175,
+    "test_projects": [
+      "ContestJudging.Tests",
+      "ContestJudging.Web.Tests",
+      "ContestJudging.E2ETests"
+    ],
+    "framework_split": { "xUnit": 57, "NUnit": 2 }
+  },
+  "resolution_summary": {
+    "TEST-001": {
+      "title": "No parameterized tests (Theories) used",
+      "original_severity": "high",
+      "resolution": "resolved",
+      "detail": "CoreTests.cs now uses [Theory] with [InlineData] for Category_Constructor_ThrowsWhenMaxScoreIsOneOrLess (tested with 1, 0, -1) and Entry_SetScore_InvalidScore_Throws (tested with 11, -1)."
+    },
+    "TEST-002": {
+      "title": "ContestJudging.Web project has zero unit tests",
+      "original_severity": "high",
+      "resolution": "partially_resolved",
+      "detail": "ContestJudging.Web.Tests project created with 6 tests in ModelValidationTests.cs. However, tests are limited to model validation (CategoryModel, EntryModel, LeaderboardItem). Zero Blazor component rendering tests despite bunit being referenced. Core page logic (FindSuggestedPair, HandleKeyDown, CalculateResults, GetFilteredEntries) remains untested."
+    },
+    "TEST-003": {
+      "title": "No test categories/traits",
+      "original_severity": "medium",
+      "resolution": "unresolved",
+      "detail": "Zero [Trait] attributes found across all 59 test methods. No way to filter unit vs integration tests in CI."
+    },
+    "TEST-004": {
+      "title": "ContestManager takes concrete ContestDbContext; tests pass null!",
+      "original_severity": "medium",
+      "resolution": "resolved",
+      "detail": "ContestManager constructor now takes IDatabaseBackupService (abstraction) as 7th parameter. Tests use Mock<IDatabaseBackupService>() properly. The null! suppression eliminated."
+    },
+    "TEST-005": {
+      "title": "ServiceCollectionExtensions.AddContestJudgingServices has no test coverage",
+      "original_severity": "medium",
+      "resolution": "unresolved",
+      "detail": "No test exercises AddContestJudgingServices to verify DI registrations resolve correctly."
+    },
+    "TEST-006": {
+      "title": "Vague test class name 'CoreTests'",
+      "original_severity": "low",
+      "resolution": "unresolved",
+      "detail": "File still named CoreTests.cs. Tests Category and Entry entities together."
+    },
+    "TEST-007": {
+      "title": "E2E tests use NUnit while unit tests use xUnit",
+      "original_severity": "low",
+      "resolution": "unresolved",
+      "detail": "AppE2ETests.cs still uses NUnit.Framework, PageTest base class, [Test] attributes, [SetUp] pattern."
+    },
+    "TEST-008": {
+      "title": "E2E project package versions missing from central package management",
+      "original_severity": "medium",
+      "resolution": "resolved",
+      "detail": "Directory.Packages.props now contains version entries for NUnit (4.3.2), NUnit.Analyzers (4.6.0), NUnit3TestAdapter (5.0.0), and Microsoft.Playwright.NUnit (1.52.0)."
+    },
+    "TEST-009": {
+      "title": "Repository edge cases untested",
+      "original_severity": "low",
+      "resolution": "unresolved",
+      "detail": "InfrastructureTests still has only 5 happy-path tests. No tests for GetByIdAsync with non-existent ID, AddAsync duplicate, DeleteAsync non-existent, UpdateAsync non-existent, GetAllAsync on empty table."
+    },
+    "TEST-010": {
+      "title": "ContestManager ExportDataAsync/ImportDataAsync untested",
+      "original_severity": "low",
+      "resolution": "partially_resolved",
+      "detail": "Two delegation tests added (ExportDataAsync_DelegatesToBackupService, ImportDataAsync_DelegatesToBackupService). But these only verify mock.Invoke — no round-trip export-then-import integration test with data integrity verification."
+    },
+    "TEST-011": {
+      "title": "Dead placeholder code: Class1.cs in Infrastructure",
+      "original_severity": "informational",
+      "resolution": "resolved",
+      "detail": "Class1.cs no longer exists in the repository."
+    },
+    "TEST-012": {
+      "title": "TrimmingSafetyTests suppresses trimming warnings",
+      "original_severity": "informational",
+      "resolution": "unresolved",
+      "detail": "JsonSerialization_ShouldWork_WithDomainEntities still decorated with [RequiresUnreferencedCode]. Covers up the very issue it's meant to detect."
+    },
+    "TEST-013": {
+      "title": "No cancellation token support in async tests",
+      "original_severity": "informational",
+      "resolution": "unresolved",
+      "detail": "Zero CancellationToken parameters found in any test method or underlying async operations."
+    }
+  },
+  "new_findings": [
+    {
+      "id": "RA-TEST-001",
+      "title": "bunit dependency is referenced but never used for Blazor component tests",
+      "severity": "medium",
+      "category": "testing",
+      "files": [
+        "tests/ContestJudging.Web.Tests/ContestJudging.Web.Tests.csproj:9",
+        "tests/ContestJudging.Web.Tests/ModelValidationTests.cs:1"
+      ],
+      "evidence_snippet": "<PackageReference Include=\"bunit\"/>\n// But only plain model validation tests exist — no component rendering.\n// Core page logic remains untested: FindSuggestedPair, HandleKeyDown,\n// CalculateResults, GetFilteredEntries, GeneratePartitions.",
+      "rule_violated": "Testing: bunit added to enable Blazor component testing but not utilized — creates false impression of component coverage",
+      "remediation": "Add bunit rendering tests for at least Setup, Judging, and Results pages, or remove bunit dependency if component testing will not be done.",
+      "effort": "medium",
+      "status": "open"
+    },
+    {
+      "id": "RA-TEST-002",
+      "title": "Export/Import delegation tests lack round-trip integration verification",
+      "severity": "medium",
+      "category": "testing",
+      "files": [
+        "tests/ContestJudging.Tests/ContestManagerTests.cs:134",
+        "src/ContestJudging.Services/Managers/ContestManager.cs:118"
+      ],
+      "evidence_snippet": "// Test only verifies mock was called, not that data round-trips correctly:\n[Fact]\npublic async Task ExportDataAsync_DelegatesToBackupService()\n{\n    var result = await manager.ExportDataAsync();\n    Assert.Equal(expectedData, result);\n    mockBackup.Verify(b => b.ExportAsync(), Times.Once);\n}",
+      "rule_violated": "Testing: data integrity operations require round-trip verification (export, modify/wipe, import, verify)",
+      "remediation": "Add integration test using in-memory DbContext that: (1) seeds data, (2) exports via real DatabaseBackupService, (3) wipes context, (4) imports, (5) verifies all entities restored.",
+      "effort": "small",
+      "status": "open"
+    },
+    {
+      "id": "RA-TEST-003",
+      "title": "BackupService.TryRestoreBackupAsync empty/null base64 branch untested",
+      "severity": "medium",
+      "category": "testing",
+      "files": [
+        "tests/ContestJudging.Tests/BackupServiceTests.cs:43",
+        "src/ContestJudging.Services/Managers/BackupService.cs:44"
+      ],
+      "evidence_snippet": "// TryRestoreBackupAsync line 44:\nif (string.IsNullOrEmpty(base64))\n    return null;\n// No test covers: db_backup key exists, GetItemAsync<string> returns null/empty",
+      "rule_violated": "Testing: conditional branch coverage gap",
+      "remediation": "Add test for TryRestoreBackupAsync where backup key exists but value is empty string or null localStorage return.",
+      "effort": "trivial",
+      "status": "open"
+    },
+    {
+      "id": "RA-TEST-004",
+      "title": "ContestManager.CalculateGlobalScoresAsync null-category early-return untested",
+      "severity": "low",
+      "category": "testing",
+      "files": [
+        "tests/ContestJudging.Tests/ContestManagerTests.cs:92",
+        "src/ContestJudging.Services/Managers/ContestManager.cs:83"
+      ],
+      "evidence_snippet": "// ContestManager line 83-86:\nif (category == null)\n{\n    return new ValidationResult(false, \"Category not found.\", 0);\n}\n// No test mocks GetByIdAsync to return null",
+      "rule_violated": "Testing: error path for null/missing entity not covered",
+      "remediation": "Add test with mockCatRepo.Setup(r => r.GetByIdAsync(\"nonexistent\")).ReturnsAsync((Category?)null) and assert Result.IsValid is false with expected error.",
+      "effort": "trivial",
+      "status": "open"
+    },
+    {
+      "id": "RA-TEST-005",
+      "title": "DatabaseBackupService concrete implementation has zero direct tests",
+      "severity": "low",
+      "category": "testing",
+      "files": [
+        "src/ContestJudging.Infrastructure/Persistence/DatabaseBackupService.cs:1"
+      ],
+      "evidence_snippet": "// IDatabaseBackupService is only ever mocked in tests.\n// The concrete DatabaseBackupService (file-based SQLite backup)\n// has no direct unit or integration test coverage.",
+      "rule_violated": "Testing: concrete implementation of a critical backup interface has no coverage",
+      "remediation": "Add integration test for DatabaseBackupService using a temporary SQLite file: export data, verify file content, import into fresh context, verify data matches.",
+      "effort": "small",
+      "status": "open"
+    }
+  ],
+  "coverage_matrix": {
+    "source_projects": {
+      "ContestJudging.Core": {
+        "files": 10,
+        "tested_classes": ["Category", "Entry", "Operator"],
+        "untested_classes": [
+          "IScoringStrategy (interface only)",
+          "IBackupService (interface only)",
+          "IDatabaseBackupService (interface only)",
+          "ICategoryRepository (interface only)",
+          "IEntryRepository (interface only)",
+          "IRelationRepository (interface only)"
+        ],
+        "note": "Interfaces inherently not directly testable; tested via implementations and mocks."
+      },
+      "ContestJudging.Infrastructure": {
+        "files": 3,
+        "tested_classes": [
+          "ContestDbContext",
+          "SqliteCategoryRepository",
+          "SqliteEntryRepository",
+          "SqliteRelationRepository"
+        ],
+        "untested_classes": ["DatabaseBackupService"],
+        "note": "Repository tests exist but only happy-path; DatabaseBackupService entirely untested."
+      },
+      "ContestJudging.Services": {
+        "files": 14,
+        "tested_classes": [
+          "ContestManager",
+          "BackupService",
+          "GraphValidationService",
+          "PartitionService",
+          "BradleyTerryResolutionService",
+          "LinearSpacingScoring",
+          "PercentileScoring",
+          "DefinedIntervalScoring"
+        ],
+        "untested_classes": [
+          "ServiceCollectionExtensions"
+        ],
+        "note": "ValidationResult is tested implicitly via services."
+      },
+      "ContestJudging.Web": {
+        "files": 4,
+        "tested_classes": [
+          "Setup.CategoryModel",
+          "Setup.EntryModel",
+          "Results.LeaderboardItem"
+        ],
+        "untested_classes": [
+          "Setup (component logic)",
+          "Judging (component logic)",
+          "Results (component logic)",
+          "Program.cs (startup logic)"
+        ],
+        "note": "Model validation tested but zero component-level or startup tests."
+      }
+    }
+  },
+  "test_health_assessment": {
+    "overall": "improved",
+    "justification": "Test count increased from 33 to 59 (+79%). New BackupServiceTests (5 tests, comprehensive coverage of backup/restore paths). New Web.Tests project (6 tests, model validation). 2 Theories converted in CoreTests. Critical TEST-004 fixed (no more null! abuse). TEST-008 fixed (central package management). But 7 of 13 original findings remain unresolved; TEST-002 and TEST-010 are only partially addressed. 5 new issues found including unused bunit dependency and branch coverage gaps.",
+    "strengths": [
+      "BackupServiceTests are well-structured with mocked collaborators and cover save, restore-none, version-mismatch, valid-restore, corrupt-base64",
+      "ContestManager now depends on IDatabaseBackupService abstraction — no more null suppression",
+      "CoreTests properly uses [Theory] for parameterized boundary tests",
+      "ContestManagerTests Export/Import delegation tests verify correct dependency interaction",
+      "ValidationServiceTests have good Arrange/Act/Assert structure with explicit comments"
+    ],
+    "weaknesses": [
+      "0 test traits/categories across all 59 tests — CI cannot filter integration vs unit",
+      "Web.Tests has bunit but zero component rendering tests — most complex page logic untested",
+      "No round-trip integration test for export/import data path",
+      "Repository edge cases (null IDs, duplicates, empty tables) still untested",
+      "E2E project uses NUnit while everything else is xUnit — framework inconsistency persists",
+      "ServiceCollectionExtensions (DI wiring) still has no test coverage",
+      "CoreTests class name still vague — contains Category + Entry tests in one file",
+      "TrimmingSafetyTests still suppresses the warning it should validate",
+      "No cancellation token support in any async test or underlying method"
+    ],
+    "risk_areas": [
+      "Web page logic (FindSuggestedPair, CalculateResults, keyboard handler) completely untested — highest risk for regression",
+      "DatabaseBackupService file-based operations untested — backup/restore is critical data path",
+      "No integration test category means CI runs everything or nothing — no middle ground"
+    ]
+  },
+  "errors": []
+}
