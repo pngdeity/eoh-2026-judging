@@ -32,13 +32,12 @@ var host = builder.Build();
 using (var scope = host.Services.CreateScope())
 {
     var context = scope.ServiceProvider.GetRequiredService<ContestDbContext>();
-    var localStorage = scope.ServiceProvider.GetRequiredService<ISyncLocalStorageService>();
+    var localStorage = scope.ServiceProvider.GetRequiredService<ILocalStorageService>();
     var contestManager = scope.ServiceProvider.GetRequiredService<IContestManager>();
 
-    // TRICKY OPTIMIZATION #2: Restore from LocalStorage
-    if (localStorage.ContainKey("db_backup"))
+    if (await localStorage.ContainKeyAsync("db_backup"))
     {
-        var backupBase64 = localStorage.GetItemAsString("db_backup");
+        var backupBase64 = await localStorage.GetItemAsStringAsync("db_backup");
         if (!string.IsNullOrEmpty(backupBase64))
         {
             try
