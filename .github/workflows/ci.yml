@@ -1,0 +1,159 @@
+name: CI
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - 'reports/**'
+      - '**.md'
+      - '**.pdf'
+      - '**.docx'
+      - '.apm/**'
+      - '.agents/**'
+      - '.opencode/**'
+      - 'AGENTS.md'
+      - '.editorconfig'
+      - '.gitignore'
+      - 'apm.yml'
+      - 'apm.lock.yaml'
+      - 'apm_modules/**'
+      - '.github/PULL_REQUEST_TEMPLATE.md'
+      - '.github/CODEOWNERS'
+      - '.github/dependabot.yml'
+  pull_request:
+    branches: [main]
+    paths-ignore:
+      - 'reports/**'
+      - '**.md'
+      - '**.pdf'
+      - '**.docx'
+      - '.apm/**'
+      - '.agents/**'
+      - '.opencode/**'
+      - 'AGENTS.md'
+      - '.editorconfig'
+      - '.gitignore'
+      - 'apm.yml'
+      - 'apm.lock.yaml'
+      - 'apm_modules/**'
+      - '.github/PULL_REQUEST_TEMPLATE.md'
+      - '.github/CODEOWNERS'
+      - '.github/dependabot.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+jobs:
+  quality-and-test:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v6.0.2
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v5.2.0
+        with:
+          dotnet-version: '10.0.x'
+      - name: Cache NuGet Packages
+        uses: actions/cache@v5.0.5
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('**/*.csproj', 'Directory.Packages.props') }}
+          restore-keys: nuget-${{ runner.os }}-
+      - name: Cache WASM Tools
+        id: cache-wasm-tools
+        uses: actions/cache@v5.0.5
+        with:
+          path: ~/.dotnet/workloads
+          key: ${{ runner.os }}-wasm-tools-${{ hashFiles('**/*.csproj', '**/Directory.Build.props') }}
+      - name: Install WASM Tools
+        if: steps.cache-wasm-tools.outputs.cache-hit != 'true'
+        run: dotnet workload install wasm-tools
+      - name: Restore dependencies
+        run: dotnet restore ContestJudging.slnx
+      - name: Check Formatting
+        if: github.event_name == 'workflow_dispatch' || github.event_name == 'pull_request' || (github.event_name == 'push' && github.event.before != '0000000000000000000000000000000000000000')
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            dotnet format ContestJudging.slnx --verify-no-changes
+            exit 0
+          fi
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            BASE=$(git merge-base HEAD "${{ github.event.pull_request.base.sha }}" 2>/dev/null || echo HEAD~1)
+          else
+            BASE="${{ github.event.before }}"
+          fi
+          if git diff --quiet "$BASE" -- . 2>/dev/null; then
+            echo "No files changed"
+            exit 0
+          fi
+          if ! git diff --name-only "$BASE" -- . | grep -qE '\.(cs|razor)$'; then
+            echo "No C# files changed, skipping format check"
+            exit 0
+          fi
+          dotnet format ContestJudging.slnx --verify-no-changes
+      - name: Build
+        run: dotnet build ContestJudging.slnx --configuration Release --no-restore -p:ContinuousIntegrationBuild=true
+      - name: Cache Playwright Browsers
+        uses: actions/cache@v5.0.5
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('tests/ContestJudging.E2ETests/ContestJudging.E2ETests.csproj') }}
+          restore-keys: playwright-${{ runner.os }}-
+      - name: Install Playwright Browsers
+        run: pwsh tests/ContestJudging.E2ETests/bin/Release/net10.0/playwright.ps1 install --with-deps
+      - name: Run Tests (excl. E2E)
+        run: dotnet test ContestJudging.slnx --configuration Release --no-build --verbosity normal --collect:"XPlat Code Coverage" --results-directory TestResults --filter "FullyQualifiedName!~ContestJudging.E2ETests" -- RunConfiguration.MaxCpuCount=0
+      - name: Start Blazor App
+        run: dotnet run --project src/ContestJudging.Web/ContestJudging.Web.csproj --no-build --configuration Release --urls "http://localhost:5000" &
+      - name: Wait for App
+        run: |
+          for i in $(seq 1 30); do
+            if curl -s -o /dev/null -w "%{http_code}" http://localhost:5000/ | grep -q 200; then exit 0; fi
+            sleep 1
+          done
+          exit 1
+      - name: Run E2E Tests
+        run: dotnet test tests/ContestJudging.E2ETests/ContestJudging.E2ETests.csproj --configuration Release --no-restore --no-build --verbosity normal -- RunConfiguration.MaxCpuCount=0
+      - name: Stop Blazor App
+        if: always()
+        run: |
+          PID=$(lsof -t -i:5000 2>/dev/null || true)
+          if [ -n "$PID" ]; then kill "$PID" 2>/dev/null || true; fi
+      - name: Upload Test Results
+        if: always()
+        uses: actions/upload-artifact@v7.0.1
+        with:
+          name: test-results
+          path: TestResults/
+      - name: Publish Blazor WASM
+        run: dotnet publish src/ContestJudging.Web/ContestJudging.Web.csproj -c Release -o publish --nologo
+      - name: Upload Publish Artifact
+        uses: actions/upload-artifact@v7.0.1
+        with:
+          name: blazor-publish
+          path: publish/wwwroot/
+  deploy:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: [quality-and-test]
+    runs-on: ubuntu-24.04
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Download Publish Artifact
+        uses: actions/download-artifact@v8.0.1
+        with:
+          name: blazor-publish
+          path: release/wwwroot/
+      - name: Rewrite base href for GitHub Pages
+        run: sed -i 's/<base href="\/" \/>/<base href="\/eoh-2026-judging\/" \/>/g' release/wwwroot/index.html
+      - name: Fix SPA Routing for GitHub Pages
+        run: cp release/wwwroot/index.html release/wwwroot/404.html
+      - name: Setup Pages
+        uses: actions/configure-pages@v6.0.0
+      - name: Upload Artifact
+        uses: actions/upload-pages-artifact@v5.0.0
+        with:
+          path: release/wwwroot
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v5.0.0

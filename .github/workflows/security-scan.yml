@@ -1,0 +1,23 @@
+name: Security Scan
+on:
+  push:
+    branches: [main]
+    paths:
+      - '**/*.csproj'
+      - 'Directory.Packages.props'
+  pull_request:
+    branches: [main]
+    paths:
+      - '**/*.csproj'
+      - 'Directory.Packages.props'
+  schedule:
+    - cron: '0 8 * * 1'
+jobs:
+  scan:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v6.0.2
+      - name: OSV-Scanner
+        uses: google/osv-scanner-action/osv-scanner-action@v2.3.8
+        with:
+          scan-args: ./ --allow-no-lockfiles
