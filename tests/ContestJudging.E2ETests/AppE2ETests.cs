@@ -132,12 +132,12 @@ public class AppE2ETests : PageTest
         await Page.Locator("button:has-text('Import Entries')").ClickAsync();
         await Expect(Page.Locator("text=E10")).ToBeVisibleAsync(new() { Timeout = DefaultTimeout });
 
-        var partitionSection = Page.Locator("h4:has-text('Partition Planning')");
-        await partitionSection.ScrollIntoViewIfNeededAsync();
-        var partitionCard = partitionSection.Locator("..");
+        var partitionCard = Page.Locator(".card:has(h4:has-text('Partition Planning'))");
+        await partitionCard.ScrollIntoViewIfNeededAsync();
         await partitionCard.Locator("input[type='number']").First.FillAsync("2");
         await partitionCard.Locator("input[type='number']").Nth(1).FillAsync("0.1");
         await partitionCard.Locator("button:has-text('Preview Partitions')").ClickAsync();
+        await Page.WaitForTimeoutAsync(500);
 
         await Expect(Page.Locator("text=Group 1")).ToBeVisibleAsync(new() { Timeout = DefaultTimeout });
         await Expect(Page.Locator("text=Group 2")).ToBeVisibleAsync(new() { Timeout = DefaultTimeout });
