@@ -21,7 +21,7 @@ public class AppE2ETests : PageTest
     [SetUp]
     public async Task Setup()
     {
-        Page.Console += (_, e) => { if (e.Type == "error") TestContext.Progress.WriteLine($"[browser error] {e.Text}"); };
+        Page.Console += (_, e) => TestContext.Progress.WriteLine($"[browser {e.Type}] {e.Text}");
         Page.PageError += (_, e) => TestContext.Progress.WriteLine($"[page error] {e}");
         await Page.GotoAsync(AppUrl);
         await Page.WaitForLoadStateAsync(LoadState.NetworkIdle);
