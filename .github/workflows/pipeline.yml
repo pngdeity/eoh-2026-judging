@@ -124,10 +124,11 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v6.0.2
       - name: Initialize CodeQL
-        uses: github/codeql-action/init@v3
+        uses: github/codeql-action/init@v4
         with:
           languages: ${{ matrix.language }}
           queries: security-extended
+          build-mode: manual
       - name: Setup .NET
         uses: actions/setup-dotnet@v5.2.0
         with:
@@ -137,7 +138,7 @@ jobs:
       - name: Build
         run: dotnet build ContestJudging.slnx --configuration Release -p:ContinuousIntegrationBuild=true
       - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@v3
+        uses: github/codeql-action/analyze@v4
   deploy:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     needs: [quality-and-test, security-scan, codeql-analysis]
