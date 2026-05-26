@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 
 using ContestJudging.Core.Entities;
+using ContestJudging.Core.Interfaces;
 using ContestJudging.Core.Interfaces.Repositories;
 using ContestJudging.Services.Managers;
 
@@ -17,6 +18,7 @@ namespace ContestJudging.Web.Pages
         [Inject] private ICategoryRepository CategoryRepository { get; set; } = default!;
         [Inject] private IEntryRepository EntryRepository { get; set; } = default!;
         [Inject] private IContestManager ContestManager { get; set; } = default!;
+        [Inject] private IBackupService BackupService { get; set; } = default!;
         [Inject] private ILogger<Results> Logger { get; set; } = default!;
 
         private List<Category> categories = new();
@@ -95,6 +97,17 @@ namespace ContestJudging.Web.Pages
             {
                 Logger.LogError(ex, "Failed to load entries for leaderboard");
                 errorMessage = "Failed to load leaderboard data. Please try again.";
+            }
+
+            await BackupDatabase();
+        }
+
+        private async Task BackupDatabase()
+        {
+            var data = await ContestManager.ExportDataAsync();
+            if (data.Length > 0)
+            {
+                await BackupService.SaveBackupAsync(data);
             }
         }
 

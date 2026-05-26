@@ -41,7 +41,6 @@ namespace ContestJudging.Web.Pages
         private double overlapRate = 0.1;
         private Dictionary<string, HashSet<string>>? currentPartitions;
         private string? selectedPartitionId;
-        private bool _needsBackup;
 
         protected override async Task OnInitializedAsync()
         {
@@ -59,16 +58,13 @@ namespace ContestJudging.Web.Pages
 
         public async ValueTask DisposeAsync()
         {
-            if (_needsBackup)
+            try
             {
-                try
-                {
-                    await BackupDatabase();
-                }
-                catch (Exception ex)
-                {
-                    Logger.LogError(ex, "Failed to save backup on dispose");
-                }
+                await BackupDatabase();
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Failed to save backup on dispose");
             }
         }
 
@@ -176,7 +172,7 @@ namespace ContestJudging.Web.Pages
             var relation = new Relation(selectedCategory, entryA, resultOp, entryB);
 
             await RelationRepository.AddAsync(relation);
-            _needsBackup = true;
+            await BackupDatabase();
             await RefreshRelations();
         }
 
@@ -229,7 +225,7 @@ namespace ContestJudging.Web.Pages
             var relation = new Relation(selectedCategory, entryA, op, entryB);
 
             await RelationRepository.AddAsync(relation);
-            _needsBackup = true;
+            await BackupDatabase();
             await RefreshRelations();
         }
 
@@ -237,7 +233,7 @@ namespace ContestJudging.Web.Pages
         {
             if (selectedCategory == null) return;
             await RelationRepository.DeleteAsync(selectedCategory.Id, rel.EntryA.Id, rel.EntryB.Id);
-            _needsBackup = true;
+            await BackupDatabase();
             await RefreshRelations();
         }
 
