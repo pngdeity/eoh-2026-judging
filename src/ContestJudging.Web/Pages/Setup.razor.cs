@@ -35,32 +35,16 @@ namespace ContestJudging.Web.Pages
         private int kPartitions = 2;
         private double overlapRate = 0.1;
         private Dictionary<string, HashSet<string>>? generatedPartitions;
-        private bool _needsBackup;
-
-        protected override async Task OnInitializedAsync()
-        {
-            try
-            {
-                await RefreshData();
-            }
-            catch (Exception ex)
-            {
-                Logger.LogError(ex, "Failed to initialize {Page}", GetType().Name);
-            }
-        }
 
         public async ValueTask DisposeAsync()
         {
-            if (_needsBackup)
+            try
             {
-                try
-                {
-                    await BackupDatabase();
-                }
-                catch (Exception ex)
-                {
-                    Logger.LogError(ex, "Failed to save backup on dispose");
-                }
+                await BackupDatabase();
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Failed to save backup on dispose");
             }
         }
 
@@ -85,7 +69,7 @@ namespace ContestJudging.Web.Pages
             {
                 await CategoryRepository.DeleteAsync(cat.Id);
             }
-            _needsBackup = true;
+            await BackupDatabase();
             await RefreshData();
         }
 
@@ -95,7 +79,7 @@ namespace ContestJudging.Web.Pages
             {
                 await EntryRepository.DeleteAsync(entry.Id);
             }
-            _needsBackup = true;
+            await BackupDatabase();
             await RefreshData();
         }
 
@@ -117,7 +101,7 @@ namespace ContestJudging.Web.Pages
             }
 
             bulkEntriesText = "";
-            _needsBackup = true;
+            await BackupDatabase();
             await RefreshData();
         }
 
@@ -127,7 +111,7 @@ namespace ContestJudging.Web.Pages
 
             var category = new Category(newCategory.Id, newCategory.MaxScore);
             await CategoryRepository.AddAsync(category);
-            _needsBackup = true;
+            await BackupDatabase();
             newCategory = new();
             await RefreshData();
         }
@@ -135,7 +119,7 @@ namespace ContestJudging.Web.Pages
         private async Task DeleteCategory(string id)
         {
             await CategoryRepository.DeleteAsync(id);
-            _needsBackup = true;
+            await BackupDatabase();
             await RefreshData();
         }
 
@@ -145,7 +129,7 @@ namespace ContestJudging.Web.Pages
 
             var entry = new Entry(newEntry.Id);
             await EntryRepository.AddAsync(entry);
-            _needsBackup = true;
+            await BackupDatabase();
             newEntry = new();
             await RefreshData();
         }
@@ -153,7 +137,7 @@ namespace ContestJudging.Web.Pages
         private async Task DeleteEntry(string id)
         {
             await EntryRepository.DeleteAsync(id);
-            _needsBackup = true;
+            await BackupDatabase();
             await RefreshData();
         }
 
