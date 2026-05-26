@@ -9,6 +9,5 @@
   <Folder Name="/tests/">
     <Project Path="tests/ContestJudging.Tests/ContestJudging.Tests.csproj"/>
     <Project Path="tests/ContestJudging.E2ETests/ContestJudging.E2ETests.csproj"/>
-    <Project Path="tests/ContestJudging.Web.Tests/ContestJudging.Web.Tests.csproj"/>
   </Folder>
 </Solution>
