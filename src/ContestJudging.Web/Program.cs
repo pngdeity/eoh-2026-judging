@@ -1,10 +1,10 @@
 using System.Diagnostics.CodeAnalysis;
+using System.IO;
 
 using Blazored.LocalStorage;
 
 using ContestJudging.Infrastructure.Persistence;
 using ContestJudging.Services.Extensions;
-using ContestJudging.Services.Managers;
 using ContestJudging.Web;
 
 using Microsoft.AspNetCore.Components.Web;
@@ -28,30 +28,29 @@ AddServices(builder.Services);
 
 var host = builder.Build();
 
-// Ensure database is created and restored from LocalStorage if available
+// Restore database from LocalStorage BEFORE creating DbContext scope.
+// This avoids SQLite seeing an empty database cached by the connection.
+var localStorage = host.Services.GetRequiredService<ILocalStorageService>();
+if (await localStorage.ContainKeyAsync("db_backup"))
+{
+    var backupBase64 = await localStorage.GetItemAsStringAsync("db_backup");
+    if (!string.IsNullOrEmpty(backupBase64))
+    {
+        try
+        {
+            var backupBytes = Convert.FromBase64String(backupBase64);
+            await File.WriteAllBytesAsync("contest.db", backupBytes);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Failed to restore database from backup: {ex.Message}");
+        }
+    }
+}
+
 using (var scope = host.Services.CreateScope())
 {
     var context = scope.ServiceProvider.GetRequiredService<ContestDbContext>();
-    var localStorage = scope.ServiceProvider.GetRequiredService<ILocalStorageService>();
-    var contestManager = scope.ServiceProvider.GetRequiredService<IContestManager>();
-
-    if (await localStorage.ContainKeyAsync("db_backup"))
-    {
-        var backupBase64 = await localStorage.GetItemAsStringAsync("db_backup");
-        if (!string.IsNullOrEmpty(backupBase64))
-        {
-            try
-            {
-                var backupBytes = Convert.FromBase64String(backupBase64);
-                await contestManager.ImportDataAsync(backupBytes);
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Failed to restore database: {ex.Message}");
-            }
-        }
-    }
-
     await context.Database.EnsureCreatedAsync();
 }
 
