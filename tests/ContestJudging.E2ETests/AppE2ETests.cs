@@ -1,6 +1,7 @@
 // Requires: dotnet run --urls "http://localhost:5000" running in background
 // CI: Playwright browsers installed via pwsh, app started with dotnet run &, 30s warmup
 
+using System;
 using System.Threading.Tasks;
 
 using Microsoft.Playwright;
@@ -21,18 +22,36 @@ public class AppE2ETests : PageTest
     [SetUp]
     public async Task Setup()
     {
-        Page.Console += (_, e) => TestContext.Progress.WriteLine($"[browser {e.Type}] {e.Text}");
+        Page.Console += (_, e) => { if (e.Type == "error") TestContext.Progress.WriteLine($"[browser error] {e.Text}"); };
         Page.PageError += (_, e) => TestContext.Progress.WriteLine($"[page error] {e}");
-        await Page.GotoAsync(AppUrl);
-        await Page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+        await NavigateToAsync("/");
         await Expect(Page.Locator("text=Forging the Future")).ToBeVisibleAsync(new() { Timeout = DefaultTimeout });
+    }
+
+    private async Task NavigateToAsync(string path)
+    {
+        await Page.GotoAsync($"{AppUrl}{path}");
+        await WaitForBlazorAsync();
+    }
+
+    private async Task WaitForBlazorAsync()
+    {
+        await Page.EvaluateAsync(@"() => new Promise(resolve => {
+            if (typeof window.Blazor !== 'undefined') { resolve(); return; }
+            const interval = setInterval(() => {
+                if (typeof window.Blazor !== 'undefined') {
+                    clearInterval(interval);
+                    resolve();
+                }
+            }, 100);
+        })");
+        await Page.WaitForLoadStateAsync(LoadState.DOMContentLoaded);
     }
 
     [Test]
     public async Task FullJudgingWorkflow_SetupToScoring()
     {
-        await Page.GotoAsync($"{AppUrl}/setup");
-        await Page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+        await NavigateToAsync("/setup");
         await Expect(Page.Locator("h3:has-text('Contest Setup')")).ToBeVisibleAsync(new() { Timeout = DefaultTimeout });
 
         var categoryCard = Page.Locator(".card").Nth(0);
@@ -49,22 +68,17 @@ public class AppE2ETests : PageTest
         }
         await Expect(Page.Locator("text=ProjectC")).ToBeVisibleAsync(new() { Timeout = DefaultTimeout });
 
-        await Page.GotoAsync($"{AppUrl}/judging");
-        await Page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+        await NavigateToAsync("/judging");
         await Expect(Page.Locator("h3:has-text('Judging')")).ToBeVisibleAsync(new() { Timeout = DefaultTimeout });
 
-        await Page.Locator("select").First.SelectOptionAsync(new[] { "Innovation" });
+        await WaitForSelectAndPick("Innovation");
         await Expect(Page.Locator(".judge-card").First).ToBeVisibleAsync(new() { Timeout = DefaultTimeout });
 
         await Page.Locator(".judge-card").First.ClickAsync();
-        await Expect(Page.Locator(".judge-card").First).ToBeVisibleAsync(new() { Timeout = DefaultTimeout });
         await Page.Locator(".judge-card").First.ClickAsync();
-        await Expect(Page.Locator(".judge-card").First).ToBeVisibleAsync(new() { Timeout = DefaultTimeout });
-
         await Expect(Page.Locator("h5:has-text('Recorded Relations')")).ToBeVisibleAsync(new() { Timeout = DefaultTimeout });
 
-        await Page.GotoAsync($"{AppUrl}/results");
-        await Page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+        await NavigateToAsync("/results");
         await Expect(Page.Locator("h3:has-text('Results')")).ToBeVisibleAsync(new() { Timeout = DefaultTimeout });
 
         await Page.Locator("button:has-text('Calculate Results')").ClickAsync();
@@ -78,8 +92,7 @@ public class AppE2ETests : PageTest
     [Test]
     public async Task DataPersists_AcrossPageNavigations()
     {
-        await Page.GotoAsync($"{AppUrl}/setup");
-        await Page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+        await NavigateToAsync("/setup");
         await Expect(Page.Locator("h3:has-text('Contest Setup')")).ToBeVisibleAsync(new() { Timeout = DefaultTimeout });
 
         var categoryCard = Page.Locator(".card").Nth(0);
@@ -96,17 +109,13 @@ public class AppE2ETests : PageTest
         await Expect(Page.Locator("text=Entry1")).ToBeVisibleAsync(new() { Timeout = DefaultTimeout });
         await Expect(Page.Locator("text=Entry2")).ToBeVisibleAsync(new() { Timeout = DefaultTimeout });
 
-        await Page.GotoAsync($"{AppUrl}/judging");
-        await Page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+        await NavigateToAsync("/judging");
         await Expect(Page.Locator("h3:has-text('Judging')")).ToBeVisibleAsync(new() { Timeout = DefaultTimeout });
 
-        await Expect(Page.Locator("option:has-text('TestCat')")).ToBeVisibleAsync(new() { Timeout = DefaultTimeout });
-
-        await Page.Locator("select").First.SelectOptionAsync(new[] { "TestCat" });
+        await WaitForSelectAndPick("TestCat");
         await Expect(Page.Locator(".judge-card").First).ToBeVisibleAsync(new() { Timeout = DefaultTimeout });
 
-        await Page.GotoAsync($"{AppUrl}/setup");
-        await Page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+        await NavigateToAsync("/setup");
         await Expect(Page.Locator("h3:has-text('Contest Setup')")).ToBeVisibleAsync(new() { Timeout = DefaultTimeout });
         await Expect(Page.Locator("text=TestCat (Max: 10)")).ToBeVisibleAsync(new() { Timeout = DefaultTimeout });
         await Expect(Page.Locator("text=Entry1")).ToBeVisibleAsync(new() { Timeout = DefaultTimeout });
@@ -116,8 +125,7 @@ public class AppE2ETests : PageTest
     [Test]
     public async Task PartitionPlanning_CreatesGroups()
     {
-        await Page.GotoAsync($"{AppUrl}/setup");
-        await Page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+        await NavigateToAsync("/setup");
         await Expect(Page.Locator("h3:has-text('Contest Setup')")).ToBeVisibleAsync(new() { Timeout = DefaultTimeout });
 
         await Page.Locator("textarea").FillAsync("E1\nE2\nE3\nE4\nE5\nE6\nE7\nE8\nE9\nE10");
@@ -142,8 +150,7 @@ public class AppE2ETests : PageTest
     [Test]
     public async Task GlobalRankings_RespectsTransitiveOrder()
     {
-        await Page.GotoAsync($"{AppUrl}/setup");
-        await Page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+        await NavigateToAsync("/setup");
         await Expect(Page.Locator("h3:has-text('Contest Setup')")).ToBeVisibleAsync(new() { Timeout = DefaultTimeout });
 
         var categoryCard = Page.Locator(".card").Nth(0);
@@ -160,11 +167,10 @@ public class AppE2ETests : PageTest
         }
         await Expect(Page.Locator("text=Bronze")).ToBeVisibleAsync(new() { Timeout = DefaultTimeout });
 
-        await Page.GotoAsync($"{AppUrl}/judging");
-        await Page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+        await NavigateToAsync("/judging");
         await Expect(Page.Locator("h3:has-text('Judging')")).ToBeVisibleAsync(new() { Timeout = DefaultTimeout });
 
-        await Page.Locator("select").First.SelectOptionAsync(new[] { "Ranking" });
+        await WaitForSelectAndPick("Ranking");
         await Expect(Page.Locator("button:has-text('Manual Override / Correction')")).ToBeVisibleAsync(new() { Timeout = DefaultTimeout });
 
         await Page.Locator("button:has-text('Manual Override / Correction')").ClickAsync();
@@ -189,24 +195,25 @@ public class AppE2ETests : PageTest
         await selects.Nth(2).SelectOptionAsync(new[] { "Bronze" });
         await submitBtn.ClickAsync();
 
-        await Page.GotoAsync($"{AppUrl}/results");
-        await Page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+        await NavigateToAsync("/results");
         await Expect(Page.Locator("h3:has-text('Results')")).ToBeVisibleAsync(new() { Timeout = DefaultTimeout });
 
         await Page.Locator("button:has-text('Calculate Results')").ClickAsync();
         await Expect(Page.Locator("table.table-hover")).ToBeVisibleAsync(new() { Timeout = DefaultTimeout });
 
         var rows = Page.Locator("table.table-hover tbody tr");
-        var firstRow = rows.Nth(0);
-        await Expect(firstRow).ToContainTextAsync("Gold");
-        await Expect(firstRow).ToContainTextAsync("#1");
+        await Expect(rows.Nth(0)).ToContainTextAsync("Gold");
+        await Expect(rows.Nth(0)).ToContainTextAsync("#1");
+        await Expect(rows.Nth(1)).ToContainTextAsync("Silver");
+        await Expect(rows.Nth(1)).ToContainTextAsync("#2");
+        await Expect(rows.Nth(2)).ToContainTextAsync("Bronze");
+        await Expect(rows.Nth(2)).ToContainTextAsync("#3");
+    }
 
-        var secondRow = rows.Nth(1);
-        await Expect(secondRow).ToContainTextAsync("Silver");
-        await Expect(secondRow).ToContainTextAsync("#2");
-
-        var thirdRow = rows.Nth(2);
-        await Expect(thirdRow).ToContainTextAsync("Bronze");
-        await Expect(thirdRow).ToContainTextAsync("#3");
+    private async Task WaitForSelectAndPick(string optionLabel)
+    {
+        var select = Page.Locator("select.form-select").First;
+        await select.WaitForAsync(new LocatorWaitForOptions { State = WaitForSelectorState.Visible, Timeout = DefaultTimeout });
+        await select.SelectOptionAsync(new[] { optionLabel }, new LocatorSelectOptionOptions { Timeout = DefaultTimeout });
     }
 }

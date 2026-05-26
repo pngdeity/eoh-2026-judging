@@ -29,28 +29,19 @@ public sealed class BackupService : IBackupService
     public async Task SaveBackupAsync(byte[] dbData)
     {
         var base64 = Convert.ToBase64String(dbData);
-        _logger.LogWarning("SaveBackupAsync: writing {Size} bytes to localStorage", dbData.Length);
         if (base64.Length > 5 * 1024 * 1024)
         {
             _logger.LogWarning("Database backup exceeds localStorage limit: {Size}MB", base64.Length / (1024.0 * 1024.0));
             return;
         }
         await _localStorage.SetItemAsync("db_backup", base64);
-        var verify = await _localStorage.ContainKeyAsync("db_backup");
-        _logger.LogWarning("SaveBackupAsync: written. Verified key present: {Present}", verify);
         await _localStorage.SetItemAsync("db_schema_version", CurrentSchemaVersion);
     }
 
     public async Task<byte[]?> TryRestoreBackupAsync()
     {
-        var hasKey = await _localStorage.ContainKeyAsync("db_backup");
-        if (!hasKey)
-        {
-            _logger.LogWarning("TryRestoreBackupAsync: no backup found in localStorage");
+        if (!await _localStorage.ContainKeyAsync("db_backup"))
             return null;
-        }
-
-        _logger.LogWarning("TryRestoreBackupAsync: backup found, checking schema version");
 
         var storedVersion = await _localStorage.GetItemAsync<int>("db_schema_version");
         if (storedVersion != CurrentSchemaVersion)
@@ -63,7 +54,6 @@ public sealed class BackupService : IBackupService
         }
 
         var base64 = await _localStorage.GetItemAsync<string>("db_backup");
-        _logger.LogWarning("TryRestoreBackupAsync: loaded base64, length={Length}", base64?.Length ?? 0);
         if (string.IsNullOrEmpty(base64))
             return null;
 
@@ -71,7 +61,7 @@ public sealed class BackupService : IBackupService
         {
             var data = Convert.FromBase64String(base64);
             await _dbBackup.ImportAsync(data);
-            _logger.LogWarning("TryRestoreBackupAsync: database restored from backup ({Size} bytes)", data.Length);
+            _logger.LogInformation("Database restored from backup");
             return data;
         }
         catch (Exception ex)
