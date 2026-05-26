@@ -115,6 +115,11 @@ public class AppE2ETests : PageTest
         await NavigateToAsync("/judging");
         await Expect(Page.Locator("h3:has-text('Judging')")).ToBeVisibleAsync(new() { Timeout = DefaultTimeout });
 
+        // Diagnostic: check what options exist in the select
+        var optionCount = await Page.EvaluateAsync<int>("() => document.querySelectorAll('select.form-select option').length");
+        var optionTexts = await Page.EvaluateAsync<string>("() => Array.from(document.querySelectorAll('select.form-select option')).map(o => o.value).join(', ')");
+        TestContext.Progress.WriteLine($"[diagnostic] select options count: {optionCount}, values: [{optionTexts}]");
+
         await WaitForSelectAndPick("TestCat");
         await Expect(Page.Locator(".judge-card").First).ToBeVisibleAsync(new() { Timeout = DefaultTimeout });
 
