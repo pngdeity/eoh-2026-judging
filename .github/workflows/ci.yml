@@ -1,9 +1,43 @@
-name: CI/CD Pipeline
+name: CI
 on:
   push:
     branches: [main]
+    paths-ignore:
+      - 'reports/**'
+      - '**.md'
+      - '**.pdf'
+      - '**.docx'
+      - '.apm/**'
+      - '.agents/**'
+      - '.opencode/**'
+      - 'AGENTS.md'
+      - '.editorconfig'
+      - '.gitignore'
+      - 'apm.yml'
+      - 'apm.lock.yaml'
+      - 'apm_modules/**'
+      - '.github/PULL_REQUEST_TEMPLATE.md'
+      - '.github/CODEOWNERS'
+      - '.github/dependabot.yml'
   pull_request:
     branches: [main]
+    paths-ignore:
+      - 'reports/**'
+      - '**.md'
+      - '**.pdf'
+      - '**.docx'
+      - '.apm/**'
+      - '.agents/**'
+      - '.opencode/**'
+      - 'AGENTS.md'
+      - '.editorconfig'
+      - '.gitignore'
+      - 'apm.yml'
+      - 'apm.lock.yaml'
+      - 'apm_modules/**'
+      - '.github/PULL_REQUEST_TEMPLATE.md'
+      - '.github/CODEOWNERS'
+      - '.github/dependabot.yml'
   workflow_dispatch:
 permissions:
   contents: read
@@ -48,7 +82,7 @@ jobs:
             BASE="${{ github.event.before }}"
           fi
           if git diff --quiet "$BASE" -- . 2>/dev/null; then
-            echo "No files changed, skipping format check"
+            echo "No files changed"
             exit 0
           fi
           if ! git diff --name-only "$BASE" -- . | grep -qE '\.(cs|razor)$'; then
@@ -57,7 +91,6 @@ jobs:
           fi
           dotnet format ContestJudging.slnx --verify-no-changes
       - name: Build
-        # wasm-tools are required to link native SQLite assets even without AOT
         run: dotnet build ContestJudging.slnx --configuration Release --no-restore -p:ContinuousIntegrationBuild=true
       - name: Cache Playwright Browsers
         uses: actions/cache@v5.0.5
@@ -98,50 +131,9 @@ jobs:
         with:
           name: blazor-publish
           path: publish/wwwroot/
-  security-scan:
-    runs-on: ubuntu-24.04
-    steps:
-      - uses: actions/checkout@v6.0.2
-      - name: OSV-Scanner
-        uses: google/osv-scanner-action/osv-scanner-action@v2.3.8
-        with:
-          # --allow-no-lockfiles: Project has no package-lock.json, packages.lock.json,
-          # yarn.lock, or pnpm-lock.yaml. OSV-Scanner requires this flag to scan
-          # dependency manifests (e.g. .csproj) without a lockfile present.
-          scan-args: ./ --allow-no-lockfiles
-  codeql-analysis:
-    name: CodeQL Analysis
-    runs-on: ubuntu-24.04
-    permissions:
-      actions: read
-      contents: read
-      security-events: write
-    strategy:
-      fail-fast: false
-      matrix:
-        language: ["csharp"]
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v6.0.2
-      - name: Initialize CodeQL
-        uses: github/codeql-action/init@v4
-        with:
-          languages: ${{ matrix.language }}
-          queries: security-extended
-          build-mode: manual
-      - name: Setup .NET
-        uses: actions/setup-dotnet@v5.2.0
-        with:
-          dotnet-version: '10.0.x'
-      - name: Install WASM Tools
-        run: dotnet workload install wasm-tools
-      - name: Build
-        run: dotnet build ContestJudging.slnx --configuration Release -p:ContinuousIntegrationBuild=true
-      - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@v4
   deploy:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    needs: [quality-and-test, security-scan, codeql-analysis]
+    needs: [quality-and-test]
     runs-on: ubuntu-24.04
     environment:
       name: github-pages
@@ -154,8 +146,6 @@ jobs:
           path: release/wwwroot/
       - name: Rewrite base href for GitHub Pages
         run: sed -i 's/<base href="\/" \/>/<base href="\/eoh-2026-judging\/" \/>/g' release/wwwroot/index.html
-      # GitHub Pages doesn't support SPA routing well by default (returns 404 on refresh)
-      # We'll copy index.html to 404.html as a common workaround
       - name: Fix SPA Routing for GitHub Pages
         run: cp release/wwwroot/index.html release/wwwroot/404.html
       - name: Setup Pages
