@@ -11,7 +11,7 @@ permissions:
   id-token: write
 jobs:
   quality-and-test:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v6.0.2
       - name: Setup .NET
@@ -27,21 +27,31 @@ jobs:
       - name: Install WASM Tools
         if: steps.cache-wasm-tools.outputs.cache-hit != 'true'
         run: dotnet workload install wasm-tools
+      - name: Cache NuGet Packages
+        uses: actions/cache@v5.0.5
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('**/*.csproj', 'Directory.Packages.props') }}
+          restore-keys: nuget-${{ runner.os }}-
       - name: Restore dependencies
         run: dotnet restore ContestJudging.slnx
       - name: Check Formatting
         run: dotnet format ContestJudging.slnx --verify-no-changes
-      - name: Clean
-        run: dotnet clean ContestJudging.slnx --configuration Release
       - name: Build
         # wasm-tools are required to link native SQLite assets even without AOT
         run: dotnet build ContestJudging.slnx --configuration Release --no-restore
+      - name: Cache Playwright Browsers
+        uses: actions/cache@v5.0.5
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('tests/ContestJudging.E2ETests/ContestJudging.E2ETests.csproj') }}
+          restore-keys: playwright-${{ runner.os }}-
       - name: Install Playwright Browsers
         run: pwsh tests/ContestJudging.E2ETests/bin/Release/net10.0/playwright.ps1 install --with-deps
       - name: Run Tests (excl. E2E)
         run: dotnet test ContestJudging.slnx --configuration Release --no-build --verbosity normal --collect:"XPlat Code Coverage" --results-directory TestResults --filter "FullyQualifiedName!~ContestJudging.E2ETests"
       - name: Start Blazor App
-        run: dotnet run --project src/ContestJudging.Web/ContestJudging.Web.csproj --urls "http://localhost:5000" &
+        run: dotnet run --project src/ContestJudging.Web/ContestJudging.Web.csproj --no-build --configuration Release --urls "http://localhost:5000" &
       - name: Wait for App
         run: |
           for i in $(seq 1 30); do
@@ -68,7 +78,7 @@ jobs:
           name: blazor-publish
           path: publish/wwwroot/
   security-scan:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v6.0.2
       - name: OSV-Scanner
@@ -80,7 +90,7 @@ jobs:
           scan-args: ./ --allow-no-lockfiles
   codeql-analysis:
     name: CodeQL Analysis
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       actions: read
       contents: read
@@ -109,7 +119,7 @@ jobs:
   deploy:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     needs: [quality-and-test, security-scan, codeql-analysis]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
