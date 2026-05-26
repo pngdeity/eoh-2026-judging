@@ -22,7 +22,7 @@ public class AppE2ETests : PageTest
     [SetUp]
     public async Task Setup()
     {
-        Page.Console += (_, e) => { if (e.Type == "error") TestContext.Progress.WriteLine($"[browser error] {e.Text}"); };
+        Page.Console += (_, e) => TestContext.Progress.WriteLine($"[browser {e.Type}] {e.Text}");
         Page.PageError += (_, e) => TestContext.Progress.WriteLine($"[page error] {e}");
         await NavigateToAsync("/");
         await Expect(Page.Locator("text=Forging the Future")).ToBeVisibleAsync(new() { Timeout = DefaultTimeout });
@@ -100,6 +100,9 @@ public class AppE2ETests : PageTest
         await categoryCard.Locator("input").Nth(1).FillAsync("10");
         await categoryCard.Locator("button[type='submit']").ClickAsync();
         await Expect(Page.Locator("text=TestCat (Max: 10)")).ToBeVisibleAsync(new() { Timeout = DefaultTimeout });
+
+        var hasBackup = await Page.EvaluateAsync<bool>("() => localStorage.getItem('db_backup') !== null");
+        TestContext.Progress.WriteLine($"[diagnostic] localStorage has db_backup after setup: {hasBackup}");
 
         var entryCard = Page.Locator(".card").Nth(1);
         await entryCard.Locator("input").First.FillAsync("Entry1");
