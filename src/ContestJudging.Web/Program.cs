@@ -29,11 +29,22 @@ AddServices(builder.Services);
 var host = builder.Build();
 
 var js = host.Services.GetRequiredService<IJSRuntime>();
-var backupBase64 = await js.InvokeAsync<string>("localStorage.getItem", "db_backup");
-if (!string.IsNullOrEmpty(backupBase64))
+var raw = await js.InvokeAsync<string>("localStorage.getItem", "db_backup");
+if (!string.IsNullOrEmpty(raw))
 {
-    var backupBytes = Convert.FromBase64String(backupBase64);
-    await File.WriteAllBytesAsync("contest.db", backupBytes);
+    try
+    {
+        var rawBase64 = System.Text.Json.JsonSerializer.Deserialize<string>(raw);
+        if (!string.IsNullOrEmpty(rawBase64))
+        {
+            var backupBytes = Convert.FromBase64String(rawBase64);
+            await File.WriteAllBytesAsync("contest.db", backupBytes);
+        }
+    }
+    catch
+    {
+        // ignore — app starts with empty database
+    }
 }
 
 using (var scope = host.Services.CreateScope())
