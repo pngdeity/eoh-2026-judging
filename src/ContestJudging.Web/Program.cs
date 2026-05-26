@@ -10,6 +10,7 @@ using ContestJudging.Web;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.JSInterop;
 
 var builder = WebAssemblyHostBuilder.CreateDefault(args);
 builder.RootComponents.Add<App>("#app");
@@ -28,23 +29,22 @@ AddServices(builder.Services);
 
 var host = builder.Build();
 
-// Restore database from LocalStorage BEFORE creating DbContext scope.
-// This avoids SQLite seeing an empty database cached by the connection.
-var localStorage = host.Services.GetRequiredService<ILocalStorageService>();
-if (await localStorage.ContainKeyAsync("db_backup"))
+var js = host.Services.GetRequiredService<IJSRuntime>();
+var exists = await js.InvokeAsync<bool>("eval", "(function(){ return localStorage.getItem('db_backup') !== null; })()");
+if (exists)
 {
-    var backupBase64 = await localStorage.GetItemAsStringAsync("db_backup");
-    if (!string.IsNullOrEmpty(backupBase64))
+    try
     {
-        try
+        var backupBase64 = await js.InvokeAsync<string>("eval", "(function(){ return localStorage.getItem('db_backup'); })()");
+        if (!string.IsNullOrEmpty(backupBase64))
         {
             var backupBytes = Convert.FromBase64String(backupBase64);
             await File.WriteAllBytesAsync("contest.db", backupBytes);
         }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Failed to restore database from backup: {ex.Message}");
-        }
+    }
+    catch (Exception)
+    {
+        // Ignore restore failures — the app will start with an empty database.
     }
 }
 
