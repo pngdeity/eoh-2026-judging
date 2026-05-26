@@ -2,9 +2,11 @@ using System.Diagnostics.CodeAnalysis;
 
 using Blazored.LocalStorage;
 
+using ContestJudging.Core.Interfaces;
+// ContestDbContext reference is required here because the WASM host
+// must resolve the scope to ensure the database is created at startup.
 using ContestJudging.Infrastructure.Persistence;
 using ContestJudging.Services.Extensions;
-using ContestJudging.Services.Managers;
 using ContestJudging.Web;
 
 using Microsoft.AspNetCore.Components.Web;
@@ -17,42 +19,22 @@ builder.RootComponents.Add<HeadOutlet>("head::after");
 
 builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri(builder.HostEnvironment.BaseAddress) });
 
-// Initialize SQLite
-SQLitePCL.Batteries_V2.Init();
-
 // Register LocalStorage
 builder.Services.AddBlazoredLocalStorage();
 
 // Register Contest Judging services with in-memory SQLite
+// TODO: Move AddContestJudgingServices implementation to Web layer as composition root.
+// Currently in Services/Extensions/ for convenience.
 AddServices(builder.Services);
 
 var host = builder.Build();
 
-// Ensure database is created and restored from LocalStorage if available
+var backupService = host.Services.GetRequiredService<IBackupService>();
+await backupService.TryRestoreBackupAsync();
+
 using (var scope = host.Services.CreateScope())
 {
     var context = scope.ServiceProvider.GetRequiredService<ContestDbContext>();
-    var localStorage = scope.ServiceProvider.GetRequiredService<ISyncLocalStorageService>();
-    var contestManager = scope.ServiceProvider.GetRequiredService<IContestManager>();
-
-    // TRICKY OPTIMIZATION #2: Restore from LocalStorage
-    if (localStorage.ContainKey("db_backup"))
-    {
-        var backupBase64 = localStorage.GetItemAsString("db_backup");
-        if (!string.IsNullOrEmpty(backupBase64))
-        {
-            try
-            {
-                var backupBytes = Convert.FromBase64String(backupBase64);
-                await contestManager.ImportDataAsync(backupBytes);
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Failed to restore database: {ex.Message}");
-            }
-        }
-    }
-
     await context.Database.EnsureCreatedAsync();
 }
 
@@ -63,5 +45,8 @@ await host.RunAsync();
 [UnconditionalSuppressMessage("Trimming", "IL2026:RequiresUnreferencedCode", Justification = "EF Core initialization is required at startup. Risk is mitigated by TrimmingSafetyTests.")]
 static void AddServices(IServiceCollection services)
 {
-    services.AddContestJudgingServices("Data Source=contest.db");
+    // Connection string is hardcoded because this is a client-side WASM app
+    // with no server-side config file or environment variable support.
+    // SQLite is embedded in the browser — the path is safe and appropriate.
+    services.AddContestJudgingServices("Data Source=contest.db;foreign keys=true");
 }

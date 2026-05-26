@@ -10,6 +10,13 @@
     <strong>Statistical Resolution:</strong> Standings are now calculated using the Bradley-Terry model (Maximum Likelihood Estimation) to resolve sparse judging partitions.
 </div>
 
+@if (!string.IsNullOrEmpty(errorMessage))
+{
+    <div class="alert alert-danger border-start border-4 shadow-sm mb-4">
+        <i class="bi bi-exclamation-circle-fill me-2"></i>@errorMessage
+    </div>
+}
+
 <button class="btn btn-primary mb-3 shadow-sm" @onclick="CalculateResults">
     <i class="bi bi-calculator-fill me-2"></i>Calculate Results
 </button>
@@ -51,11 +58,9 @@
                         </tr>
                     </thead>
                     <tbody>
-                        @{ int rank = 1; }
-                        @foreach (var item in leaderboard)
-                        {
-                            <tr class="@(rank == 1 ? "table-success" : "")">
-                                <td class="ps-4 fw-bold">#@rank</td>
+                        <Virtualize Items="@leaderboard" Context="item">
+                            <tr class="@(item.Rank == 1 ? "table-success" : "")">
+                                <td class="ps-4 fw-bold">#@item.Rank</td>
                                 <td class="fw-semibold">@item.Entry.Id</td>
                                 @foreach (var cat in categories)
                                 {
@@ -63,8 +68,7 @@
                                 }
                                 <td class="pe-4 text-end fw-bold text-orange">@item.Entry.TotalScore.ToString("N2")</td>
                             </tr>
-                            rank++;
-                        }
+                        </Virtualize>
                     </tbody>
                 </table>
             </div>

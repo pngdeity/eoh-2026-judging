@@ -1,0 +1,133 @@
+{
+  "agent_id": "P1-D",
+  "pass": 1,
+  "domain": "security",
+  "status": "success",
+  "findings": [
+    {
+      "id": "SEC-001",
+      "title": "Missing Content-Security-Policy header in index.html",
+      "severity": "medium",
+      "category": "security-misconfiguration",
+      "files": [
+        "src/ContestJudging.Web/wwwroot/index.html:4"
+      ],
+      "evidence_snippet": "<!-- index.html:4-15 -- no CSP meta tag present -->\n<head>\n    <meta charset=\"utf-8\" />\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\" />\n    <title>EOH 2026 Contest Judging</title>\n    <base href=\"/\" />\n    ...\n</head>",
+      "rule_violated": "OWASP A05:2021 Security Misconfiguration, CWE-1021",
+      "remediation": "Add a Content-Security-Policy meta tag with directives appropriate for Blazor WASM: default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; connect-src 'self'; img-src 'self' data:;",
+      "effort": "small",
+      "status": "open"
+    },
+    {
+      "id": "SEC-002",
+      "title": "Insecure random number generation using System.Random in PartitionService",
+      "severity": "medium",
+      "category": "weak-cryptography",
+      "files": [
+        "src/ContestJudging.Services/Partitioning/PartitionService.cs:9",
+        "src/ContestJudging.Services/Partitioning/PartitionService.cs:24"
+      ],
+      "evidence_snippet": "// PartitionService.cs:9\nprivate readonly Random _random = new();\n\n// PartitionService.cs:24\nvar shuffled = allEntryIdsList.OrderBy(x => _random.Next()).ToList();",
+      "rule_violated": "CWE-338 Use of Cryptographically Weak PRNG",
+      "remediation": "Replace System.Random with System.Security.Cryptography.RandomNumberGenerator for partition shuffling, or use Random.Shared with explicit documentation that the randomness is non-cryptographic.",
+      "effort": "trivial",
+      "status": "open"
+    },
+    {
+      "id": "SEC-003",
+      "title": "Hardcoded SQLite connection strings",
+      "severity": "low",
+      "category": "hardcoded-configuration",
+      "files": [
+        "src/ContestJudging.Web/Program.cs:66",
+        "src/ContestJudging.Services/Extensions/ServiceCollectionExtensions.cs:21"
+      ],
+      "evidence_snippet": "// Program.cs:66\nservices.AddContestJudgingServices(\"Data Source=contest.db\");\n\n// ServiceCollectionExtensions.cs:21\npublic static IServiceCollection AddContestJudgingServices(\n    this IServiceCollection services, string connectionString = \"Data Source=:memory:\")",
+      "rule_violated": "Hardcoded configuration values should be externalized",
+      "remediation": "Move connection strings to appsettings.json or environment-specific configuration. Remove default parameter to force explicit configuration.",
+      "effort": "trivial",
+      "status": "open"
+    },
+    {
+      "id": "SEC-004",
+      "title": "Database backup in localStorage lacks integrity verification",
+      "severity": "medium",
+      "category": "data-integrity",
+      "files": [
+        "src/ContestJudging.Web/Pages/Judging.razor.cs:76",
+        "src/ContestJudging.Web/Pages/Setup.razor.cs:49",
+        "src/ContestJudging.Web/Program.cs:39"
+      ],
+      "evidence_snippet": "// Judging.razor.cs:80-83\nvar data = await ContestManager.ExportDataAsync();\nif (data.Length > 0)\n{\n    await LocalStorage.SetItemAsStringAsync(\"db_backup\", Convert.ToBase64String(data));\n}\n\n// Program.cs:41-47\nvar backupBase64 = localStorage.GetItemAsString(\"db_backup\");\nif (!string.IsNullOrEmpty(backupBase64))\n{\n    var backupBytes = Convert.FromBase64String(backupBase64);\n    await contestManager.ImportDataAsync(backupBytes);\n}",
+      "rule_violated": "CWE-345 Insufficient Verification of Data Authenticity",
+      "remediation": "Append an HMAC-SHA256 or CRC32 checksum to the backup payload before storing in localStorage. Verify on restore and reject if integrity check fails.",
+      "effort": "small",
+      "status": "open"
+    },
+    {
+      "id": "SEC-005",
+      "title": "Exception message exposed to browser console",
+      "severity": "informational",
+      "category": "information-leakage",
+      "files": [
+        "src/ContestJudging.Web/Program.cs:49"
+      ],
+      "evidence_snippet": "// Program.cs:49-51\ncatch (Exception ex)\n{\n    Console.WriteLine($\"Failed to restore database: {ex.Message}\");\n}",
+      "rule_violated": "CWE-209 Generation of Error Message Containing Sensitive Information",
+      "remediation": "Use ILogger with appropriate log levels. Log generic messages in production; include exception details only in debug builds.",
+      "effort": "trivial",
+      "status": "open"
+    },
+    {
+      "id": "SEC-006",
+      "title": "Missing .db and .sqlite patterns in .gitignore",
+      "severity": "medium",
+      "category": "git-hygiene",
+      "files": [
+        ".gitignore:1"
+      ],
+      "evidence_snippet": "// .gitignore has *.dbmdl (line 244) but no *.db or *.sqlite pattern.\n// The application creates contest.db as its SQLite database file.",
+      "rule_violated": "Database files containing contest data should not be committed to version control",
+      "remediation": "Add *.db, *.sqlite, and *.sqlite3 patterns to .gitignore.",
+      "effort": "trivial",
+      "status": "open"
+    },
+    {
+      "id": "SEC-007",
+      "title": "No authentication on administrative operations",
+      "severity": "medium",
+      "category": "missing-authentication",
+      "files": [
+        "src/ContestJudging.Web/Pages/Setup.razor.cs:59",
+        "src/ContestJudging.Web/Pages/Setup.razor.cs:68",
+        "src/ContestJudging.Web/Pages/Judging.razor.cs:147",
+        "src/ContestJudging.Web/Pages/Judging.razor.cs:180"
+      ],
+      "evidence_snippet": "// Setup.razor.cs:59-66 — unprotected data clearing\nprivate async Task ClearCategories()\n{\n    foreach (var cat in categories.ToList())\n    {\n        await CategoryRepository.DeleteAsync(cat.Id);\n    }\n    await RefreshData();\n}",
+      "rule_violated": "CWE-306 Missing Authentication for Critical Function",
+      "remediation": "Add a passphrase gate on the Setup page or implement token-based auth if server-side deployment is planned. Document the trusted-device deployment model if auth is intentionally omitted.",
+      "effort": "small",
+      "status": "open"
+    },
+    {
+      "id": "SEC-008",
+      "title": "Client-side SQLite — entire database accessible to browser user",
+      "severity": "informational",
+      "category": "architecture-awareness",
+      "files": [
+        "src/ContestJudging.Web/Program.cs:21",
+        "src/ContestJudging.Infrastructure/Persistence/ContestDbContext.cs:41"
+      ],
+      "evidence_snippet": "// Program.cs:21 — SQLite initializes in browser WebAssembly\nSQLitePCL.Batteries_V2.Init();\n\n// ContestDbContext.cs:68 — database file is local to browser\nvar path = \"contest.db\";",
+      "rule_violated": "Blazor WASM runs entirely client-side; all data is accessible via browser DevTools",
+      "remediation": "Document the trust model in a SECURITY.md or README: this app is designed for a trusted judge's local device. If data confidentiality is needed, implement a backend API with server-side persistence.",
+      "effort": "trivial",
+      "status": "open"
+    }
+  ],
+  "metrics": {
+    "files_scanned": 28,
+    "findings_count": 8,
+    "lines_of_code": 1629
+  }
+}

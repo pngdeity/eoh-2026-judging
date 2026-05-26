@@ -13,6 +13,20 @@ namespace ContestJudging.Tests
     /// Exercises code paths that are commonly broken by aggressive IL trimming.
     /// If these tests pass in a trimmed build, the optimization is likely safe.
     /// </summary>
+    /// <remarks>
+    /// Trimming safety strategy:
+    /// 1. The web project disables reflection-based trimming analysis by default.
+    /// 2. Core domain entities (Entry, Category) are intentionally preserved because
+    ///    they must serialize/deserialize for localStorage and database operations.
+    /// 3. Tests validate that JsonSerializer (reflection-based) and Activator.CreateInstance
+    ///    work with domain types under a trimmed environment.
+    /// 4. Infrastructure tests use [UnconditionalSuppressMessage] because EF Core
+    ///    is not trimming-safe, so they are excluded from trimmed builds.
+    /// 5. Individual methods annotate reflection usage with [RequiresUnreferencedCode]
+    ///    so the trimmer can warn at compile time.
+    /// </remarks>
+    [Trait("Category", "Unit")]
+    [Trait("Category", "Unit")]
     public class TrimmingSafetyTests
     {
         [Fact]

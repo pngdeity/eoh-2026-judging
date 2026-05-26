@@ -5,8 +5,16 @@ using ContestJudging.Services.Validation;
 
 using Xunit;
 
+// NOTE: After CQ-002 refactoring, all validation paths (IsTotalOrder, IsValidOrder,
+// GetSortedTiers, ValidatePartitionedGraph) share a single topological sort algorithm.
+// Test coverage for one method indirectly covers others at the algorithm level.
+// Individual behavior branches (unique check, tier batching, component detection) are
+// explicitly tested below.
+
 namespace ContestJudging.Tests
 {
+    [Trait("Category", "Unit")]
+    [Trait("Category", "Unit")]
     public class ValidationServiceTests
     {
         private readonly IValidationService _validationService = new GraphValidationService();
@@ -173,6 +181,7 @@ namespace ContestJudging.Tests
 
             // Assert
             Assert.False(result.IsValid);
+            Assert.Equal("The graph is not fully connected. Bridge nodes failed to overlap correctly.", result.ErrorMessage);
             Assert.Equal(2, result.ComponentCount);
         }
 
@@ -226,6 +235,66 @@ namespace ContestJudging.Tests
 
             // Assert
             Assert.False(result.IsValid);
+            Assert.Equal("The judging graph contains cycles.", result.ErrorMessage);
+            Assert.Equal(0, result.ComponentCount);
+        }
+
+        // TE-008: LessThan operator coverage
+
+        [Fact]
+        public void GetSortedTiers_WithLessThan_ReturnsCorrectOrder()
+        {
+            var cat = new Category("cat1", 10);
+            var entryA = new Entry("A");
+            var entryB = new Entry("B");
+            var entryC = new Entry("C");
+
+            var relations = new List<Relation>
+            {
+                new Relation(cat, entryA, Operator.LessThan, entryB),
+                new Relation(cat, entryB, Operator.LessThan, entryC)
+            };
+
+            var result = _validationService.GetSortedTiers(relations, new[] { "A", "B", "C" });
+
+            Assert.Equal(3, result.Count);
+            Assert.Contains("A", result[0]);
+            Assert.Contains("B", result[1]);
+            Assert.Contains("C", result[2]);
+        }
+
+        [Fact]
+        public void IsTotalOrder_WithLessThan_ReturnsTrue()
+        {
+            var cat = new Category("cat1", 10);
+            var entryA = new Entry("A");
+            var entryB = new Entry("B");
+            var entryC = new Entry("C");
+
+            var relations = new List<Relation>
+            {
+                new Relation(cat, entryA, Operator.LessThan, entryB),
+                new Relation(cat, entryB, Operator.LessThan, entryC)
+            };
+
+            var result = _validationService.IsTotalOrder(relations, new[] { "A", "B", "C" });
+            Assert.True(result);
+        }
+
+        [Fact]
+        public void IsValidOrder_WithLessThan_ReturnsTrue()
+        {
+            var cat = new Category("cat1", 10);
+            var entryA = new Entry("A");
+            var entryB = new Entry("B");
+
+            var relations = new List<Relation>
+            {
+                new Relation(cat, entryA, Operator.LessThan, entryB)
+            };
+
+            var result = _validationService.IsValidOrder(relations, new[] { "A", "B" });
+            Assert.True(result);
         }
     }
 }

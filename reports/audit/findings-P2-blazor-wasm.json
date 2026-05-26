@@ -1,0 +1,176 @@
+{
+  "agent_id": "P2-C",
+  "pass": 2,
+  "domain": "blazor-wasm",
+  "status": "success",
+  "findings": [
+    {
+      "id": "BW-001",
+      "title": "OnInitializedAsync methods lack exception handling in all three page components",
+      "severity": "medium",
+      "category": "lifecycle",
+      "files": [
+        "src/ContestJudging.Web/Pages/Setup.razor.cs:37",
+        "src/ContestJudging.Web/Pages/Judging.razor.cs:44",
+        "src/ContestJudging.Web/Pages/Results.razor.cs:20"
+      ],
+      "evidence_snippet": "// Setup.razor.cs:37-40\nprotected override async Task OnInitializedAsync()\n{\n    await RefreshData();  // no try-catch\n}\n\n// Judging.razor.cs:44-48\nprotected override async Task OnInitializedAsync()\n{\n    categories = (await CategoryRepository.GetAllAsync()).ToList();\n    entries = (await EntryRepository.GetAllAsync()).ToList();  // no try-catch\n}\n\n// Results.razor.cs:20-24\nprotected override async Task OnInitializedAsync()\n{\n    categories = (await CategoryRepository.GetAllAsync()).ToList();\n    entries = (await EntryRepository.GetAllAsync()).ToList();  // no try-catch\n}",
+      "rule_violated": "Blazor best practice: lifecycle methods that perform I/O should catch exceptions and display user-friendly errors",
+      "remediation": "Wrap OnInitializedAsync bodies in try-catch; set an errorMessage field to display in the UI rather than crashing to the global error boundary.",
+      "effort": "trivial",
+      "status": "open"
+    },
+    {
+      "id": "BW-002",
+      "title": "BackupDatabase invoked on every Setup page load and every mutation, causing excessive localStorage writes",
+      "severity": "medium",
+      "category": "performance",
+      "files": [
+        "src/ContestJudging.Web/Pages/Setup.razor.cs:42",
+        "src/ContestJudging.Web/Pages/Setup.razor.cs:49",
+        "src/ContestJudging.Web/Pages/Setup.razor.cs:55"
+      ],
+      "evidence_snippet": "private async Task RefreshData()\n{\n    categories = (await CategoryRepository.GetAllAsync()).ToList();\n    entries = (await EntryRepository.GetAllAsync()).ToList();\n    await BackupDatabase();  // called on EVERY page load + every add/delete/clear\n}\n\nprivate async Task BackupDatabase()\n{\n    var data = await ContestManager.ExportDataAsync();  // full DB read\n    if (data.Length > 0)\n    {\n        await LocalStorage.SetItemAsStringAsync(\"db_backup\", Convert.ToBase64String(data));\n    }\n}",
+      "rule_violated": "Performance: full-database export + base64 encode + localStorage write on every CRUD operation is excessive I/O in a browser runtime",
+      "remediation": "Decouple backup from RefreshData. Save on a debounced timer, on page navigation away (Dispose), or use a dirty flag to track whether data has changed since last save.",
+      "effort": "small",
+      "status": "open"
+    },
+    {
+      "id": "BW-003",
+      "title": "No localStorage quota check before storing multi-MB SQLite backup",
+      "severity": "medium",
+      "category": "data-loss",
+      "files": [
+        "src/ContestJudging.Web/Pages/Setup.razor.cs:55",
+        "src/ContestJudging.Web/Pages/Judging.razor.cs:82"
+      ],
+      "evidence_snippet": "await LocalStorage.SetItemAsStringAsync(\"db_backup\", Convert.ToBase64String(data));\n// No QuotaExceededError handling, no size threshold check before storing",
+      "rule_violated": "Defensive programming: browser localStorage has 5-10MB origin quota; exceeding it throws QuotaExceededError which is uncaught here",
+      "remediation": "Check data.Length against a safe threshold (e.g., 4MB) before writing. Wrap SetItemAsStringAsync in try-catch for QuotaExceededError. Show a user warning when the backup cannot be saved.",
+      "effort": "small",
+      "status": "open"
+    },
+    {
+      "id": "BW-004",
+      "title": "Bootstrap JavaScript not loaded in index.html — accordion UI in Judging page is non-functional",
+      "severity": "high",
+      "category": "functionality",
+      "files": [
+        "src/ContestJudging.Web/wwwroot/index.html:14",
+        "src/ContestJudging.Web/Pages/Judging.razor:97"
+      ],
+      "evidence_snippet": "<!-- index.html:9-11 -- only Bootstrap CSS, no JS -->\n<link rel=\"stylesheet\" href=\"lib/bootstrap/dist/css/bootstrap.min.css\" />\n\n<!-- Judging.razor:97 -- depends on Bootstrap JS which is never loaded -->\n<button class=\"accordion-button collapsed\" type=\"button\"\n        data-bs-toggle=\"collapse\" data-bs-target=\"#manualEntry\">\n    Manual Override / Correction\n</button>",
+      "rule_violated": "Functional correctness: Bootstrap JS-dependent components (accordion) are broken because the JS bundle is not referenced",
+      "remediation": "Add <script src=\"lib/bootstrap/dist/js/bootstrap.bundle.min.js\"></script> to index.html before </body>. Or replace the Bootstrap accordion with Blazor-native conditional rendering (@if (showManualEntry) { ... }) to eliminate the JS dependency.",
+      "effort": "trivial",
+      "status": "open"
+    },
+    {
+      "id": "BW-005",
+      "title": "Interactive div elements missing ARIA roles, keyboard handlers, and tabindex",
+      "severity": "medium",
+      "category": "accessibility",
+      "files": [
+        "src/ContestJudging.Web/Pages/Judging.razor:6",
+        "src/ContestJudging.Web/Pages/Judging.razor:66",
+        "src/ContestJudging.Web/Pages/Judging.razor:74",
+        "src/ContestJudging.Web/Pages/Judging.razor:84",
+        "src/ContestJudging.Web/Layout/NavMenu.razor:4"
+      ],
+      "evidence_snippet": "<!-- Clickable divs acting as buttons without button semantics -->\n<div class=\"judge-card h-100 text-center p-5 ...\"\n     @onclick=\"() => RecordResult(Operator.GreaterThan)\">\n    <!-- No role=\"button\", no tabindex, no @onkeydown -->\n\n<!-- Toggle button without aria-label -->\n<button title=\"Navigation menu\" class=\"navbar-toggler\" @onclick=\"ToggleNavMenu\">",
+      "rule_violated": "WCAG 2.1: 4.1.2 Name/Role/Value — interactive elements must expose their role and state to assistive technology; 2.1.1 Keyboard — all functionality must be operable through keyboard",
+      "remediation": "Replace judge-card divs with <button> elements for built-in ARIA semantics, or add role=\"button\", tabindex=\"0\", @onkeydown handlers for Enter/Space, and aria-label to each div. Add aria-keyshortcuts=\"A S D\" to the judging container. Add aria-label to the navbar toggle button.",
+      "effort": "small",
+      "status": "open"
+    },
+    {
+      "id": "BW-006",
+      "title": "Large lists rendered without Virtualize component",
+      "severity": "medium",
+      "category": "performance",
+      "files": [
+        "src/ContestJudging.Web/Pages/Setup.razor:35",
+        "src/ContestJudging.Web/Pages/Setup.razor:67",
+        "src/ContestJudging.Web/Pages/Judging.razor:162",
+        "src/ContestJudging.Web/Pages/Results.razor:55"
+      ],
+      "evidence_snippet": "@foreach (var cat in categories)\n{\n    <li class=\"list-group-item...\">...</li>\n}\n\n@foreach (var rel in relations)\n{\n    <tr>...</tr>\n}",
+      "rule_violated": "Performance: rendering 200+ items without Virtualize causes unnecessary DOM nodes, memory usage, and slow initial render",
+      "remediation": "Replace @foreach with <Virtualize Items=\"@categories\" Context=\"cat\"> for lists that can exceed ~50 items. Relations list and leaderboard are the best candidates.",
+      "effort": "small",
+      "status": "open"
+    },
+    {
+      "id": "BW-007",
+      "title": "DB restore path lacks schema version, integrity, and basic validity checks (SEC-004 follow-up)",
+      "severity": "medium",
+      "category": "data-integrity",
+      "files": [
+        "src/ContestJudging.Web/Program.cs:39",
+        "src/ContestJudging.Web/Program.cs:46",
+        "src/ContestJudging.Web/Program.cs:47",
+        "src/ContestJudging.Web/Program.cs:56",
+        "src/ContestJudging.Infrastructure/Persistence/ContestDbContext.cs:76"
+      ],
+      "evidence_snippet": "// Program.cs:39-56 — restore then EnsureCreated\nif (localStorage.ContainKey(\"db_backup\"))\n{\n    var backupBase64 = localStorage.GetItemAsString(\"db_backup\");\n    if (!string.IsNullOrEmpty(backupBase64))\n    {\n        try\n        {\n            var backupBytes = Convert.FromBase64String(backupBase64);\n            await contestManager.ImportDataAsync(backupBytes);\n        }\n        catch (Exception ex) { Console.WriteLine(...); }\n    }\n}\nawait context.Database.EnsureCreatedAsync();\n\n// ContestDbContext.cs:76-80 — raw write, no validation\npublic async Task ImportDatabaseAsync(byte[] data)\n{\n    var path = \"contest.db\";\n    await File.WriteAllBytesAsync(path, data);  // no header check, no version check\n}",
+      "rule_violated": "CWE-345 Insufficient Verification of Data Authenticity; defensive programming: restore should validate data before committing",
+      "remediation": "Prepend a schema version number to the backup payload. On restore, compare to the expected version; reject mismatches. Validate the SQLite header magic bytes (first 16 = 'SQLite format 3') before writing. Run a simple SELECT 1 query post-restore to confirm DB integrity.",
+      "effort": "small",
+      "status": "open",
+      "related_findings": ["SEC-004"]
+    },
+    {
+      "id": "BW-008",
+      "title": "Console.WriteLine used for error logging instead of ILogger<T>",
+      "severity": "low",
+      "category": "maintainability",
+      "files": [
+        "src/ContestJudging.Web/Program.cs:51"
+      ],
+      "evidence_snippet": "catch (Exception ex)\n{\n    Console.WriteLine($\"Failed to restore database: {ex.Message}\");\n}",
+      "rule_violated": "Observability: unstructured Console output cannot be filtered by log level and loses stack trace context",
+      "remediation": "Inject ILogger<T> into startup code via builder.Services.BuildServiceProvider(). Replace Console.WriteLine with _logger.LogError(ex, \"Failed to restore database\").",
+      "effort": "trivial",
+      "status": "open"
+    },
+    {
+      "id": "BW-009",
+      "title": "Orphaned weather.json scaffold file in production wwwroot output",
+      "severity": "low",
+      "category": "dead-code",
+      "files": [
+        "src/ContestJudging.Web/wwwroot/sample-data/weather.json:1"
+      ],
+      "evidence_snippet": "[\n  { \"date\": \"2022-01-06\", \"temperatureC\": 1, \"summary\": \"Freezing\" },\n  ...\n]",
+      "rule_violated": "Clean code: scaffold/template artifacts should be removed before production use",
+      "remediation": "Delete wwwroot/sample-data/weather.json and the containing sample-data/ directory.",
+      "effort": "trivial",
+      "status": "open"
+    },
+    {
+      "id": "BW-010",
+      "title": "STRUCT-001 follow-up: Infrastructure leak is contained to Program.cs only — no page components are contaminated",
+      "severity": "informational",
+      "category": "architecture",
+      "files": [
+        "src/ContestJudging.Web/Program.cs:5",
+        "src/ContestJudging.Web/Program.cs:34",
+        "src/ContestJudging.Web/ContestJudging.Web.csproj:29",
+        "src/ContestJudging.Web/ContestJudging.Web.csproj:30",
+        "src/ContestJudging.Web/ContestJudging.Web.csproj:36"
+      ],
+      "evidence_snippet": "// Only Program.cs imports Infrastructure:\nusing ContestJudging.Infrastructure.Persistence;  // line 5\nvar context = scope.ServiceProvider.GetRequiredService<ContestDbContext>();  // line 34\n\n// All .razor and .razor.cs files import only Core.Entities and Services interfaces.\n// The .csproj has:\n//   - PackageReference: Microsoft.EntityFrameworkCore.Sqlite (line 29)\n//   - PackageReference: SQLitePCLRaw.bundle_e_sqlite3 (line 30)\n//   - ProjectReference: ContestJudging.Infrastructure (line 36)",
+      "rule_violated": "Clean Architecture: Dependency Rule (Web should depend only on Core + Services, not Infrastructure)",
+      "remediation": "Move EnsureCreatedAsync logic into ServiceCollectionExtensions.AddContestJudgingServices (e.g., via an IHostedService or an IContestManager.InitializeAsync method). Then remove the Infrastructure ProjectReference and EF Core/SQLite PackageReferences from Web.csproj.",
+      "effort": "medium",
+      "status": "open",
+      "related_findings": ["STRUCT-001"]
+    }
+  ],
+  "metrics": {
+    "files_scanned": 17,
+    "findings_count": 10,
+    "lines_of_code": 1072
+  }
+}

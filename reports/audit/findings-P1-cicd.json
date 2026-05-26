@@ -1,0 +1,154 @@
+{
+  "agent_id": "P1-E",
+  "pass": 1,
+  "domain": "cicd",
+  "status": "success",
+  "findings": [
+    {
+      "id": "CICD-001",
+      "title": "E2E test project excluded from solution — Playwright/NUnit tests never run in CI",
+      "severity": "high",
+      "category": "testing",
+      "files": ["ContestJudging.slnx:8-10"],
+      "evidence_snippet": "<Folder Name=\"/tests/\">\n    <Project Path=\"tests/ContestJudging.Tests/ContestJudging.Tests.csproj\" />\n</Folder>",
+      "rule_violated": "CI completeness — all test projects must be exercised in the pipeline",
+      "remediation": "Add <Project Path=\"tests/ContestJudging.E2ETests/ContestJudging.E2ETests.csproj\" /> to the /tests/ folder in ContestJudging.slnx. Consider a separate CI job for E2E tests with Playwright browser installation.",
+      "effort": "small",
+      "status": "open"
+    },
+    {
+      "id": "CICD-002",
+      "title": "No code coverage collected in CI despite coverlet.collector being configured",
+      "severity": "medium",
+      "category": "testing",
+      "files": [".github/workflows/pipeline.yml:50"],
+      "evidence_snippet": "dotnet test ContestJudging.slnx --configuration Release --no-build --verbosity normal",
+      "rule_violated": "Test quality — coverage should be measured and tracked",
+      "remediation": "Add --collect:\"XPlat Code Coverage\" to the dotnet test command and optionally upload results to a coverage service.",
+      "effort": "trivial",
+      "status": "open"
+    },
+    {
+      "id": "CICD-003",
+      "title": "Six of seven GitHub Actions use floating major-version tags (supply chain risk)",
+      "severity": "medium",
+      "category": "supply-chain",
+      "files": [
+        ".github/workflows/pipeline.yml:18",
+        ".github/workflows/pipeline.yml:21",
+        ".github/workflows/pipeline.yml:27",
+        ".github/workflows/pipeline.yml:73",
+        ".github/workflows/pipeline.yml:79",
+        ".github/workflows/pipeline.yml:100",
+        ".github/workflows/pipeline.yml:103",
+        ".github/workflows/pipeline.yml:108"
+      ],
+      "evidence_snippet": "uses: actions/checkout@v6\nuses: actions/setup-dotnet@v5\nuses: actions/cache@v5",
+      "rule_violated": "SLSA Level 2 — actions should be pinned to digest or full semver",
+      "remediation": "Pin all actions to full semver (e.g., actions/checkout@v6.1.0) or commit SHA. Enable Dependabot for GitHub Actions updates.",
+      "effort": "small",
+      "status": "open"
+    },
+    {
+      "id": "CICD-004",
+      "title": "No SAST or CodeQL scanning — only dependency scanning is present",
+      "severity": "high",
+      "category": "security",
+      "files": [".github/workflows/pipeline.yml:52-60"],
+      "evidence_snippet": "security-scan:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@v6\n      - name: OSV-Scanner\n        uses: google/osv-scanner-action/osv-scanner-action@v2.3.5",
+      "rule_violated": "OWASP / DevSecOps — SAST should complement dependency vulnerability scanning",
+      "remediation": "Add a CodeQL analysis job targeting csharp (and optionally javascript for Blazor WASM client). github/codeql-action provides free scanning for public repos.",
+      "effort": "small",
+      "status": "open"
+    },
+    {
+      "id": "CICD-005",
+      "title": "OSV-Scanner uses --allow-no-lockfiles reducing scan accuracy",
+      "severity": "low",
+      "category": "security",
+      "files": [".github/workflows/pipeline.yml:60"],
+      "evidence_snippet": "scan-args: ./ --allow-no-lockfiles",
+      "rule_violated": "Tool configuration — lock files provide precise dependency graphs",
+      "remediation": "Remove --allow-no-lockfiles. If scans fail without lock files, commit packages.lock.json or enable lock file generation in Directory.Packages.props.",
+      "effort": "trivial",
+      "status": "open"
+    },
+    {
+      "id": "CICD-006",
+      "title": "release/ directory (published Blazor WASM output) is committed to the repository",
+      "severity": "medium",
+      "category": "repo-hygiene",
+      "files": ["release/"],
+      "evidence_snippet": "release/\n  ContestJudging.Web.runtimeconfig.json\n  dotnet.js\n  e_sqlite3.a\n  web.config\n  wwwroot/\n    _framework/\n    index.html\n    ...",
+      "rule_violated": "Repository hygiene — build artifacts should not be version-controlled",
+      "remediation": "Add release/ to .gitignore and run git rm -r --cached release/. The CI deploy job already publishes to this path.",
+      "effort": "trivial",
+      "status": "open"
+    },
+    {
+      "id": "CICD-007",
+      "title": "No Dependabot configuration for automated dependency updates",
+      "severity": "medium",
+      "category": "dependency-management",
+      "files": [".github/"],
+      "evidence_snippet": "(missing) .github/dependabot.yml",
+      "rule_violated": "Dependency hygiene — automated updates prevent staleness and known vulnerabilities",
+      "remediation": "Create .github/dependabot.yml with nuget and github-actions ecosystems on a weekly schedule.",
+      "effort": "trivial",
+      "status": "open"
+    },
+    {
+      "id": "CICD-008",
+      "title": "No CODEOWNERS file for automated PR review assignment",
+      "severity": "low",
+      "category": "code-review",
+      "files": [".github/"],
+      "evidence_snippet": "(missing) .github/CODEOWNERS",
+      "rule_violated": "Code review hygiene — CODEOWNERS ensures appropriate reviewers",
+      "remediation": "Create .github/CODEOWNERS with default ownership (e.g., * @pngdeity/maintainers).",
+      "effort": "trivial",
+      "status": "open"
+    },
+    {
+      "id": "CICD-009",
+      "title": "No PR template or issue templates",
+      "severity": "low",
+      "category": "contribution",
+      "files": [".github/"],
+      "evidence_snippet": "(missing) .github/PULL_REQUEST_TEMPLATE.md and .github/ISSUE_TEMPLATE/",
+      "rule_violated": "Contribution hygiene — templates standardize submissions",
+      "remediation": "Add .github/PULL_REQUEST_TEMPLATE.md with a checklist (tests, format, docs) and a bug report issue template.",
+      "effort": "trivial",
+      "status": "open"
+    },
+    {
+      "id": "CICD-010",
+      "title": "dotnet-tools.json manifest has no tools configured",
+      "severity": "informational",
+      "category": "tooling",
+      "files": ["dotnet-tools.json:4"],
+      "evidence_snippet": "\"tools\": {}",
+      "rule_violated": "Reproducibility — local tool pinning ensures consistent CLI tool versions across environments",
+      "remediation": "No action required currently. If additional CLI tools are introduced (dotnet-coverage, dotnet-outdated, etc.), register them via dotnet tool install --local.",
+      "effort": "trivial",
+      "status": "open"
+    },
+    {
+      "id": "CICD-011",
+      "title": "Deploy job redundantly rebuilds from source instead of reusing tested artifacts",
+      "severity": "medium",
+      "category": "ci-optimization",
+      "files": [".github/workflows/pipeline.yml:62-108"],
+      "evidence_snippet": "deploy:\n    needs: [quality-and-test, security-scan]\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@v6\n      - name: Setup .NET ...\n      - name: Publish Blazor WASM\n        run: dotnet publish src/ContestJudging.Web/ContestJudging.Web.csproj ...",
+      "rule_violated": "CI integrity — deploy should use tested artifacts, not rebuild",
+      "remediation": "In the quality-and-test job, run dotnet publish and upload the result via actions/upload-artifact. In the deploy job, download that artifact via actions/download-artifact instead of rebuilding.",
+      "effort": "small",
+      "status": "open"
+    }
+  ],
+  "metrics": {
+    "files_scanned": 18,
+    "findings_count": 11,
+    "lines_of_code": 340
+  }
+}

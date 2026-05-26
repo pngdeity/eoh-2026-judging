@@ -5,7 +5,7 @@ using ContestJudging.Core.Interfaces;
 
 namespace ContestJudging.Services.Scoring
 {
-    public class DefinedIntervalScoring : IScoringStrategy
+    public sealed class DefinedIntervalScoring : IScoringStrategy
     {
         private readonly List<double> _rankPoints;
 

@@ -6,10 +6,13 @@ using ContestJudging.Core.Entities;
 
 namespace ContestJudging.Services.Resolution
 {
-    public class BradleyTerryResolutionService : IGlobalRankingService
+    public sealed class BradleyTerryResolutionService : IGlobalRankingService
     {
         private const int MaxIterations = 1000;
         private const double ConvergenceThreshold = 1e-6;
+        private const int RankStabilityStartIteration = 50;
+        private const int RankStabilityCheckFrequency = 10;
+        private const double RankStabilityTolerance = 1e-3;
 
         public Dictionary<string, double> ResolveGlobalStrengths(IEnumerable<Relation> validRelations, IEnumerable<string> allEntryIds)
         {
@@ -66,7 +69,10 @@ namespace ContestJudging.Services.Resolution
                         if (i == j) continue;
                         if (totalComparisons[i, j] > 0)
                         {
-                            denominator += totalComparisons[i, j] / (gamma[i] + gamma[j]);
+                            var denom = gamma[i] + gamma[j];
+                            if (denom < 1e-15)
+                                denom = 1e-15;
+                            denominator += totalComparisons[i, j] / denom;
                         }
                     }
 
@@ -87,7 +93,7 @@ namespace ContestJudging.Services.Resolution
                 for (int i = 0; i < n; i++) nextGamma[i] /= sum;
 
                 // TRICKY OPTIMIZATION #4: MLE Early-Exit based on Rank Stability
-                if (iter > 50 && iter % 10 == 0)
+                if (iter > RankStabilityStartIteration && iter % RankStabilityCheckFrequency == 0)
                 {
                     var currentRanks = nextGamma
                         .Select((val, idx) => new { val, idx })
@@ -105,7 +111,7 @@ namespace ContestJudging.Services.Resolution
                         }
                     }
 
-                    if (stable && maxDiff < 1e-3)
+                    if (stable && maxDiff < RankStabilityTolerance)
                     {
                         gamma = nextGamma;
                         break;

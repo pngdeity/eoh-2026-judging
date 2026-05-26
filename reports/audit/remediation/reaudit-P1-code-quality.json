@@ -1,0 +1,216 @@
+{
+  "agent_id": "PA1-B",
+  "pass": 1,
+  "domain": "code-quality",
+  "status": "success",
+  "branch": "fix/audit-remediate",
+  "original_findings": {
+    "total": 10,
+    "resolved": 4,
+    "partially_resolved": 1,
+    "unresolved": 5
+  },
+  "new_findings": {
+    "total": 4
+  },
+  "quality_trend": "stable",
+  "findings": [
+    {
+      "id": "CQ-001",
+      "title": "Dead empty class Class1.cs in Infrastructure project",
+      "severity": "high",
+      "category": "dead-code",
+      "status": "resolved",
+      "evidence": "File deleted. No references to Class1 found in codebase.",
+      "verified_at": "branch fix/audit-remediate"
+    },
+    {
+      "id": "CQ-002",
+      "title": "Near-identical IsTotalOrder and IsValidOrder methods in GraphValidationService",
+      "severity": "high",
+      "category": "duplication",
+      "status": "resolved",
+      "evidence": "Shared BuildTopologicalGraph (line 44) and TryTopologicalSort (line 114) extracted. IsTotalOrder (line 147) and IsValidOrder (line 160) are now 13-line thin wrappers calling TryTopologicalSort with checkUnique param.",
+      "verified_at": "GraphValidationService.cs:44-171"
+    },
+    {
+      "id": "CQ-003",
+      "title": "Swallowed exception in database restore path",
+      "severity": "high",
+      "category": "error-handling",
+      "status": "resolved",
+      "evidence": "Original catch block in Program.cs removed. Exception handling moved to BackupService.TryRestoreBackupAsync (line 47-59) which uses ILogger.LogError(ex, ...) to log full exception with stack trace.",
+      "verified_at": "BackupService.cs:54-57, Program.cs:31-38"
+    },
+    {
+      "id": "CQ-004",
+      "title": "Widespread var usage violations against .editorconfig mandate",
+      "severity": "medium",
+      "category": "style",
+      "status": "unresolved",
+      "evidence": "~35+ explicit-type local variable declarations remain where var should be used per editorconfig: csharp_style_var_for_built_in_types=true:suggestion, csharp_style_var_when_type_is_apparent=true:suggestion, csharp_style_var_elsewhere=true:suggestion. Worst offenders: GraphValidationService.cs (7 violations), BradleyTerryResolutionService.cs (7), scoring services (10+).",
+      "affected_files": [
+        "GraphValidationService.cs:35,36,66,77,78,128,187,236",
+        "BradleyTerryResolutionService.cs:17,28,29,59,63,86,98",
+        "PercentileScoring.cs:14,26,29,52,56",
+        "LinearSpacingScoring.cs:13,28,43,44,52",
+        "DefinedIntervalScoring.cs:20,26,27,44,45,46,50",
+        "PartitionService.cs:27,28,43",
+        "Results.razor.cs:37"
+      ]
+    },
+    {
+      "id": "CQ-005",
+      "title": "No sealed classes anywhere in the codebase",
+      "severity": "medium",
+      "category": "performance",
+      "status": "unresolved",
+      "evidence": "21 public classes remain unsealed. Only UnionFind (GraphValidationService.cs:11) was sealed. None of the 21 classes are designed for inheritance. JIT devirtualization optimization (CA1852) still inhibited across the codebase.",
+      "affected_files": [
+        "Category.cs:5",
+        "Entry.cs:7",
+        "Relation.cs:3",
+        "CategoryEntity:10",
+        "EntryEntity:17",
+        "EntryScoreEntity:23",
+        "RelationEntity:30",
+        "ContestDbContext:39",
+        "SqliteCategoryRepository:13",
+        "SqliteEntryRepository:62",
+        "SqliteRelationRepository:171",
+        "GraphValidationService:9",
+        "PercentileScoring:9",
+        "LinearSpacingScoring:8",
+        "DefinedIntervalScoring:8",
+        "BradleyTerryResolutionService:9",
+        "PartitionService:7",
+        "ContestManager:14",
+        "BackupService:7",
+        "DatabaseBackupService:5",
+        "CategoryModel:134",
+        "EntryModel:142",
+        "LeaderboardItem:64"
+      ]
+    },
+    {
+      "id": "CQ-006",
+      "title": "Large methods exceeding 50-line maintainability threshold",
+      "severity": "medium",
+      "category": "maintainability",
+      "status": "partially_resolved",
+      "evidence": "GetSortedTiers reduced from 97 to 38 lines. IsTotalOrder/IsValidOrder now 13 lines each. BUT: ResolveGlobalStrengths still 115 lines (BradleyTerryResolutionService.cs:14-128). New extracted BuildTopologicalGraph is 69 lines (GraphValidationService.cs:44-112).",
+      "remaining_issues": [
+        "BradleyTerryResolutionService.cs:14 (115 lines, 3-deep nested loops)",
+        "GraphValidationService.cs:44 (69 lines, new extracted method)"
+      ]
+    },
+    {
+      "id": "CQ-007",
+      "title": "Inefficient client-side join in SqliteEntryRepository queries",
+      "severity": "medium",
+      "category": "performance",
+      "status": "unresolved",
+      "evidence": "Same O(n*m) FirstOrDefault pattern persists inside loops at SqliteRepositories.cs:84 (GetByIdAsync) and SqliteRepositories.cs:108 (GetAllAsync): categories.FirstOrDefault(c => c.Id == scoreEntity.CategoryId). No navigation property or .Include() added.",
+      "affected_files": [
+        "SqliteRepositories.cs:84",
+        "SqliteRepositories.cs:108"
+      ]
+    },
+    {
+      "id": "CQ-008",
+      "title": "Magic numbers without named constants",
+      "severity": "low",
+      "category": "maintainability",
+      "status": "unresolved",
+      "evidence": "Same magic numbers untouched: 1e-9 in LinearSpacingScoring.cs:57 and DefinedIntervalScoring.cs:50; 50/10 in BradleyTerryResolutionService.cs:90; 1e-3 in BradleyTerryResolutionService.cs:108.",
+      "affected_files": [
+        "LinearSpacingScoring.cs:57",
+        "DefinedIntervalScoring.cs:50",
+        "BradleyTerryResolutionService.cs:90",
+        "BradleyTerryResolutionService.cs:108"
+      ]
+    },
+    {
+      "id": "CQ-009",
+      "title": "Tuple<string, string> should be ValueTuple (string, string)",
+      "severity": "low",
+      "category": "style",
+      "status": "unresolved",
+      "evidence": "Judging.razor.cs:36 and :130 still use reference-type Tuple<string, string>. Change to (string A, string B)? suggestedPair and assignment with (a, b) syntax not applied.",
+      "affected_files": [
+        "Judging.razor.cs:36",
+        "Judging.razor.cs:130"
+      ]
+    },
+    {
+      "id": "CQ-010",
+      "title": "Missing sealed on private nested UnionFind class",
+      "severity": "low",
+      "category": "performance",
+      "status": "resolved",
+      "evidence": "UnionFind now declared as private sealed class UnionFind at GraphValidationService.cs:11.",
+      "verified_at": "GraphValidationService.cs:11"
+    },
+    {
+      "id": "RA-CQ-011",
+      "title": "GetSortedTiers duplicates topological sort logic from TryTopologicalSort",
+      "severity": "medium",
+      "category": "duplication",
+      "files": [
+        "GraphValidationService.cs:114",
+        "GraphValidationService.cs:173"
+      ],
+      "evidence_snippet": "GetSortedTiers (line 173-210) manually copies inDegree, creates a new queue, and runs the same Kahn's algorithm as TryTopologicalSort (line 114-145). The only difference is tier-based grouping of results. TryTopologicalSort could return the sorted list, then GetSortedTiers could group it into tiers.",
+      "rule_violated": "DRY principle — core BFS-based topological sort logic exists in two places",
+      "remediation": "Have TryTopologicalSort return the sorted list (already does via out param). Have GetSortedTiers call TryTopologicalSort then group the result into tiers using inDegree breadth levels — or extend TryTopologicalSort to return tier info.",
+      "effort": "small",
+      "status": "open"
+    },
+    {
+      "id": "RA-CQ-012",
+      "title": "New backup service classes not sealed",
+      "severity": "low",
+      "category": "performance",
+      "files": [
+        "BackupService.cs:7",
+        "DatabaseBackupService.cs:5"
+      ],
+      "evidence_snippet": "public class BackupService : IBackupService { }\npublic class DatabaseBackupService : IDatabaseBackupService { }",
+      "rule_violated": "CA1852 — neither class has visible subclasses; JIT cannot devirtualize interface dispatch through them",
+      "remediation": "Add sealed modifier to both classes.",
+      "effort": "trivial",
+      "status": "open"
+    },
+    {
+      "id": "RA-CQ-013",
+      "title": "Inconsistent namespace/style in new backup files",
+      "severity": "low",
+      "category": "style",
+      "files": [
+        "BackupService.cs:1-5",
+        "DatabaseBackupService.cs:1-3",
+        "IBackupService.cs:1",
+        "IDatabaseBackupService.cs:1"
+      ],
+      "evidence_snippet": "// New files use file-scoped namespace with usings AFTER declaration:\nnamespace ContestJudging.Services.Managers;\n\nusing Blazored.LocalStorage;   // <-- invalid: usings after namespace in file-scoped decl\n\n// Existing codebase uses block-scoped namespaces:\nnamespace ContestJudging.Services.Validation\n{\n    using System.Collections.Generic;",
+      "rule_violated": "dotnet format reports WHITESPACE errors requiring usings before namespace declaration. The new files break the established pattern of block-scoped namespaces used throughout the 27 existing files.",
+      "remediation": "Move usings before the namespace declaration (standard C# 10+ convention for file-scoped namespaces) OR convert new files to block-scoped namespaces for consistency.",
+      "effort": "trivial",
+      "status": "open"
+    },
+    {
+      "id": "RA-CQ-014",
+      "title": "New BuildTopologicalGraph method exceeds 50-line threshold",
+      "severity": "medium",
+      "category": "maintainability",
+      "files": [
+        "GraphValidationService.cs:44"
+      ],
+      "evidence_snippet": "BuildTopologicalGraph spans 69 lines (lines 44-112) performing three distinct operations: UnionFind construction (11 lines), root-member grouping (16 lines), and adjacency/in-degree graph building (35 lines).",
+      "rule_violated": "Method length >50 lines; the method handles multiple concerns (union-find init, component grouping, edge processing) that could be split further.",
+      "remediation": "Extract edge-processing loop (lines 75-109) into a separate private method (e.g., BuildAdjacencyGraph) to bring BuildTopologicalGraph under 50 lines.",
+      "effort": "small",
+      "status": "open"
+    }
+  ]
+}

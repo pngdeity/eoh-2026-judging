@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 
 using ContestJudging.Core.Entities;
@@ -7,104 +8,126 @@ using ContestJudging.Core.Interfaces.Repositories;
 using ContestJudging.Infrastructure.Persistence;
 
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 namespace ContestJudging.Infrastructure.Repositories
 {
-    public class SqliteCategoryRepository : ICategoryRepository
+    public sealed class SqliteCategoryRepository : ICategoryRepository
     {
         private readonly ContestDbContext _context;
+        private readonly ILogger<SqliteCategoryRepository> _logger;
 
-        public SqliteCategoryRepository(ContestDbContext context)
+        public SqliteCategoryRepository(ContestDbContext context, ILogger<SqliteCategoryRepository> logger)
         {
             _context = context;
+            _logger = logger;
         }
 
-        public async Task<Category?> GetByIdAsync(string id)
+        public async Task<Category?> GetByIdAsync(string id, CancellationToken cancellationToken = default)
         {
-            var entity = await _context.Categories.FindAsync(id);
+            var entity = await _context.Categories.AsNoTracking().FirstOrDefaultAsync(c => c.Id == id, cancellationToken);
             return entity == null ? null : new Category(entity.Id, entity.MaxScore);
         }
 
-        public async Task<IEnumerable<Category>> GetAllAsync()
+        public async Task<IEnumerable<Category>> GetAllAsync(CancellationToken cancellationToken = default)
         {
-            var entities = await _context.Categories.ToListAsync();
+            var entities = await _context.Categories.AsNoTracking().ToListAsync(cancellationToken);
             return entities.Select(e => new Category(e.Id, e.MaxScore));
         }
 
-        public async Task AddAsync(Category category)
+        public async Task AddAsync(Category category, CancellationToken cancellationToken = default)
         {
             var entity = new CategoryEntity { Id = category.Id, MaxScore = category.MaxScore };
-            await _context.Categories.AddAsync(entity);
-            await _context.SaveChangesAsync();
-        }
-
-        public async Task UpdateAsync(Category category)
-        {
-            var entity = await _context.Categories.FindAsync(category.Id);
-            if (entity != null)
+            await _context.Categories.AddAsync(entity, cancellationToken);
+            try
             {
-                entity.MaxScore = category.MaxScore;
-                await _context.SaveChangesAsync();
+                await _context.SaveChangesAsync(cancellationToken);
+            }
+            catch (DbUpdateException ex)
+            {
+                _logger.LogError(ex, "Failed to save changes to the database");
+                throw;
             }
         }
 
-        public async Task DeleteAsync(string id)
+        public async Task UpdateAsync(Category category, CancellationToken cancellationToken = default)
         {
-            var entity = await _context.Categories.FindAsync(id);
+            var entity = await _context.Categories.FindAsync(new object[] { category.Id }, cancellationToken);
             if (entity != null)
             {
-                // Cascade delete manually
-                var relations = await _context.Relations.Where(r => r.CategoryId == id).ToListAsync();
-                _context.Relations.RemoveRange(relations);
+                entity.MaxScore = category.MaxScore;
+                try
+                {
+                    await _context.SaveChangesAsync(cancellationToken);
+                }
+                catch (DbUpdateException ex)
+                {
+                    _logger.LogError(ex, "Failed to save changes to the database");
+                    throw;
+                }
+            }
+        }
 
-                var scores = await _context.EntryScores.Where(es => es.CategoryId == id).ToListAsync();
-                _context.EntryScores.RemoveRange(scores);
-
+        public async Task DeleteAsync(string id, CancellationToken cancellationToken = default)
+        {
+            var entity = await _context.Categories.FindAsync(new object[] { id }, cancellationToken);
+            if (entity != null)
+            {
                 _context.Categories.Remove(entity);
-                await _context.SaveChangesAsync();
+                try
+                {
+                    await _context.SaveChangesAsync(cancellationToken);
+                }
+                catch (DbUpdateException ex)
+                {
+                    _logger.LogError(ex, "Failed to save changes to the database");
+                    throw;
+                }
             }
         }
     }
 
-    public class SqliteEntryRepository : IEntryRepository
+    public sealed class SqliteEntryRepository : IEntryRepository
     {
         private readonly ContestDbContext _context;
+        private readonly ILogger<SqliteEntryRepository> _logger;
 
-        public SqliteEntryRepository(ContestDbContext context)
+        public SqliteEntryRepository(ContestDbContext context, ILogger<SqliteEntryRepository> logger)
         {
             _context = context;
+            _logger = logger;
         }
 
-        public async Task<Entry?> GetByIdAsync(string id)
+        public async Task<Entry?> GetByIdAsync(string id, CancellationToken cancellationToken = default)
         {
             var entity = await _context.Entries
+                .AsNoTracking()
                 .Include(e => e.Scores)
-                .FirstOrDefaultAsync(e => e.Id == id);
+                    .ThenInclude(es => es.Category)
+                .FirstOrDefaultAsync(e => e.Id == id, cancellationToken);
 
             if (entity == null) return null;
 
             var entry = new Entry(entity.Id);
-            var categories = await _context.Categories.ToListAsync();
-
             foreach (var scoreEntity in entity.Scores)
             {
-                var categoryEntity = categories.FirstOrDefault(c => c.Id == scoreEntity.CategoryId);
-                if (categoryEntity != null)
+                if (scoreEntity.Category != null)
                 {
-                    entry.SetScore(new Category(categoryEntity.Id, categoryEntity.MaxScore), scoreEntity.Score);
+                    entry.SetScore(new Category(scoreEntity.Category.Id, scoreEntity.Category.MaxScore), scoreEntity.Score);
                 }
             }
 
             return entry;
         }
 
-        public async Task<IEnumerable<Entry>> GetAllAsync()
+        public async Task<IEnumerable<Entry>> GetAllAsync(CancellationToken cancellationToken = default)
         {
             var entities = await _context.Entries
+                .AsNoTracking()
                 .Include(e => e.Scores)
-                .ToListAsync();
+                    .ThenInclude(es => es.Category)
+                .ToListAsync(cancellationToken);
 
-            var categories = await _context.Categories.ToListAsync();
             var entries = new List<Entry>();
 
             foreach (var entity in entities)
@@ -112,10 +135,9 @@ namespace ContestJudging.Infrastructure.Repositories
                 var entry = new Entry(entity.Id);
                 foreach (var scoreEntity in entity.Scores)
                 {
-                    var categoryEntity = categories.FirstOrDefault(c => c.Id == scoreEntity.CategoryId);
-                    if (categoryEntity != null)
+                    if (scoreEntity.Category != null)
                     {
-                        entry.SetScore(new Category(categoryEntity.Id, categoryEntity.MaxScore), scoreEntity.Score);
+                        entry.SetScore(new Category(scoreEntity.Category.Id, scoreEntity.Category.MaxScore), scoreEntity.Score);
                     }
                 }
                 entries.Add(entry);
@@ -124,7 +146,7 @@ namespace ContestJudging.Infrastructure.Repositories
             return entries;
         }
 
-        public async Task AddAsync(Entry entry)
+        public async Task AddAsync(Entry entry, CancellationToken cancellationToken = default)
         {
             var entity = new EntryEntity { Id = entry.Id };
             foreach (var score in entry.Scores)
@@ -136,15 +158,23 @@ namespace ContestJudging.Infrastructure.Repositories
                     Score = score.Value
                 });
             }
-            await _context.Entries.AddAsync(entity);
-            await _context.SaveChangesAsync();
+            await _context.Entries.AddAsync(entity, cancellationToken);
+            try
+            {
+                await _context.SaveChangesAsync(cancellationToken);
+            }
+            catch (DbUpdateException ex)
+            {
+                _logger.LogError(ex, "Failed to save changes to the database");
+                throw;
+            }
         }
 
-        public async Task UpdateAsync(Entry entry)
+        public async Task UpdateAsync(Entry entry, CancellationToken cancellationToken = default)
         {
             var entity = await _context.Entries
                 .Include(e => e.Scores)
-                .FirstOrDefaultAsync(e => e.Id == entry.Id);
+                .FirstOrDefaultAsync(e => e.Id == entry.Id, cancellationToken);
 
             if (entity != null)
             {
@@ -160,46 +190,58 @@ namespace ContestJudging.Infrastructure.Repositories
                         Score = score.Value
                     });
                 }
-                await _context.SaveChangesAsync();
+                try
+                {
+                    await _context.SaveChangesAsync(cancellationToken);
+                }
+                catch (DbUpdateException ex)
+                {
+                    _logger.LogError(ex, "Failed to save changes to the database");
+                    throw;
+                }
             }
         }
 
-        public async Task DeleteAsync(string id)
+        public async Task DeleteAsync(string id, CancellationToken cancellationToken = default)
         {
-            var entity = await _context.Entries.FindAsync(id);
+            var entity = await _context.Entries.FindAsync(new object[] { id }, cancellationToken);
             if (entity != null)
             {
-                // Cascade delete manually
-                var relations = await _context.Relations.Where(r => r.EntryAId == id || r.EntryBId == id).ToListAsync();
-                _context.Relations.RemoveRange(relations);
-
-                var scores = await _context.EntryScores.Where(es => es.EntryId == id).ToListAsync();
-                _context.EntryScores.RemoveRange(scores);
-
                 _context.Entries.Remove(entity);
-                await _context.SaveChangesAsync();
+                try
+                {
+                    await _context.SaveChangesAsync(cancellationToken);
+                }
+                catch (DbUpdateException ex)
+                {
+                    _logger.LogError(ex, "Failed to save changes to the database");
+                    throw;
+                }
             }
         }
     }
 
-    public class SqliteRelationRepository : IRelationRepository
+    public sealed class SqliteRelationRepository : IRelationRepository
     {
         private readonly ContestDbContext _context;
+        private readonly ILogger<SqliteRelationRepository> _logger;
 
-        public SqliteRelationRepository(ContestDbContext context)
+        public SqliteRelationRepository(ContestDbContext context, ILogger<SqliteRelationRepository> logger)
         {
             _context = context;
+            _logger = logger;
         }
 
-        public async Task<IEnumerable<Relation>> GetByCategoryIdAsync(string categoryId)
+        public async Task<IEnumerable<Relation>> GetByCategoryIdAsync(string categoryId, CancellationToken cancellationToken = default)
         {
-            var categoryEntity = await _context.Categories.FindAsync(categoryId);
+            var categoryEntity = await _context.Categories.AsNoTracking().FirstOrDefaultAsync(c => c.Id == categoryId, cancellationToken);
             if (categoryEntity == null) return Enumerable.Empty<Relation>();
 
             var category = new Category(categoryEntity.Id, categoryEntity.MaxScore);
             var entities = await _context.Relations
+                .AsNoTracking()
                 .Where(r => r.CategoryId == categoryId)
-                .ToListAsync();
+                .ToListAsync(cancellationToken);
 
             var relations = new List<Relation>();
             foreach (var entity in entities)
@@ -215,7 +257,7 @@ namespace ContestJudging.Infrastructure.Repositories
             return relations;
         }
 
-        public async Task AddAsync(Relation relation)
+        public async Task AddAsync(Relation relation, CancellationToken cancellationToken = default)
         {
             var entity = new RelationEntity
             {
@@ -224,18 +266,34 @@ namespace ContestJudging.Infrastructure.Repositories
                 EntryBId = relation.EntryB.Id,
                 Operator = relation.Operator
             };
-            await _context.Relations.AddAsync(entity);
-            await _context.SaveChangesAsync();
+            await _context.Relations.AddAsync(entity, cancellationToken);
+            try
+            {
+                await _context.SaveChangesAsync(cancellationToken);
+            }
+            catch (DbUpdateException ex)
+            {
+                _logger.LogError(ex, "Failed to save changes to the database");
+                throw;
+            }
         }
 
-        public async Task DeleteAsync(string categoryId, string entryAId, string entryBId)
+        public async Task DeleteAsync(string categoryId, string entryAId, string entryBId, CancellationToken cancellationToken = default)
         {
             var entity = await _context.Relations
-                .FirstOrDefaultAsync(r => r.CategoryId == categoryId && r.EntryAId == entryAId && r.EntryBId == entryBId);
+                .FirstOrDefaultAsync(r => r.CategoryId == categoryId && r.EntryAId == entryAId && r.EntryBId == entryBId, cancellationToken);
             if (entity != null)
             {
                 _context.Relations.Remove(entity);
-                await _context.SaveChangesAsync();
+                try
+                {
+                    await _context.SaveChangesAsync(cancellationToken);
+                }
+                catch (DbUpdateException ex)
+                {
+                    _logger.LogError(ex, "Failed to save changes to the database");
+                    throw;
+                }
             }
         }
     }

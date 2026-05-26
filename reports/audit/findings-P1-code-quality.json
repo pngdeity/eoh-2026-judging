@@ -1,0 +1,191 @@
+{
+  "agent_id": "P1-B",
+  "pass": 1,
+  "domain": "code-quality",
+  "status": "success",
+  "findings": [
+    {
+      "id": "CQ-001",
+      "title": "Dead empty class Class1.cs in Infrastructure project",
+      "severity": "high",
+      "category": "dead-code",
+      "files": [
+        "src/ContestJudging.Infrastructure/Class1.cs:1"
+      ],
+      "evidence_snippet": "namespace ContestJudging.Infrastructure;\npublic class Class1\n{\n}",
+      "rule_violated": "Stub/placeholder with no implementation in production source",
+      "remediation": "Delete the file. It has no purpose and adds dead weight to the assembly.",
+      "effort": "trivial",
+      "status": "open"
+    },
+    {
+      "id": "CQ-002",
+      "title": "Near-identical IsTotalOrder and IsValidOrder methods in GraphValidationService",
+      "severity": "high",
+      "category": "duplication",
+      "files": [
+        "src/ContestJudging.Services/Validation/GraphValidationService.cs:43",
+        "src/ContestJudging.Services/Validation/GraphValidationService.cs:129"
+      ],
+      "evidence_snippet": "// IsTotalOrder (line 109):\nif (queue.Count > 1) return false;\n\n// IsValidOrder: identical except this line is absent.\n// Both independently construct UnionFind, build adjacency lists, and run topological sort (85/84 lines each).",
+      "rule_violated": "DRY principle — 99% identical code in two methods",
+      "remediation": "Extract a shared private method (e.g., TryTopologicalSort) returning the order or null on cycle. IsTotalOrder wraps it checking for unique order; IsValidOrder checks for no cycles.",
+      "effort": "small",
+      "status": "open"
+    },
+    {
+      "id": "CQ-003",
+      "title": "Swallowed exception in database restore path",
+      "severity": "high",
+      "category": "error-handling",
+      "files": [
+        "src/ContestJudging.Web/Program.cs:49"
+      ],
+      "evidence_snippet": "catch (Exception ex)\n{\n    Console.WriteLine($\"Failed to restore database: {ex.Message}\");\n}",
+      "rule_violated": "Best practice: never swallow exceptions silently; log full stack trace and notify caller",
+      "remediation": "At minimum, log ex.ToString() instead of ex.Message. Consider setting an error flag to show user-facing notification rather than continuing with an empty database.",
+      "effort": "small",
+      "status": "open"
+    },
+    {
+      "id": "CQ-004",
+      "title": "Widespread var usage violations against .editorconfig mandate",
+      "severity": "medium",
+      "category": "style",
+      "files": [
+        "src/ContestJudging.Services/Validation/GraphValidationService.cs:62",
+        "src/ContestJudging.Services/Validation/GraphValidationService.cs:71",
+        "src/ContestJudging.Services/Validation/GraphValidationService.cs:105",
+        "src/ContestJudging.Services/Resolution/BradleyTerryResolutionService.cs:17",
+        "src/ContestJudging.Services/Resolution/BradleyTerryResolutionService.cs:59",
+        "src/ContestJudging.Services/Resolution/BradleyTerryResolutionService.cs:86",
+        "src/ContestJudging.Infrastructure/Repositories/SqliteRepositories.cs:24",
+        "src/ContestJudging.Infrastructure/Repositories/SqliteRepositories.cs:107",
+        "src/ContestJudging.Web/Pages/Setup.razor.cs:30",
+        "src/ContestJudging.Web/Pages/Setup.razor.cs:33",
+        "src/ContestJudging.Web/Pages/Judging.razor.cs:32",
+        "src/ContestJudging.Web/Pages/Judging.razor.cs:39"
+      ],
+      "evidence_snippet": "// ~50+ locations found using explicit types where editorconfig mandates var\nstring root = uf.Find(entryId);  // should be: var root\nint n = allEntryIdsList.Count;   // should be: var n\ndouble sum = nextGamma.Sum();    // should be: var sum",
+      "rule_violated": "editorconfig:csharp_style_var_for_built_in_types=true:suggestion, csharp_style_var_when_type_is_apparent=true:suggestion, csharp_style_var_elsewhere=true:suggestion (lines 24-26)",
+      "remediation": "Run `dotnet format` on the solution to auto-fix all var preferences at once.",
+      "effort": "trivial",
+      "status": "open"
+    },
+    {
+      "id": "CQ-005",
+      "title": "No sealed classes anywhere in the codebase",
+      "severity": "medium",
+      "category": "performance",
+      "files": [
+        "src/ContestJudging.Core/Entities/Category.cs:5",
+        "src/ContestJudging.Core/Entities/Entry.cs:7",
+        "src/ContestJudging.Core/Entities/Relation.cs:3",
+        "src/ContestJudging.Infrastructure/Persistence/ContestDbContext.cs:12",
+        "src/ContestJudging.Infrastructure/Persistence/ContestDbContext.cs:18",
+        "src/ContestJudging.Infrastructure/Persistence/ContestDbContext.cs:24",
+        "src/ContestJudging.Infrastructure/Persistence/ContestDbContext.cs:32",
+        "src/ContestJudging.Infrastructure/Repositories/SqliteRepositories.cs:13",
+        "src/ContestJudging.Infrastructure/Repositories/SqliteRepositories.cs:69",
+        "src/ContestJudging.Infrastructure/Repositories/SqliteRepositories.cs:185",
+        "src/ContestJudging.Services/Validation/GraphValidationService.cs:8",
+        "src/ContestJudging.Services/Scoring/PercentileScoring.cs:9",
+        "src/ContestJudging.Services/Scoring/LinearSpacingScoring.cs:8",
+        "src/ContestJudging.Services/Scoring/DefinedIntervalScoring.cs:8",
+        "src/ContestJudging.Services/Resolution/BradleyTerryResolutionService.cs:9",
+        "src/ContestJudging.Services/Partitioning/PartitionService.cs:7",
+        "src/ContestJudging.Services/Managers/ContestManager.cs:15",
+        "src/ContestJudging.Web/Pages/Setup.razor.cs:136",
+        "src/ContestJudging.Web/Pages/Setup.razor.cs:144",
+        "src/ContestJudging.Web/Pages/Results.razor.cs:64"
+      ],
+      "evidence_snippet": "// Every concrete class is unsealed (15+). None are designed for inheritance.\npublic class PercentileScoring : IScoringStrategy { }\npublic class SqliteCategoryRepository : ICategoryRepository { }\npublic class CategoryEntity { }",
+      "rule_violated": "CA1852 — Type can be sealed when it has no visible subclasses. JIT cannot devirtualize calls without sealed.",
+      "remediation": "Add `sealed` to all leaf classes. For DI-registered implementations, sealed enables devirtualization. For entity classes, sealing removes virtual method table overhead.",
+      "effort": "small",
+      "status": "open"
+    },
+    {
+      "id": "CQ-006",
+      "title": "Large methods exceeding 50-line maintainability threshold",
+      "severity": "medium",
+      "category": "maintainability",
+      "files": [
+        "src/ContestJudging.Services/Resolution/BradleyTerryResolutionService.cs:14",
+        "src/ContestJudging.Services/Validation/GraphValidationService.cs:43",
+        "src/ContestJudging.Services/Validation/GraphValidationService.cs:129",
+        "src/ContestJudging.Services/Validation/GraphValidationService.cs:214"
+      ],
+      "evidence_snippet": "ResolveGlobalStrengths: 116 lines, 3-deep nested loops\nIsTotalOrder: 85 lines\nIsValidOrder: 84 lines\nGetSortedTiers: 97 lines",
+      "rule_violated": "Method length >50 lines degrades readability, testability, and indicates single-responsibility violation",
+      "remediation": "Extract inner loops into named private methods (e.g., IterateBradleyTerryStep, BuildTopologicalTiers). This also reduces nesting depth.",
+      "effort": "medium",
+      "status": "open"
+    },
+    {
+      "id": "CQ-007",
+      "title": "Inefficient client-side join in SqliteEntryRepository queries",
+      "severity": "medium",
+      "category": "performance",
+      "files": [
+        "src/ContestJudging.Infrastructure/Repositories/SqliteRepositories.cs:87",
+        "src/ContestJudging.Infrastructure/Repositories/SqliteRepositories.cs:107"
+      ],
+      "evidence_snippet": "var categories = await _context.Categories.ToListAsync();\n// ... inside nested loops:\nvar categoryEntity = categories.FirstOrDefault(c => c.Id == scoreEntity.CategoryId);",
+      "rule_violated": "CA1822 / query efficiency: O(n*m) client-side match instead of database JOIN",
+      "remediation": "Add a navigation property from EntryScoreEntity to CategoryEntity and use .Include() for eager loading, or join directly via _context.Categories.Where() in the query.",
+      "effort": "small",
+      "status": "open"
+    },
+    {
+      "id": "CQ-008",
+      "title": "Magic numbers without named constants",
+      "severity": "low",
+      "category": "maintainability",
+      "files": [
+        "src/ContestJudging.Services/Scoring/LinearSpacingScoring.cs:57",
+        "src/ContestJudging.Services/Scoring/DefinedIntervalScoring.cs:50",
+        "src/ContestJudging.Services/Resolution/BradleyTerryResolutionService.cs:90",
+        "src/ContestJudging.Services/Resolution/BradleyTerryResolutionService.cs:108"
+      ],
+      "evidence_snippet": "if (range < 1e-9)                                     // 2 scoring files\nif (iter > 50 && iter % 10 == 0)                       // BradleyTerry:90\nif (stable && maxDiff < 1e-3)                          // BradleyTerry:108",
+      "rule_violated": "Magic numbers obscure intent; use named constants",
+      "remediation": "Define constants: const double Epsilon = 1e-9; const int RankStabilityCheckStart = 50; const int RankStabilityCheckInterval = 10; const double RankStabilityThreshold = 1e-3;",
+      "effort": "trivial",
+      "status": "open"
+    },
+    {
+      "id": "CQ-009",
+      "title": "Tuple<string, string> should be ValueTuple (string, string)",
+      "severity": "low",
+      "category": "style",
+      "files": [
+        "src/ContestJudging.Web/Pages/Judging.razor.cs:36"
+      ],
+      "evidence_snippet": "private Tuple<string, string>? suggestedPair;\n// ...\nsuggestedPair = new Tuple<string, string>(a, b);",
+      "rule_violated": "Use modern C# ValueTuple structs over reference-type Tuple for performance",
+      "remediation": "Change to private (string A, string B)? suggestedPair; and assign with suggestedPair = (a, b);",
+      "effort": "trivial",
+      "status": "open"
+    },
+    {
+      "id": "CQ-010",
+      "title": "Missing sealed on private nested UnionFind class",
+      "severity": "low",
+      "category": "performance",
+      "files": [
+        "src/ContestJudging.Services/Validation/GraphValidationService.cs:10"
+      ],
+      "evidence_snippet": "private class UnionFind\n{\n    private readonly Dictionary<string, string> _parent = new();\n    // ...\n}",
+      "rule_violated": "CA1852 — even private nested types benefit from sealed for JIT devirtualization",
+      "remediation": "Change to `private sealed class UnionFind`.",
+      "effort": "trivial",
+      "status": "open"
+    }
+  ],
+  "metrics": {
+    "files_scanned": 28,
+    "findings_count": 10,
+    "lines_of_code": 1920
+  }
+}

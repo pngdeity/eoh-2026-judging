@@ -1,0 +1,379 @@
+{
+  "meta": {
+    "generated": "2026-05-25",
+    "agent": "P3-C",
+    "pass": 3,
+    "critical_count": 1,
+    "high_count": 17,
+    "total_findings": 18,
+    "estimated_effort_hours": 28
+  },
+  "batches": [
+    {
+      "batch_id": "BATCH-1",
+      "name": "Build Infrastructure",
+      "order": 1,
+      "effort": "30min"
+    },
+    {
+      "batch_id": "BATCH-2",
+      "name": "EF Core Foundation",
+      "order": 2,
+      "effort": "3hr"
+    },
+    {
+      "batch_id": "BATCH-3",
+      "name": "Architecture Cleanup & Error Handling",
+      "order": 3,
+      "effort": "4hr"
+    },
+    {
+      "batch_id": "BATCH-4",
+      "name": "Algorithm Refactoring",
+      "order": 4,
+      "effort": "3hr"
+    },
+    {
+      "batch_id": "BATCH-5",
+      "name": "UI Fixes",
+      "order": 5,
+      "effort": "15min"
+    },
+    {
+      "batch_id": "BATCH-6",
+      "name": "CI/CD Improvements",
+      "order": 6,
+      "effort": "1hr"
+    },
+    {
+      "batch_id": "BATCH-7",
+      "name": "Test Quality Improvements",
+      "order": 7,
+      "effort": "16hr"
+    },
+    {
+      "batch_id": "BATCH-8",
+      "name": "Cleanup",
+      "order": 8,
+      "effort": "5min"
+    }
+  ],
+  "plans": [
+    {
+      "finding_id": "STRUCT-003",
+      "batch": "BATCH-1",
+      "severity": "critical",
+      "fix_description": "Add PackageVersion entries for NUnit, NUnit.Analyzers, NUnit3TestAdapter, and Microsoft.Playwright.NUnit to Directory.Packages.props. The E2E test project uses these packages but they are not declared in central package management, which is build-breaking with ManagePackageVersionsCentrally=true.",
+      "files_to_touch": [
+        "Directory.Packages.props:22"
+      ],
+      "effort": "trivial",
+      "verification": "dotnet restore ContestJudging.slnx && dotnet build tests/ContestJudging.E2ETests/ContestJudging.E2ETests.csproj",
+      "risk": "None — adding missing package versions only fixes a build error. Version numbers must be verified against NuGet.org for latest stable.",
+      "depends_on": [],
+      "unblocks": [
+        "CICD-001"
+      ]
+    },
+    {
+      "finding_id": "CICD-001",
+      "batch": "BATCH-1",
+      "severity": "high",
+      "fix_description": "Add the E2E test project to ContestJudging.slnx under /tests/ folder with <Project Path=\"tests/ContestJudging.E2ETests/ContestJudging.E2ETests.csproj\" />. The project exists on disk but is not in the solution, so it is never built or tested in CI.",
+      "files_to_touch": [
+        "ContestJudging.slnx:9"
+      ],
+      "effort": "trivial",
+      "verification": "dotnet restore ContestJudging.slnx && dotnet build ContestJudging.slnx --configuration Release",
+      "risk": "None — adds a project that already exists on disk.",
+      "depends_on": [
+        "STRUCT-003"
+      ],
+      "unblocks": []
+    },
+    {
+      "finding_id": "EF-001",
+      "batch": "BATCH-2",
+      "severity": "high",
+      "fix_description": "Generate EF Core migration via 'dotnet ef migrations add InitialCreate' and replace EnsureCreatedAsync() with Database.MigrateAsync() in Program.cs:56. EnsureCreated drops and recreates, destroying data on schema changes. Migrations are the production-safe approach for versioned schema management.",
+      "files_to_touch": [
+        "src/ContestJudging.Web/Program.cs:56",
+        "src/ContestJudging.Infrastructure/Migrations/InitialCreate.cs:1",
+        "src/ContestJudging.Infrastructure/Migrations/InitialCreate.Designer.cs:1",
+        "src/ContestJudging.Infrastructure/Migrations/ContestDbContextModelSnapshot.cs:1"
+      ],
+      "effort": "small",
+      "verification": "dotnet ef migrations script --project src/ContestJudging.Infrastructure --startup-project src/ContestJudging.Web | verify generated SQL. Run dotnet test to confirm no regressions. Manual test: launch app, add data, close, reopen, verify data persists.",
+      "risk": "Low. EnsureCreated vs Migrate: first run creates schema, subsequent runs with schema changes apply migrations. First migration generation may need --ignore-changes if tables already exist in an existing DB. Test with both clean and existing DB.",
+      "depends_on": [],
+      "unblocks": [
+        "EF-002"
+      ]
+    },
+    {
+      "finding_id": "EF-002",
+      "batch": "BATCH-2",
+      "severity": "high",
+      "fix_description": "Add Fluent API foreign key relationships in OnModelCreating for EntryScore→Entry (Cascade), EntryScore→Category (Cascade), Relation→Category (Cascade). Replace surrogate EntryScoreEntity.Id PK with composite PK on (EntryId, CategoryId). Add Category navigation property to EntryScoreEntity. Remove manual cascade deletion code from SqliteRepositories (Category DeleteAsync lines 56-64, Entry DeleteAsync lines 173-181). Add missing indexes on RelationEntity.CategoryId, RelationEntity.EntryAId, RelationEntity.EntryBId.",
+      "files_to_touch": [
+        "src/ContestJudging.Infrastructure/Persistence/ContestDbContext.cs:12",
+        "src/ContestJudging.Infrastructure/Persistence/ContestDbContext.cs:24",
+        "src/ContestJudging.Infrastructure/Persistence/ContestDbContext.cs:53",
+        "src/ContestJudging.Infrastructure/Repositories/SqliteRepositories.cs:51",
+        "src/ContestJudging.Infrastructure/Repositories/SqliteRepositories.cs:167"
+      ],
+      "effort": "small",
+      "verification": "dotnet ef migrations add AddForeignKeyRelationships --project src/ContestJudging.Infrastructure --startup-project src/ContestJudging.Web. Run dotnet test --filter InfrastructureTests. Verify all existing tests pass. Manual test: create categories, entries, relations; delete a category; verify cascading works.",
+      "risk": "Medium. Removing surrogate Id from EntryScoreEntity and replacing with composite PK changes entity shape — all code accessing EntryScoreEntity.Id must be updated (primarily in repository mapping code). Manual cascade deletion code must be verified redundant after FK cascade is configured. SQLite requires 'PRAGMA foreign_keys = ON' — verify it is enabled at connection open.",
+      "depends_on": [
+        "EF-001"
+      ],
+      "unblocks": []
+    },
+    {
+      "finding_id": "ARCH-002",
+      "batch": "BATCH-3",
+      "severity": "high",
+      "fix_description": "Extract IDatabaseBackupService interface (ExportAsync/ImportAsync) into Core.Interfaces. Implement DatabaseBackupService in Infrastructure with file I/O, SQLite header validation, and configurable DB path. Replace ContestManager's concrete ContestDbContext dependency with IDatabaseBackupService. Remove ExportDatabaseAsync/ImportDatabaseAsync from ContestDbContext. Register DatabaseBackupService in ServiceCollectionExtensions. Update ContestManagerTests to use Moq<IDatabaseBackupService> instead of null!.",
+      "files_to_touch": [
+        "src/ContestJudging.Core/Interfaces/IDatabaseBackupService.cs:1",
+        "src/ContestJudging.Infrastructure/Persistence/DatabaseBackupService.cs:1",
+        "src/ContestJudging.Services/Managers/ContestManager.cs:9",
+        "src/ContestJudging.Services/Managers/ContestManager.cs:23",
+        "src/ContestJudging.Services/Managers/ContestManager.cs:32",
+        "src/ContestJudging.Services/Managers/ContestManager.cs:119",
+        "src/ContestJudging.Services/Managers/ContestManager.cs:124",
+        "src/ContestJudging.Infrastructure/Persistence/ContestDbContext.cs:65",
+        "src/ContestJudging.Services/Extensions/ServiceCollectionExtensions.cs:33",
+        "tests/ContestJudging.Tests/ContestManagerTests.cs:30",
+        "tests/ContestJudging.Tests/ContestManagerTests.cs:64",
+        "tests/ContestJudging.Tests/ContestManagerTests.cs:101"
+      ],
+      "effort": "small",
+      "verification": "dotnet test --filter ContestManagerTests — all 3 tests now use Moq mock instead of null! and still pass. Add unit tests: ExportDataAsync_DelegatesToBackupService, ImportDataAsync_DelegatesToBackupService. Manual test: launch app, backup/restore still works.",
+      "risk": "Medium. Changes DI registration contract — all consumers of ContestManager.ExportDataAsync/ImportDataAsync (Setup.razor.cs:52, Judging.razor.cs:79, Program.cs:47) must be verified. DatabaseBackupService path hardcoding 'contest.db' should be configurable.",
+      "depends_on": [],
+      "unblocks": [
+        "TE-002",
+        "TE-003",
+        "TEST-004"
+      ]
+    },
+    {
+      "finding_id": "EF-003",
+      "batch": "BATCH-3",
+      "severity": "high",
+      "fix_description": "Restructure startup in Program.cs: check and restore LocalStorage backup BEFORE creating the DbContext scope. Currently DbContext is resolved at line 34, then import overwrites the underlying DB file at line 47 while the context still holds an open connection. Fix: move backup check before using(scope), resolve IDatabaseBackupService from host.Services directly (no scope needed for file I/O), restore file, THEN create scope with DbContext. Also replace EnsureCreatedAsync with MigrateAsync (per EF-001). Replace Console.WriteLine with ILogger.",
+      "files_to_touch": [
+        "src/ContestJudging.Web/Program.cs:31",
+        "src/ContestJudging.Web/Program.cs:34",
+        "src/ContestJudging.Web/Program.cs:47",
+        "src/ContestJudging.Web/Program.cs:49",
+        "src/ContestJudging.Web/Program.cs:56"
+      ],
+      "effort": "medium",
+      "verification": "Manual test 1: launch app with localStorage containing valid backup — verify restore. Manual test 2: launch app with localStorage containing corrupt/invalid data — verify graceful degradation (no crash). Manual test 3: launch app with no backup — verify clean start with fresh DB. dotnet test to verify no regressions.",
+      "risk": "Medium-High. Critical startup path change. Must test both clean-start and restore-from-backup flows. If backup restore throws, the app must still be able to start with a fresh DB. Order-sensitive: backup must be fully restored before any DbContext is created.",
+      "depends_on": [
+        "ARCH-002"
+      ],
+      "unblocks": []
+    },
+    {
+      "finding_id": "CQ-003",
+      "batch": "BATCH-3",
+      "severity": "high",
+      "fix_description": "Replace Console.WriteLine with ILogger in Program.cs:49-51. Console output loses stack trace context, cannot be filtered by log level, and is not accessible in production Blazor WASM. Inject ILogger<T> via BuildServiceProvider. Combined fix with EF-003 above.",
+      "files_to_touch": [
+        "src/ContestJudging.Web/Program.cs:49",
+        "src/ContestJudging.Web/Program.cs:5"
+      ],
+      "effort": "small",
+      "verification": "code review: verify Console.WriteLine is replaced with _logger.LogError(ex, \"Failed to restore database\"). In Blazor WASM, log output goes to browser console via WebAssemblyConsoleLogger. Verify error shows stack trace.",
+      "risk": "Low — replacing log output. May need Microsoft.Extensions.Logging package if not already transitively included.",
+      "depends_on": [],
+      "unblocks": []
+    },
+    {
+      "finding_id": "CQ-002",
+      "batch": "BATCH-4",
+      "severity": "high",
+      "fix_description": "Refactor GraphValidationService to eliminate ~85% code duplication across IsTotalOrder (85 lines), IsValidOrder (84 lines), and GetSortedTiers (97 lines). Extract shared private methods: BuildTopologicalGraph (UnionFind + adjacency + in-degree construction, ~60 lines) and TryTopologicalSort (Kahn's BFS, ~35 lines). The three public methods become thin wrappers (15-25 lines each) that call BuildTopologicalGraph + TryTopologicalSort and add their unique behavior (IsTotalOrder checks queue.Count > 1, GetSortedTiers batches by tier level). Also fix GetSortedTiers self-loop behavior from 'continue' (silent skip) to 'return false' (consistent with the other two methods).",
+      "files_to_touch": [
+        "src/ContestJudging.Services/Validation/GraphValidationService.cs:43",
+        "src/ContestJudging.Services/Validation/GraphValidationService.cs:129",
+        "src/ContestJudging.Services/Validation/GraphValidationService.cs:214",
+        "src/ContestJudging.Services/Validation/GraphValidationService.cs:264"
+      ],
+      "effort": "small",
+      "verification": "dotnet test --filter ValidationServiceTests — all 8 existing tests must pass identically. After refactor, add test: IsTotalOrder with LessThan operator (exercise previously untested branch at line 80-83). Verify self-loop behavior: GetSortedTiers now rejects self-loop edges consistently with IsTotalOrder/IsValidOrder.",
+      "risk": "Medium. Heavy refactor of core algorithm with many edge cases (cycles, ties, disconnected components, self-loops). All 8 existing tests must pass with identical results. Self-loop behavior change at line 264: verify no production code depends on silent skip (the production pipeline validates before calling GetSortedTiers, so risk is low).",
+      "depends_on": [],
+      "unblocks": [
+        "ALGO-001",
+        "TE-014"
+      ]
+    },
+    {
+      "finding_id": "BW-004",
+      "batch": "BATCH-5",
+      "severity": "high",
+      "fix_description": "Add Bootstrap JavaScript bundle to index.html. The accordion component in Judging.razor:97 uses data-bs-toggle and data-bs-target attributes that require Bootstrap JS, but only the CSS is loaded. Add <script src=\"lib/bootstrap/dist/js/bootstrap.bundle.min.js\"></script> before </body>. If the JS file is not present in wwwroot/lib, either copy it from the NuGet package or preferably replace the Bootstrap accordion with pure Blazor conditional rendering (@if (showManualEntry) { ... }) to eliminate the JS dependency entirely.",
+      "files_to_touch": [
+        "src/ContestJudging.Web/wwwroot/index.html:10",
+        "src/ContestJudging.Web/Pages/Judging.razor:94"
+      ],
+      "effort": "trivial",
+      "verification": "dotnet publish src/ContestJudging.Web --configuration Release -o /tmp/test-publish. Serve the output and navigate to Judging page. Click \"Manual Override / Correction\" button — accordion must expand/collapse. If using Blazor-native approach, render test: verify @if toggle works without JS.",
+      "risk": "Low. If Bootstrap JS file doesn't exist at that path, publish will include it but serve a 404. Verify the file exists in wwwroot/lib/bootstrap/dist/js/ first. Blazor-native approach eliminates this risk entirely.",
+      "depends_on": [],
+      "unblocks": []
+    },
+    {
+      "finding_id": "CICD-004",
+      "batch": "BATCH-6",
+      "severity": "high",
+      "fix_description": "Add a CodeQL analysis job to .github/workflows/pipeline.yml. Currently only OSV-Scanner dependency scanning exists (no SAST). Add a codeql-analysis job using github/codeql-action with matrix strategy for csharp language. Configure permissions: actions: read, contents: read, security-events: write. Pin actions to digest for supply chain safety.",
+      "files_to_touch": [
+        ".github/workflows/pipeline.yml:52"
+      ],
+      "effort": "small",
+      "verification": "Create a PR — the CodeQL job appears in GitHub Actions checks and runs without errors. Review any CodeQL findings in the Security tab. Initially may produce false positives for EF Core trimming warnings — add exemptions as needed.",
+      "risk": "Minimal. CodeQL may produce false positives (especially for trimming warnings already suppressed). Start with 'actions: read' permission to avoid issues. CodeQL adds ~5-10 minutes to each CI run.",
+      "depends_on": [],
+      "unblocks": []
+    },
+    {
+      "finding_id": "TE-001",
+      "batch": "BATCH-7",
+      "severity": "high",
+      "fix_description": "Make PartitionService testable by accepting an optional Random via constructor overload. Add PartitionService(Random random) constructor; default no-arg constructor uses new Random(). Update PartitionServiceTests to use new PartitionService(new Random(42)) for deterministic partitioning. This makes the test Assert.Equal(10, common.Count) reproducible across runs.",
+      "files_to_touch": [
+        "src/ContestJudging.Services/Partitioning/PartitionService.cs:9",
+        "tests/ContestJudging.Tests/PartitionServiceTests.cs:16",
+        "tests/ContestJudging.Tests/PartitionServiceTests.cs:41"
+      ],
+      "effort": "small",
+      "verification": "Run dotnet test --filter PartitionServiceTests 10 times consecutively — all 10 runs must produce identical results. Previously the unseeded Random caused non-deterministic bridge node selection.",
+      "risk": "Low. Additive change: default parameterless constructor preserves existing production behavior. No DI changes needed.",
+      "depends_on": [],
+      "unblocks": []
+    },
+    {
+      "finding_id": "TE-002",
+      "batch": "BATCH-7",
+      "severity": "high",
+      "fix_description": "After ARCH-002 extracts IDatabaseBackupService, add unit tests for ContestManager.ExportDataAsync and ImportDataAsync. Currently these methods are structurally untestable because they depend on concrete ContestDbContext. With the new abstraction, mock IDatabaseBackupService and verify delegation. Add 2 tests: ExportDataAsync_ReturnsDataFromBackupService and ImportDataAsync_CallsBackupService.",
+      "files_to_touch": [
+        "tests/ContestJudging.Tests/ContestManagerTests.cs:130"
+      ],
+      "effort": "trivial",
+      "verification": "dotnet test --filter \"ContestManagerTests.ExportDataAsync|ContestManagerTests.ImportDataAsync\" — both new tests pass. dotnet test --filter ContestManagerTests — all 5 tests pass (3 existing + 2 new).",
+      "risk": "None — additive tests only.",
+      "depends_on": [
+        "ARCH-002"
+      ],
+      "unblocks": []
+    },
+    {
+      "finding_id": "TE-003",
+      "batch": "BATCH-7",
+      "severity": "high",
+      "fix_description": "Extract backup/restore logic from Setup.razor.cs (lines 42-57) and Judging.razor.cs (lines 76-84) into a dedicated BackupService with IBackupService interface. Add unit tests for BackupService: BackupAsync stores base64 in localStorage; RestoreAsync reads from localStorage and calls IDatabaseBackupService; RestoreAsync handles missing key; RestoreAsync handles corrupt base64; RestoreAsync handles QuotaExceededError. Register IBackupService in ServiceCollectionExtensions. Update Setup and Judging pages to inject IBackupService instead of doing backup inline. Update Program.cs restore path to use IBackupService.RestoreAsync.",
+      "files_to_touch": [
+        "src/ContestJudging.Core/Interfaces/IBackupService.cs:1",
+        "src/ContestJudging.Services/Managers/BackupService.cs:1",
+        "src/ContestJudging.Web/Pages/Setup.razor.cs:42",
+        "src/ContestJudging.Web/Pages/Setup.razor.cs:49",
+        "src/ContestJudging.Web/Pages/Judging.razor.cs:76",
+        "src/ContestJudging.Web/Program.cs:39",
+        "src/ContestJudging.Services/Extensions/ServiceCollectionExtensions.cs:34",
+        "tests/ContestJudging.Tests/BackupServiceTests.cs:1",
+        "Directory.Packages.props:22"
+      ],
+      "effort": "medium",
+      "verification": "dotnet test --filter BackupServiceTests — all new tests pass. Manual integration test: launch app, add categories/entries, close browser tab, reopen, verify data is restored from localStorage.",
+      "risk": "Medium. Extracting new abstraction changes DI and page code-behind. All backup paths (Setup, Judging, Program.cs startup restore) must be updated correctly. localStorage QuotaExceededError handling must be tested (may need browser-level test).",
+      "depends_on": [
+        "ARCH-002"
+      ],
+      "unblocks": []
+    },
+    {
+      "finding_id": "TE-004",
+      "batch": "BATCH-7",
+      "severity": "high",
+      "fix_description": "Add tests for BradleyTerryResolutionService covering convergence and edge cases currently untested. Add: ResolveGlobalStrengths_ConvergesWithManyEntries (20 entries in linear order, exercising rank-stability early exit at lines 90-111); ResolveGlobalStrengths_EmptyInput_ReturnsEmpty (line 18 branch); ResolveGlobalStrengths_SingleEntry_ReturnsLogZero; ResolveGlobalStrengths_MaxIterationsExhausted_ReturnsBestEffort (complex partial rankings). Existing tests use ≤3 entries and converge in 1 iteration — never hitting the rank-stability check.",
+      "files_to_touch": [
+        "tests/ContestJudging.Tests/ResolutionServiceTests.cs:62"
+      ],
+      "effort": "medium",
+      "verification": "dotnet test --filter ResolutionServiceTests — 6 tests total (2 existing + 4 new). Verify convergence test hits the rank-stability path (add a debug counter or use Assert with manual calculation). Coverage: run dotnet test --collect:\"XPlat Code Coverage\" and verify lines 90-111 are covered.",
+      "risk": "Low — additive tests only. The 20-entry test may run slowly (1000 iterations max) but should converge well before max. Set a reasonable test timeout.",
+      "depends_on": [],
+      "unblocks": []
+    },
+    {
+      "finding_id": "TE-005",
+      "batch": "BATCH-7",
+      "severity": "high",
+      "fix_description": "Add tests for CalculateScoresFromStrengths across all three scoring strategies. Currently only CalculateScores (tier-based) is tested. Add for each strategy: varied strengths test, all-same-strength test (exercises range < 1e-9 branch), single-entry test, empty-input test. The strength-based path is the one actually used by ContestManager.CalculateGlobalScoresAsync:104.",
+      "files_to_touch": [
+        "tests/ContestJudging.Tests/ScoringStrategyTests.cs:87"
+      ],
+      "effort": "small",
+      "verification": "dotnet test --filter ScoringStrategyTests — all old + new tests pass. Verify edge case: all strengths identical → range < 1e-9 → normalized = 1.0 → all entries get maxScore. Verify: single entry → range < 1e-9 → gets maxScore.",
+      "risk": "None — additive tests only.",
+      "depends_on": [],
+      "unblocks": []
+    },
+    {
+      "finding_id": "TEST-001",
+      "batch": "BATCH-7",
+      "severity": "high",
+      "fix_description": "Convert sequential Assert.Throws in single [Fact] methods to parameterized [Theory] tests with [InlineData]. In CoreTests.cs: Category_Constructor_ThrowsWhenMaxScoreIsOneOrLess — one Fact with two sequential asserts → one Theory with three InlineData cases (1, 0, -1). Entry_SetScore_InvalidScore_Throws — one Fact with two sequential asserts → one Theory with two InlineData cases (11, -1). If the first assertion throws/fails, the second never executes — this masks test failures. Also add boundary values: Entry.SetScore with score=0 and score=category.MaxScore (valid boundary) as additional InlineData.",
+      "files_to_touch": [
+        "tests/ContestJudging.Tests/CoreTests.cs:12",
+        "tests/ContestJudging.Tests/CoreTests.cs:36"
+      ],
+      "effort": "small",
+      "verification": "dotnet test --filter CoreTests — each Theory shows multiple test cases in test results. All pass. If one InlineData fails, it is reported independently.",
+      "risk": "None — test refactoring only. Behavior-preserving.",
+      "depends_on": [],
+      "unblocks": []
+    },
+    {
+      "finding_id": "TEST-002",
+      "batch": "BATCH-7",
+      "severity": "high",
+      "fix_description": "Add a ContestJudging.Web.Tests project using bunit to test pure-logic methods in Blazor components. Test FindSuggestedPair (pairing algorithm), HandleKeyDown (keyboard routing with Theory for each key), AddRelation (validation: empty entries, same entry, duplicate relation), GeneratePartitions (partition delegate call), CalculateResults (result aggregation and error paths). Add project to solution and Directory.Packages.props. Scope: unit test pure-logic code-behind methods; skip rendering tests requiring JS interop (localStorage, SQLite).",
+      "files_to_touch": [
+        "tests/ContestJudging.Web.Tests/ContestJudging.Web.Tests.csproj:1",
+        "tests/ContestJudging.Web.Tests/JudgingTests.cs:1",
+        "tests/ContestJudging.Web.Tests/SetupTests.cs:1",
+        "tests/ContestJudging.Web.Tests/ResultsTests.cs:1",
+        "Directory.Packages.props:22",
+        "ContestJudging.slnx:9"
+      ],
+      "effort": "large",
+      "verification": "dotnet test --filter Category=Unit runs all unit tests including new Web tests. Verify JudgingTests.HandleKeyDown theory covers all 6 key mappings (a, arrowleft → GreaterThan; s, arrowdown → EqualTo; d, arrowright → LessThan). Verify FindSuggestedPair tests handle: no entries, single entry, existing pairs blocking, all pairs satisfied.",
+      "risk": "Medium. bunit for Blazor WASM has quirks — JS interop calls (localStorage, SQLite) need mocking. Start with pure-logic tests before attempting rendering tests. If bunit setup is problematic, extract logic into testable services (e.g., JudgingLogic) that don't depend on Blazor rendering.",
+      "depends_on": [],
+      "unblocks": []
+    },
+    {
+      "finding_id": "CQ-001",
+      "batch": "BATCH-8",
+      "severity": "high",
+      "fix_description": "Delete src/ContestJudging.Infrastructure/Class1.cs. It is an empty placeholder class with no implementation and no references anywhere in the codebase. Dead code adds assembly size and confusion.",
+      "files_to_touch": [
+        "src/ContestJudging.Infrastructure/Class1.cs:1"
+      ],
+      "effort": "trivial",
+      "verification": "dotnet build ContestJudging.slnx --configuration Release — succeeds without Class1.cs. git status shows deleted file only.",
+      "risk": "None — zero references anywhere in the codebase. Confirmed via rg 'Class1' in entire solution.",
+      "depends_on": [],
+      "unblocks": []
+    }
+  ]
+}
