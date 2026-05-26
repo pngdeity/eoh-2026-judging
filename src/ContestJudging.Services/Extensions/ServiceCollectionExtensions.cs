@@ -33,6 +33,10 @@ namespace ContestJudging.Services.Extensions
             services.AddScoped<IScoringStrategy, LinearSpacingScoring>();
             services.AddScoped<IContestManager, ContestManager>();
 
+            services.AddScoped<IDatabaseBackupService>(sp =>
+                new DatabaseBackupService("contest.db"));
+            services.AddScoped<IBackupService, BackupService>();
+
             return services;
         }
     }

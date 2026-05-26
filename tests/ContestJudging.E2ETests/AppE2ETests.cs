@@ -115,7 +115,8 @@ public class AppE2ETests : PageTest
         await NavigateToAsync("/judging");
         await Expect(Page.Locator("h3:has-text('Judging')")).ToBeVisibleAsync(new() { Timeout = DefaultTimeout });
 
-        // Diagnostic: check what options exist in the select
+        var afterRestore = await Page.EvaluateAsync<bool>("() => localStorage.getItem('db_backup') !== null");
+        TestContext.Progress.WriteLine($"[diagnostic] localStorage has db_backup after navigate to judging: {afterRestore}");
         var optionCount = await Page.EvaluateAsync<int>("() => document.querySelectorAll('select.form-select option').length");
         var optionTexts = await Page.EvaluateAsync<string>("() => Array.from(document.querySelectorAll('select.form-select option')).map(o => o.value).join(', ')");
         TestContext.Progress.WriteLine($"[diagnostic] select options count: {optionCount}, values: [{optionTexts}]");
