@@ -214,6 +214,8 @@ public class AppE2ETests : PageTest
     {
         var select = Page.Locator("select.form-select").First;
         await select.WaitForAsync(new LocatorWaitForOptions { State = WaitForSelectorState.Visible, Timeout = DefaultTimeout });
+        var option = select.Locator($"option[value='{optionLabel}']");
+        await option.WaitForAsync(new LocatorWaitForOptions { State = WaitForSelectorState.Attached, Timeout = DefaultTimeout });
         await select.SelectOptionAsync(new[] { optionLabel }, new LocatorSelectOptionOptions { Timeout = DefaultTimeout });
     }
 }
