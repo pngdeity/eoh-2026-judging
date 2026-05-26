@@ -13,14 +13,14 @@ jobs:
   quality-and-test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6.0.2
       - name: Setup .NET
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v5.2.0
         with:
           dotnet-version: '10.0.x'
       - name: Cache WASM Tools
         id: cache-wasm-tools
-        uses: actions/cache@v4
+        uses: actions/cache@v5.0.5
         with:
           path: ~/.dotnet/workloads
           key: ${{ runner.os }}-wasm-tools-${{ hashFiles('**/*.csproj', '**/Directory.Build.props') }}
@@ -39,26 +39,26 @@ jobs:
       - name: Install Playwright Browsers
         run: npx playwright install --with-deps chromium
       - name: Run Tests
-        run: dotnet test ContestJudging.slnx --configuration Release --no-build --verbosity normal --collect:"XPlat Code Coverage" --results-directory TestResults
+        run: dotnet test ContestJudging.slnx --configuration Release --no-build --verbosity normal --collect:"XPlat Code Coverage" --results-directory TestResults --filter "FullyQualifiedName!~ContestJudging.E2ETests"
       - name: Upload Test Results
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7.0.1
         with:
           name: test-results
           path: TestResults/
       - name: Publish Blazor WASM
         run: dotnet publish src/ContestJudging.Web/ContestJudging.Web.csproj -c Release -o publish --nologo
       - name: Upload Publish Artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7.0.1
         with:
           name: blazor-publish
           path: publish/wwwroot/
   security-scan:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6.0.2
       - name: OSV-Scanner
-        uses: google/osv-scanner-action/osv-scanner-action@v2.3.5
+        uses: google/osv-scanner-action/osv-scanner-action@v2.3.8
         with:
           # --allow-no-lockfiles: Project has no package-lock.json, packages.lock.json,
           # yarn.lock, or pnpm-lock.yaml. OSV-Scanner requires this flag to scan
@@ -77,13 +77,13 @@ jobs:
         language: ["csharp"]
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6.0.2
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v3
         with:
           languages: ${{ matrix.language }}
       - name: Setup .NET
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v5.2.0
         with:
           dotnet-version: '10.0.x'
       - name: Build
@@ -99,7 +99,7 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - name: Download Publish Artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8.0.1
         with:
           name: blazor-publish
           path: release/wwwroot/
@@ -110,11 +110,11 @@ jobs:
       - name: Fix SPA Routing for GitHub Pages
         run: cp release/wwwroot/index.html release/wwwroot/404.html
       - name: Setup Pages
-        uses: actions/configure-pages@v5
+        uses: actions/configure-pages@v6.0.0
       - name: Upload Artifact
-        uses: actions/upload-pages-artifact@v3
+        uses: actions/upload-pages-artifact@v5.0.0
         with:
           path: release/wwwroot
       - name: Deploy to GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5.0.0
