@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
+using ContestJudging.Core;
 using ContestJudging.Core.Entities;
 
 namespace ContestJudging.Services.Resolution
@@ -70,8 +71,8 @@ namespace ContestJudging.Services.Resolution
                         if (totalComparisons[i, j] > 0)
                         {
                             var denom = gamma[i] + gamma[j];
-                            if (denom < 1e-15)
-                                denom = 1e-15;
+                            if (denom < Constants.DivisorFloor)
+                                denom = Constants.DivisorFloor;
                             denominator += totalComparisons[i, j] / denom;
                         }
                     }

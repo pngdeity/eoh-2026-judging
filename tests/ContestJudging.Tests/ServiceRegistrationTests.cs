@@ -45,8 +45,6 @@ namespace ContestJudging.Tests
             Assert.NotNull(provider.GetService<IDatabaseBackupService>());
             Assert.NotNull(provider.GetService<IBackupService>());
             Assert.NotNull(provider.GetService<IContestManager>());
-            Assert.NotNull(provider.GetService<PercentileScoring>());
-            Assert.NotNull(provider.GetService<DefinedIntervalScoring>());
         }
     }
 }

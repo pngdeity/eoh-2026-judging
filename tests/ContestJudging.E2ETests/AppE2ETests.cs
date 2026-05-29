@@ -24,14 +24,25 @@ public class AppE2ETests : PageTest
     {
         Page.Console += (_, e) => { if (e.Type == "error") TestContext.Progress.WriteLine($"[browser error] {e.Text}"); };
         Page.PageError += (_, e) => TestContext.Progress.WriteLine($"[page error] {e}");
-        await NavigateToAsync("/");
+        await Page.GotoAsync($"{AppUrl}/");
+        await WaitForBlazorAsync();
         await Expect(Page.Locator("text=Forging the Future")).ToBeVisibleAsync(new() { Timeout = DefaultTimeout });
     }
 
     private async Task NavigateToAsync(string path)
     {
-        await Page.GotoAsync($"{AppUrl}{path}");
-        await WaitForBlazorAsync();
+        var href = path.TrimStart('/');
+        if (string.IsNullOrEmpty(href))
+        {
+            var homeLink = Page.Locator("a.nav-link[href=\"\"]");
+            await homeLink.ClickAsync(new() { Force = true });
+        }
+        else
+        {
+            var navLink = Page.Locator($"a.nav-link[href=\"{href}\"]");
+            await navLink.ClickAsync(new() { Force = true });
+        }
+        await Page.WaitForTimeoutAsync(300);
     }
 
     private async Task WaitForBlazorAsync()
@@ -137,10 +148,8 @@ public class AppE2ETests : PageTest
         await partitionCard.Locator("input[type='number']").First.FillAsync("2");
         await partitionCard.Locator("input[type='number']").Nth(1).FillAsync("0.1");
         await partitionCard.Locator("button:has-text('Preview Partitions')").ClickAsync();
-        await Page.WaitForTimeoutAsync(500);
-
+        await Expect(Page.Locator("text=Group 0")).ToBeVisibleAsync(new() { Timeout = DefaultTimeout });
         await Expect(Page.Locator("text=Group 1")).ToBeVisibleAsync(new() { Timeout = DefaultTimeout });
-        await Expect(Page.Locator("text=Group 2")).ToBeVisibleAsync(new() { Timeout = DefaultTimeout });
 
         var bridgeIcons = Page.Locator("i.bi-link-45deg");
         var count = await bridgeIcons.CountAsync();

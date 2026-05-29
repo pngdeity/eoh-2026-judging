@@ -1,5 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
 
+using ContestJudging.Core;
 using ContestJudging.Core.Interfaces;
 using ContestJudging.Core.Interfaces.Repositories;
 using ContestJudging.Infrastructure.Persistence;
@@ -36,14 +37,9 @@ namespace ContestJudging.Services.Extensions
             services.AddScoped<IGlobalRankingService, BradleyTerryResolutionService>();
             services.AddScoped<IScoringStrategy, LinearSpacingScoring>();
             services.AddScoped<IDatabaseBackupService>(sp =>
-                // Database path is hardcoded — client-side WASM app with no config file support.
-                // SQLite is embedded in the browser; the path is safe.
-                new DatabaseBackupService("contest.db"));
+                new DatabaseBackupService(Constants.DatabaseFileName));
             services.AddScoped<IBackupService, BackupService>();
             services.AddScoped<IContestManager, ContestManager>();
-
-            services.AddScoped<PercentileScoring>();
-            services.AddScoped<DefinedIntervalScoring>();
 
             return services;
         }

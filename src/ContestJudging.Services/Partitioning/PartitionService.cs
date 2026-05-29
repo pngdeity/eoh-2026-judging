@@ -10,7 +10,7 @@ namespace ContestJudging.Services.Partitioning
         // not for cryptographic purposes. Seeded for test determinism.
         private readonly Random _random;
 
-        public PartitionService() : this(new Random()) { }
+        public PartitionService() : this(Random.Shared) { }
 
         public PartitionService(Random random)
         {

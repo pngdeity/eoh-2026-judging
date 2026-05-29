@@ -16,10 +16,7 @@ namespace ContestJudging.Services.Managers
         Task DeleteEntryAsync(string entryId, CancellationToken cancellationToken = default);
         Task AddRelationAsync(Relation relation, CancellationToken cancellationToken = default);
         Task DeleteRelationAsync(string categoryId, string entryAId, string entryBId, CancellationToken cancellationToken = default);
-        Task<bool> ValidateCategoryRelationsAsync(string categoryId, CancellationToken cancellationToken = default);
-        Task<bool> CheckTotalOrderAsync(string categoryId, CancellationToken cancellationToken = default);
 
-        // NEW: Orchestrates the Partitioned Judging pipeline
         Task<ValidationResult> CalculateGlobalScoresAsync(string categoryId, double maxScore, CancellationToken cancellationToken = default);
 
         // TRICKY OPTIMIZATION #2

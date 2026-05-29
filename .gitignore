@@ -496,6 +496,7 @@ apm_modules/
 # APM generated files
 .agents/
 .opencode/
+opencode.json
 .github/instructions/
 .github/prompts/
 .github/agents/

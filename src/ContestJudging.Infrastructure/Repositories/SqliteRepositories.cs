@@ -25,23 +25,23 @@ namespace ContestJudging.Infrastructure.Repositories
 
         public async Task<Category?> GetByIdAsync(string id, CancellationToken cancellationToken = default)
         {
-            var entity = await _context.Categories.AsNoTracking().FirstOrDefaultAsync(c => c.Id == id, cancellationToken);
+            var entity = await _context.Categories.AsNoTracking().FirstOrDefaultAsync(c => c.Id == id, cancellationToken).ConfigureAwait(false);
             return entity == null ? null : new Category(entity.Id, entity.MaxScore);
         }
 
         public async Task<IEnumerable<Category>> GetAllAsync(CancellationToken cancellationToken = default)
         {
-            var entities = await _context.Categories.AsNoTracking().ToListAsync(cancellationToken);
+            var entities = await _context.Categories.AsNoTracking().ToListAsync(cancellationToken).ConfigureAwait(false);
             return entities.Select(e => new Category(e.Id, e.MaxScore));
         }
 
         public async Task AddAsync(Category category, CancellationToken cancellationToken = default)
         {
             var entity = new CategoryEntity { Id = category.Id, MaxScore = category.MaxScore };
-            await _context.Categories.AddAsync(entity, cancellationToken);
+            await _context.Categories.AddAsync(entity, cancellationToken).ConfigureAwait(false);
             try
             {
-                await _context.SaveChangesAsync(cancellationToken);
+                await _context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
             }
             catch (DbUpdateException ex)
             {
@@ -50,33 +50,15 @@ namespace ContestJudging.Infrastructure.Repositories
             }
         }
 
-        public async Task UpdateAsync(Category category, CancellationToken cancellationToken = default)
-        {
-            var entity = await _context.Categories.FindAsync(new object[] { category.Id }, cancellationToken);
-            if (entity != null)
-            {
-                entity.MaxScore = category.MaxScore;
-                try
-                {
-                    await _context.SaveChangesAsync(cancellationToken);
-                }
-                catch (DbUpdateException ex)
-                {
-                    _logger.LogError(ex, "Failed to save changes to the database");
-                    throw;
-                }
-            }
-        }
-
         public async Task DeleteAsync(string id, CancellationToken cancellationToken = default)
         {
-            var entity = await _context.Categories.FindAsync(new object[] { id }, cancellationToken);
+            var entity = await _context.Categories.FindAsync(new object[] { id }, cancellationToken).ConfigureAwait(false);
             if (entity != null)
             {
                 _context.Categories.Remove(entity);
                 try
                 {
-                    await _context.SaveChangesAsync(cancellationToken);
+                    await _context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
                 }
                 catch (DbUpdateException ex)
                 {
@@ -158,10 +140,10 @@ namespace ContestJudging.Infrastructure.Repositories
                     Score = score.Value
                 });
             }
-            await _context.Entries.AddAsync(entity, cancellationToken);
+            await _context.Entries.AddAsync(entity, cancellationToken).ConfigureAwait(false);
             try
             {
-                await _context.SaveChangesAsync(cancellationToken);
+                await _context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
             }
             catch (DbUpdateException ex)
             {
@@ -192,7 +174,7 @@ namespace ContestJudging.Infrastructure.Repositories
                 }
                 try
                 {
-                    await _context.SaveChangesAsync(cancellationToken);
+                    await _context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
                 }
                 catch (DbUpdateException ex)
                 {
@@ -204,13 +186,13 @@ namespace ContestJudging.Infrastructure.Repositories
 
         public async Task DeleteAsync(string id, CancellationToken cancellationToken = default)
         {
-            var entity = await _context.Entries.FindAsync(new object[] { id }, cancellationToken);
+            var entity = await _context.Entries.FindAsync(new object[] { id }, cancellationToken).ConfigureAwait(false);
             if (entity != null)
             {
                 _context.Entries.Remove(entity);
                 try
                 {
-                    await _context.SaveChangesAsync(cancellationToken);
+                    await _context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
                 }
                 catch (DbUpdateException ex)
                 {
@@ -234,7 +216,7 @@ namespace ContestJudging.Infrastructure.Repositories
 
         public async Task<IEnumerable<Relation>> GetByCategoryIdAsync(string categoryId, CancellationToken cancellationToken = default)
         {
-            var categoryEntity = await _context.Categories.AsNoTracking().FirstOrDefaultAsync(c => c.Id == categoryId, cancellationToken);
+            var categoryEntity = await _context.Categories.AsNoTracking().FirstOrDefaultAsync(c => c.Id == categoryId, cancellationToken).ConfigureAwait(false);
             if (categoryEntity == null) return Enumerable.Empty<Relation>();
 
             var category = new Category(categoryEntity.Id, categoryEntity.MaxScore);
@@ -266,10 +248,10 @@ namespace ContestJudging.Infrastructure.Repositories
                 EntryBId = relation.EntryB.Id,
                 Operator = relation.Operator
             };
-            await _context.Relations.AddAsync(entity, cancellationToken);
+            await _context.Relations.AddAsync(entity, cancellationToken).ConfigureAwait(false);
             try
             {
-                await _context.SaveChangesAsync(cancellationToken);
+                await _context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
             }
             catch (DbUpdateException ex)
             {
@@ -287,7 +269,7 @@ namespace ContestJudging.Infrastructure.Repositories
                 _context.Relations.Remove(entity);
                 try
                 {
-                    await _context.SaveChangesAsync(cancellationToken);
+                    await _context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
                 }
                 catch (DbUpdateException ex)
                 {
