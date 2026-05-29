@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -5,27 +6,26 @@ using ContestJudging.Core.Entities;
 
 namespace ContestJudging.Services.Validation
 {
-    public class GraphValidationService : IValidationService
+    public sealed class GraphValidationService : IValidationService
     {
-        private class UnionFind
+        private sealed class UnionFind
         {
             private readonly Dictionary<string, string> _parent = new();
+            private readonly Dictionary<string, int> _rank = new();
 
             public UnionFind(IEnumerable<string> elements)
             {
                 foreach (var el in elements)
                 {
                     _parent[el] = el;
+                    _rank[el] = 0;
                 }
             }
 
             public string Find(string i)
             {
-                if (_parent[i] == i)
-                {
-                    return i;
-                }
-                _parent[i] = Find(_parent[i]);
+                if (_parent[i] != i)
+                    _parent[i] = Find(_parent[i]);
                 return _parent[i];
             }
 
@@ -33,189 +33,27 @@ namespace ContestJudging.Services.Validation
             {
                 string rootI = Find(i);
                 string rootJ = Find(j);
-                if (rootI != rootJ)
-                {
+                if (rootI == rootJ) return;
+
+                if (_rank[rootI] < _rank[rootJ])
                     _parent[rootI] = rootJ;
-                }
-            }
-        }
-
-        public bool IsTotalOrder(IEnumerable<Relation> relations, IEnumerable<string> allEntryIds)
-        {
-            var allEntryIdsList = allEntryIds.ToList();
-            var uf = new UnionFind(allEntryIdsList);
-            var relationsList = relations.ToList();
-
-            foreach (var rel in relationsList)
-            {
-                if (rel.Operator == Operator.EqualTo)
-                {
-                    uf.Union(rel.EntryA.Id, rel.EntryB.Id);
-                }
-            }
-
-            var adjList = new Dictionary<string, HashSet<string>>();
-            var inDegree = new Dictionary<string, int>();
-
-            foreach (var entryId in allEntryIdsList)
-            {
-                string root = uf.Find(entryId);
-                if (!inDegree.ContainsKey(root))
-                {
-                    inDegree[root] = 0;
-                }
-            }
-
-            foreach (var rel in relationsList)
-            {
-                string rootA = uf.Find(rel.EntryA.Id);
-                string rootB = uf.Find(rel.EntryB.Id);
-
-                string u, v;
-                if (rel.Operator == Operator.GreaterThan)
-                {
-                    u = rootA;
-                    v = rootB;
-                }
-                else if (rel.Operator == Operator.LessThan)
-                {
-                    u = rootB;
-                    v = rootA;
-                }
+                else if (_rank[rootI] > _rank[rootJ])
+                    _parent[rootJ] = rootI;
                 else
                 {
-                    continue;
-                }
-
-                if (u == v) return false;
-
-                if (!adjList.ContainsKey(u))
-                {
-                    adjList[u] = new HashSet<string>();
-                }
-
-                if (!adjList[u].Contains(v))
-                {
-                    adjList[u].Add(v);
-                    inDegree[v]++;
+                    _parent[rootJ] = rootI;
+                    _rank[rootI]++;
                 }
             }
-
-            var queue = new Queue<string>(inDegree.Where(kvp => kvp.Value == 0).Select(kvp => kvp.Key));
-            int processedNodes = 0;
-
-            while (queue.Count > 0)
-            {
-                if (queue.Count > 1) return false;
-                string u = queue.Dequeue();
-                processedNodes++;
-
-                if (adjList.ContainsKey(u))
-                {
-                    foreach (var v in adjList[u])
-                    {
-                        inDegree[v]--;
-                        if (inDegree[v] == 0)
-                        {
-                            queue.Enqueue(v);
-                        }
-                    }
-                }
-            }
-
-            return processedNodes == inDegree.Count;
         }
 
-        public bool IsValidOrder(IEnumerable<Relation> relations, IEnumerable<string> allEntryIds)
+        private static (UnionFind uf, Dictionary<string, HashSet<string>> adjList,
+                 Dictionary<string, int> inDegree, Dictionary<string, HashSet<string>> rootToMembers)
+            BuildTopologicalGraph(IEnumerable<Relation> relations, IEnumerable<string> allEntryIds)
         {
             var allEntryIdsList = allEntryIds.ToList();
-            var uf = new UnionFind(allEntryIdsList);
             var relationsList = relations.ToList();
-
-            foreach (var rel in relationsList)
-            {
-                if (rel.Operator == Operator.EqualTo)
-                {
-                    uf.Union(rel.EntryA.Id, rel.EntryB.Id);
-                }
-            }
-
-            var adjList = new Dictionary<string, HashSet<string>>();
-            var inDegree = new Dictionary<string, int>();
-
-            foreach (var entryId in allEntryIdsList)
-            {
-                string root = uf.Find(entryId);
-                if (!inDegree.ContainsKey(root))
-                {
-                    inDegree[root] = 0;
-                }
-            }
-
-            foreach (var rel in relationsList)
-            {
-                string rootA = uf.Find(rel.EntryA.Id);
-                string rootB = uf.Find(rel.EntryB.Id);
-
-                string u, v;
-                if (rel.Operator == Operator.GreaterThan)
-                {
-                    u = rootA;
-                    v = rootB;
-                }
-                else if (rel.Operator == Operator.LessThan)
-                {
-                    u = rootB;
-                    v = rootA;
-                }
-                else
-                {
-                    continue;
-                }
-
-                if (u == v) return false;
-
-                if (!adjList.ContainsKey(u))
-                {
-                    adjList[u] = new HashSet<string>();
-                }
-
-                if (!adjList[u].Contains(v))
-                {
-                    adjList[u].Add(v);
-                    inDegree[v]++;
-                }
-            }
-
-            var queue = new Queue<string>(inDegree.Where(kvp => kvp.Value == 0).Select(kvp => kvp.Key));
-            int processedNodes = 0;
-
-            while (queue.Count > 0)
-            {
-                string u = queue.Dequeue();
-                processedNodes++;
-
-                if (adjList.ContainsKey(u))
-                {
-                    foreach (var v in adjList[u])
-                    {
-                        inDegree[v]--;
-                        if (inDegree[v] == 0)
-                        {
-                            queue.Enqueue(v);
-                        }
-                    }
-                }
-            }
-
-            return processedNodes == inDegree.Count;
-        }
-
-        public List<HashSet<string>> GetSortedTiers(IEnumerable<Relation> relations, IEnumerable<string> allEntryIds)
-        {
-            var allEntryIdsList = allEntryIds.ToList();
             var uf = new UnionFind(allEntryIdsList);
-            var relationsList = relations.ToList();
 
             foreach (var rel in relationsList)
             {
@@ -261,7 +99,8 @@ namespace ContestJudging.Services.Validation
                     continue;
                 }
 
-                if (u == v) continue;
+                if (u == v)
+                    throw new InvalidOperationException("Self-referencing relation: an entry cannot be compared to itself with a non-equality operator.");
 
                 if (!adjList.ContainsKey(u))
                 {
@@ -275,7 +114,74 @@ namespace ContestJudging.Services.Validation
                 }
             }
 
-            var queue = new Queue<string>(inDegree.Where(kvp => kvp.Value == 0).Select(kvp => kvp.Key));
+            return (uf, adjList, inDegree, rootToMembers);
+        }
+
+        private static bool TryTopologicalSort(
+            Dictionary<string, HashSet<string>> adjList,
+            Dictionary<string, int> inDegree,
+            out List<string> sorted,
+            bool checkUnique = false)
+        {
+            sorted = new List<string>();
+            var workingInDeg = new Dictionary<string, int>(inDegree);
+            var queue = new Queue<string>(workingInDeg.Where(kvp => kvp.Value == 0).Select(kvp => kvp.Key));
+
+            while (queue.Count > 0)
+            {
+                if (checkUnique && queue.Count > 1) return false;
+
+                string u = queue.Dequeue();
+                sorted.Add(u);
+
+                if (adjList.ContainsKey(u))
+                {
+                    foreach (var v in adjList[u])
+                    {
+                        workingInDeg[v]--;
+                        if (workingInDeg[v] == 0)
+                        {
+                            queue.Enqueue(v);
+                        }
+                    }
+                }
+            }
+
+            return sorted.Count == inDegree.Count;
+        }
+
+        public bool IsTotalOrder(IEnumerable<Relation> relations, IEnumerable<string> allEntryIds)
+        {
+            try
+            {
+                var (_, adj, inDeg, _) = BuildTopologicalGraph(relations, allEntryIds);
+                return TryTopologicalSort(adj, inDeg, out _, checkUnique: true);
+            }
+            catch (InvalidOperationException)
+            {
+                return false;
+            }
+        }
+
+        public bool IsValidOrder(IEnumerable<Relation> relations, IEnumerable<string> allEntryIds)
+        {
+            try
+            {
+                var (_, adj, inDeg, _) = BuildTopologicalGraph(relations, allEntryIds);
+                return TryTopologicalSort(adj, inDeg, out _);
+            }
+            catch (InvalidOperationException)
+            {
+                return false;
+            }
+        }
+
+        public List<HashSet<string>> GetSortedTiers(IEnumerable<Relation> relations, IEnumerable<string> allEntryIds)
+        {
+            var (_, adj, inDeg, rootToMembers) = BuildTopologicalGraph(relations, allEntryIds);
+
+            var workingInDeg = new Dictionary<string, int>(inDeg);
+            var queue = new Queue<string>(workingInDeg.Where(kvp => kvp.Value == 0).Select(kvp => kvp.Key));
             var sortedTiers = new List<HashSet<string>>();
 
             while (queue.Count > 0)
@@ -290,12 +196,12 @@ namespace ContestJudging.Services.Validation
                         currentTier.Add(member);
                     }
 
-                    if (adjList.ContainsKey(u))
+                    if (adj.ContainsKey(u))
                     {
-                        foreach (var v in adjList[u])
+                        foreach (var v in adj[u])
                         {
-                            inDegree[v]--;
-                            if (inDegree[v] == 0)
+                            workingInDeg[v]--;
+                            if (workingInDeg[v] == 0)
                             {
                                 queue.Enqueue(v);
                             }

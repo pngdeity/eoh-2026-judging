@@ -1,39 +1,28 @@
+<?xml version="1.0"?>
 <Project Sdk="Microsoft.NET.Sdk.BlazorWebAssembly">
-
   <PropertyGroup>
     <RootNamespace>ContestJudging.Web</RootNamespace>
     <AssemblyName>ContestJudging.Web</AssemblyName>
     <OverrideHtmlAssetPlaceholders>true</OverrideHtmlAssetPlaceholders>
-    
-    <!-- Standard Build Settings -->
-    <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
-
     <!-- Disable AOT and Aggressive Trimming -->
     <WasmBuildNative>true</WasmBuildNative>
     <PublishTrimmed>false</PublishTrimmed>
     <JsonSerializerIsReflectionEnabledByDefault>true</JsonSerializerIsReflectionEnabledByDefault>
-    
     <!-- Compression -->
     <BlazorEnableCompression>true</BlazorEnableCompression>
-    
     <!-- Suppress expected warnings -->
     <NoWarn>$(NoWarn);WASM0001;IL2111</NoWarn>
   </PropertyGroup>
-
   <ItemGroup>
-    <PackageReference Include="Blazored.LocalStorage" />
-    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" />
-    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" PrivateAssets="all" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" />
-    <PackageReference Include="SQLitePCLRaw.bundle_e_sqlite3" />
+    <PackageReference Include="Blazored.LocalStorage"/>
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly"/>
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" PrivateAssets="all"/>
   </ItemGroup>
-
   <ItemGroup>
-    <ProjectReference Include="..\ContestJudging.Core\ContestJudging.Core.csproj" />
-    <ProjectReference Include="..\ContestJudging.Services\ContestJudging.Services.csproj" />
-    <ProjectReference Include="..\ContestJudging.Infrastructure\ContestJudging.Infrastructure.csproj" />
+    <ProjectReference Include="..\ContestJudging.Core\ContestJudging.Core.csproj"/>
+    <ProjectReference Include="..\ContestJudging.Services\ContestJudging.Services.csproj"/>
+    <ProjectReference Include="..\ContestJudging.Infrastructure\ContestJudging.Infrastructure.csproj"/>
   </ItemGroup>
-
 </Project>

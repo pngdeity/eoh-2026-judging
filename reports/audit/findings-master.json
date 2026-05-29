@@ -1,0 +1,1625 @@
+[
+  {
+    "id": "STRUCT-003",
+    "title": "E2E tests reference packages not declared in Directory.Packages.props (central package management violation)",
+    "severity": "critical",
+    "category": "architecture",
+    "files": [
+      "tests/ContestJudging.E2ETests/ContestJudging.E2ETests.csproj:15",
+      "tests/ContestJudging.E2ETests/ContestJudging.E2ETests.csproj:16",
+      "tests/ContestJudging.E2ETests/ContestJudging.E2ETests.csproj:17",
+      "Directory.Packages.props:1"
+    ],
+    "evidence_snippet": "<!-- E2ETests.csproj lines 15-17 -->\n<PackageReference Include=\"NUnit\" />\n<PackageReference Include=\"NUnit.Analyzers\" />\n<PackageReference Include=\"NUnit3TestAdapter\" />\n<PackageReference Include=\"Microsoft.Playwright.NUnit\" />\n\n<!-- Directory.Packages.props has no matching <PackageVersion> for any of these -->",
+    "rule_violated": "Central Package Management: all PackageReference items must have a corresponding PackageVersion in Directory.Packages.props when ManagePackageVersionsCentrally is true",
+    "remediation": "Add <PackageVersion> entries for NUnit, NUnit.Analyzers, NUnit3TestAdapter, and Microsoft.Playwright.NUnit to Directory.Packages.props. Example: <PackageVersion Include=\"NUnit\" Version=\"4.3.2\" />. This is build-breaking.",
+    "effort": "trivial",
+    "status": "open",
+    "domain": "structure",
+    "agent": "P1-A",
+    "related_findings": [
+      "TEST-008"
+    ]
+  },
+  {
+    "id": "STRUCT-004",
+    "title": "E2ETests project missing explicit RootNamespace and AssemblyName properties",
+    "severity": "low",
+    "category": "style",
+    "files": [
+      "tests/ContestJudging.E2ETests/ContestJudging.E2ETests.csproj:1"
+    ],
+    "evidence_snippet": "// E2ETests.csproj has no <RootNamespace> or <AssemblyName>.\n// Compare with all other projects:\n// <RootNamespace>ContestJudging.Tests</RootNamespace>\n// <AssemblyName>ContestJudging.Tests</AssemblyName>",
+    "rule_violated": "Project Convention Consistency (all projects should use explicit RootNamespace/AssemblyName)",
+    "remediation": "Add <RootNamespace>ContestJudging.E2ETests</RootNamespace> and <AssemblyName>ContestJudging.E2ETests</AssemblyName> to the E2ETests.csproj PropertyGroup.",
+    "effort": "trivial",
+    "status": "open",
+    "domain": "structure",
+    "agent": "P1-A",
+    "related_findings": []
+  },
+  {
+    "id": "STRUCT-008",
+    "title": "Redundant TargetFramework/Nullable/ImplicitUsings overrides in Web.csproj",
+    "severity": "low",
+    "category": "style",
+    "files": [
+      "src/ContestJudging.Web/ContestJudging.Web.csproj:9",
+      "src/ContestJudging.Web/ContestJudging.Web.csproj:10",
+      "src/ContestJudging.Web/ContestJudging.Web.csproj:11",
+      "Directory.Build.props:3",
+      "Directory.Build.props:4",
+      "Directory.Build.props:5"
+    ],
+    "evidence_snippet": "// Web.csproj duplicates Directory.Build.props values:\n<TargetFramework>net10.0</TargetFramework>\n<Nullable>enable</Nullable>\n<ImplicitUsings>enable</ImplicitUsings>",
+    "rule_violated": "DRY (Don't Repeat Yourself) / Build configuration conventions",
+    "remediation": "Remove the TargetFramework, Nullable, and ImplicitUsings properties from Web.csproj's PropertyGroup; rely on Directory.Build.props inheritance. Same applies to E2ETests.csproj.",
+    "effort": "trivial",
+    "status": "open",
+    "domain": "structure",
+    "agent": "P1-A",
+    "related_findings": []
+  },
+  {
+    "id": "STRUCT-009",
+    "title": "Orphaned testapp scaffold project outside solution",
+    "severity": "medium",
+    "category": "architecture",
+    "files": [
+      "testapp/testapp.csproj:1",
+      "testapp/Program.cs:1"
+    ],
+    "evidence_snippet": "// testapp/ directory contains a standalone Blazor WASM scaffold:\n// - Not in ContestJudging.slnx\n// - Uses hardcoded package versions (bypasses Directory.Packages.props)\n// - Uses non-standard namespace 'testapp'\n// - Has stale obj/ build artifacts\n// - Appears to be a dotnet new scaffold leftover",
+    "rule_violated": "Solution Hygiene (no orphaned/unreferenced projects)",
+    "remediation": "Delete the entire testapp/ directory if it's a scaffolding artifact. If it serves a purpose, add it to the solution and conform it to project conventions (central package management, namespace naming).",
+    "effort": "small",
+    "status": "open",
+    "domain": "structure",
+    "agent": "P1-A",
+    "related_findings": []
+  },
+  {
+    "id": "STRUCT-010",
+    "title": "Trim analyzer enabled globally but EF Core (Infrastructure) is not trimming-safe",
+    "severity": "informational",
+    "category": "architecture",
+    "files": [
+      "Directory.Build.props:10",
+      "Directory.Build.props:11",
+      "src/ContestJudging.Infrastructure/Persistence/ContestDbContext.cs:48",
+      "src/ContestJudging.Web/ContestJudging.Web.csproj:22"
+    ],
+    "evidence_snippet": "// Directory.Build.props applies to ALL projects:\n<IsTrimmable>true</IsTrimmable>\n<EnableTrimAnalyzer>true</EnableTrimAnalyzer>\n\n// Infrastructure uses EF Core (not trimming-safe):\n[RequiresUnreferencedCode(\"EF Core is not trimming-safe.\")]\n\n// Web suppresses the resulting warnings:\n<NoWarn>$(NoWarn);WASM0001;IL2111</NoWarn>",
+    "rule_violated": "Build Configuration (trim settings should be scoped to the published project, not class libraries)",
+    "remediation": "Move <IsTrimmable> and <EnableTrimAnalyzer> from Directory.Build.props into the Web.csproj PropertyGroup. Class libraries (Core, Infrastructure, Services) should not be marked trimmable since the consuming app controls trimming. Or scope with a Condition=\"'$(IsPublishable)' == 'true'\".",
+    "effort": "trivial",
+    "status": "open",
+    "domain": "structure",
+    "agent": "P1-A",
+    "related_findings": []
+  },
+  {
+    "id": "CQ-001",
+    "title": "Dead empty class Class1.cs in Infrastructure project",
+    "severity": "low",
+    "category": "dead-code",
+    "files": [
+      "src/ContestJudging.Infrastructure/Class1.cs:1"
+    ],
+    "evidence_snippet": "namespace ContestJudging.Infrastructure;\npublic class Class1\n{\n}",
+    "rule_violated": "Stub/placeholder with no implementation in production source",
+    "remediation": "Delete the file. It has no purpose and adds dead weight to the assembly.",
+    "effort": "trivial",
+    "status": "open",
+    "domain": "code-quality",
+    "agent": "P1-B",
+    "related_findings": [
+      "STRUCT-005",
+      "TEST-011"
+    ],
+    "validation_note": "Severity downgraded from high to low per V1-B validation (empty dead class is not high-impact)"
+  },
+  {
+    "id": "CQ-004",
+    "title": "Widespread var usage violations against .editorconfig mandate",
+    "severity": "medium",
+    "category": "style",
+    "files": [
+      "src/ContestJudging.Services/Validation/GraphValidationService.cs:62",
+      "src/ContestJudging.Services/Validation/GraphValidationService.cs:71",
+      "src/ContestJudging.Services/Validation/GraphValidationService.cs:105",
+      "src/ContestJudging.Services/Resolution/BradleyTerryResolutionService.cs:17",
+      "src/ContestJudging.Services/Resolution/BradleyTerryResolutionService.cs:59",
+      "src/ContestJudging.Services/Resolution/BradleyTerryResolutionService.cs:86",
+      "src/ContestJudging.Infrastructure/Repositories/SqliteRepositories.cs:24",
+      "src/ContestJudging.Infrastructure/Repositories/SqliteRepositories.cs:107",
+      "src/ContestJudging.Web/Pages/Setup.razor.cs:30",
+      "src/ContestJudging.Web/Pages/Setup.razor.cs:33",
+      "src/ContestJudging.Web/Pages/Judging.razor.cs:32",
+      "src/ContestJudging.Web/Pages/Judging.razor.cs:39"
+    ],
+    "evidence_snippet": "// ~50+ locations found using explicit types where editorconfig mandates var\nstring root = uf.Find(entryId);  // should be: var root\nint n = allEntryIdsList.Count;   // should be: var n\ndouble sum = nextGamma.Sum();    // should be: var sum",
+    "rule_violated": "editorconfig:csharp_style_var_for_built_in_types=true:suggestion, csharp_style_var_when_type_is_apparent=true:suggestion, csharp_style_var_elsewhere=true:suggestion (lines 24-26)",
+    "remediation": "Run `dotnet format` on the solution to auto-fix all var preferences at once.",
+    "effort": "trivial",
+    "status": "open",
+    "domain": "code-quality",
+    "agent": "P1-B",
+    "related_findings": []
+  },
+  {
+    "id": "CQ-005",
+    "title": "No sealed classes anywhere in the codebase",
+    "severity": "medium",
+    "category": "performance",
+    "files": [
+      "src/ContestJudging.Core/Entities/Category.cs:5",
+      "src/ContestJudging.Core/Entities/Entry.cs:7",
+      "src/ContestJudging.Core/Entities/Relation.cs:3",
+      "src/ContestJudging.Infrastructure/Persistence/ContestDbContext.cs:12",
+      "src/ContestJudging.Infrastructure/Persistence/ContestDbContext.cs:18",
+      "src/ContestJudging.Infrastructure/Persistence/ContestDbContext.cs:24",
+      "src/ContestJudging.Infrastructure/Persistence/ContestDbContext.cs:32",
+      "src/ContestJudging.Infrastructure/Repositories/SqliteRepositories.cs:13",
+      "src/ContestJudging.Infrastructure/Repositories/SqliteRepositories.cs:69",
+      "src/ContestJudging.Infrastructure/Repositories/SqliteRepositories.cs:185",
+      "src/ContestJudging.Services/Validation/GraphValidationService.cs:8",
+      "src/ContestJudging.Services/Scoring/PercentileScoring.cs:9",
+      "src/ContestJudging.Services/Scoring/LinearSpacingScoring.cs:8",
+      "src/ContestJudging.Services/Scoring/DefinedIntervalScoring.cs:8",
+      "src/ContestJudging.Services/Resolution/BradleyTerryResolutionService.cs:9",
+      "src/ContestJudging.Services/Partitioning/PartitionService.cs:7",
+      "src/ContestJudging.Services/Managers/ContestManager.cs:15",
+      "src/ContestJudging.Web/Pages/Setup.razor.cs:136",
+      "src/ContestJudging.Web/Pages/Setup.razor.cs:144",
+      "src/ContestJudging.Web/Pages/Results.razor.cs:64"
+    ],
+    "evidence_snippet": "// Every concrete class is unsealed (15+). None are designed for inheritance.\npublic class PercentileScoring : IScoringStrategy { }\npublic class SqliteCategoryRepository : ICategoryRepository { }\npublic class CategoryEntity { }",
+    "rule_violated": "CA1852 \u2014 Type can be sealed when it has no visible subclasses. JIT cannot devirtualize calls without sealed.",
+    "remediation": "Add `sealed` to all leaf classes. For DI-registered implementations, sealed enables devirtualization. For entity classes, sealing removes virtual method table overhead.",
+    "effort": "small",
+    "status": "open",
+    "domain": "code-quality",
+    "agent": "P1-B",
+    "related_findings": []
+  },
+  {
+    "id": "CQ-006",
+    "title": "Large methods exceeding 50-line maintainability threshold",
+    "severity": "medium",
+    "category": "maintainability",
+    "files": [
+      "src/ContestJudging.Services/Resolution/BradleyTerryResolutionService.cs:14",
+      "src/ContestJudging.Services/Validation/GraphValidationService.cs:43",
+      "src/ContestJudging.Services/Validation/GraphValidationService.cs:129",
+      "src/ContestJudging.Services/Validation/GraphValidationService.cs:214"
+    ],
+    "evidence_snippet": "ResolveGlobalStrengths: 116 lines, 3-deep nested loops\nIsTotalOrder: 85 lines\nIsValidOrder: 84 lines\nGetSortedTiers: 97 lines",
+    "rule_violated": "Method length >50 lines degrades readability, testability, and indicates single-responsibility violation",
+    "remediation": "Extract inner loops into named private methods (e.g., IterateBradleyTerryStep, BuildTopologicalTiers). This also reduces nesting depth.",
+    "effort": "medium",
+    "status": "open",
+    "domain": "code-quality",
+    "agent": "P1-B",
+    "related_findings": []
+  },
+  {
+    "id": "CQ-008",
+    "title": "Magic numbers without named constants",
+    "severity": "low",
+    "category": "maintainability",
+    "files": [
+      "src/ContestJudging.Services/Scoring/LinearSpacingScoring.cs:57",
+      "src/ContestJudging.Services/Scoring/DefinedIntervalScoring.cs:50",
+      "src/ContestJudging.Services/Resolution/BradleyTerryResolutionService.cs:90",
+      "src/ContestJudging.Services/Resolution/BradleyTerryResolutionService.cs:108"
+    ],
+    "evidence_snippet": "if (range < 1e-9)                                     // 2 scoring files\nif (iter > 50 && iter % 10 == 0)                       // BradleyTerry:90\nif (stable && maxDiff < 1e-3)                          // BradleyTerry:108",
+    "rule_violated": "Magic numbers obscure intent; use named constants",
+    "remediation": "Define constants: const double Epsilon = 1e-9; const int RankStabilityCheckStart = 50; const int RankStabilityCheckInterval = 10; const double RankStabilityThreshold = 1e-3;",
+    "effort": "trivial",
+    "status": "open",
+    "domain": "code-quality",
+    "agent": "P1-B",
+    "related_findings": []
+  },
+  {
+    "id": "CQ-009",
+    "title": "Tuple<string, string> should be ValueTuple (string, string)",
+    "severity": "low",
+    "category": "style",
+    "files": [
+      "src/ContestJudging.Web/Pages/Judging.razor.cs:36"
+    ],
+    "evidence_snippet": "private Tuple<string, string>? suggestedPair;\n// ...\nsuggestedPair = new Tuple<string, string>(a, b);",
+    "rule_violated": "Use modern C# ValueTuple structs over reference-type Tuple for performance",
+    "remediation": "Change to private (string A, string B)? suggestedPair; and assign with suggestedPair = (a, b);",
+    "effort": "trivial",
+    "status": "open",
+    "domain": "code-quality",
+    "agent": "P1-B",
+    "related_findings": []
+  },
+  {
+    "id": "CQ-010",
+    "title": "Missing sealed on private nested UnionFind class",
+    "severity": "low",
+    "category": "performance",
+    "files": [
+      "src/ContestJudging.Services/Validation/GraphValidationService.cs:10"
+    ],
+    "evidence_snippet": "private class UnionFind\n{\n    private readonly Dictionary<string, string> _parent = new();\n    // ...\n}",
+    "rule_violated": "CA1852 \u2014 even private nested types benefit from sealed for JIT devirtualization",
+    "remediation": "Change to `private sealed class UnionFind`.",
+    "effort": "trivial",
+    "status": "open",
+    "domain": "code-quality",
+    "agent": "P1-B",
+    "related_findings": []
+  },
+  {
+    "id": "TEST-001",
+    "title": "No parameterized tests (Theories) used \u2014 all tests use Fact with sequential Assert.Throws",
+    "severity": "high",
+    "category": "testing",
+    "files": [
+      "tests/ContestJudging.Tests/CoreTests.cs:12",
+      "tests/ContestJudging.Tests/CoreTests.cs:36",
+      "tests/ContestJudging.Tests/ScoringStrategyTests.cs:12",
+      "tests/ContestJudging.Tests/ValidationServiceTests.cs:153",
+      "tests/ContestJudging.Tests/PartitionServiceTests.cs:37"
+    ],
+    "evidence_snippet": "[Fact]\npublic void Category_Constructor_ThrowsWhenMaxScoreIsOneOrLess()\n{\n    Assert.Throws<ArgumentOutOfRangeException>(() => new Category(\"cat1\", 1));\n    Assert.Throws<ArgumentOutOfRangeException>(() => new Category(\"cat1\", 0));\n}",
+    "rule_violated": "xUnit best practices: parameterized tests ([Theory]) over repeated Assert.Throws in a single [Fact]",
+    "remediation": "Convert boundary tests to [Theory] with [InlineData]. If the first assertion throws/fails, the second never executes, masking defects. Same for Entry_SetScore_InvalidScore_Throws (tests 11 and -1 in one Fact).",
+    "effort": "small",
+    "status": "open",
+    "domain": "tests",
+    "agent": "P1-C",
+    "related_findings": []
+  },
+  {
+    "id": "TEST-002",
+    "title": "ContestJudging.Web project has zero unit tests",
+    "severity": "high",
+    "category": "testing",
+    "files": [
+      "src/ContestJudging.Web/Program.cs:1",
+      "src/ContestJudging.Web/Pages/Setup.razor.cs:1",
+      "src/ContestJudging.Web/Pages/Judging.razor.cs:1",
+      "src/ContestJudging.Web/Pages/Results.razor.cs:1"
+    ],
+    "evidence_snippet": "// ContestJudging.Tests.csproj ProjectReference:\n<ProjectReference Include=\"..\\..\\src\\ContestJudging.Core\\ContestJudging.Core.csproj\" />\n<ProjectReference Include=\"..\\..\\src\\ContestJudging.Services\\ContestJudging.Services.csproj\" />\n<ProjectReference Include=\"..\\..\\src\\ContestJudging.Infrastructure\\ContestJudging.Infrastructure.csproj\" />\n// NOTE: ContestJudging.Web is NOT referenced",
+    "rule_violated": "Testing pyramid: missing unit tests for UI/presentation layer logic",
+    "remediation": "Add bunit or similar Blazor testing library. Test pure-logic methods: FindSuggestedPair(), GetFilteredEntries(), GeneratePartitions(), CalculateResults(), keyboard handler, DI validation. Add ContestJudging.Web.Tests project.",
+    "effort": "large",
+    "status": "open",
+    "domain": "tests",
+    "agent": "P1-C",
+    "related_findings": []
+  },
+  {
+    "id": "TEST-003",
+    "title": "No test categories/traits to distinguish unit tests from integration tests",
+    "severity": "medium",
+    "category": "testing",
+    "files": [
+      "tests/ContestJudging.Tests/InfrastructureTests.cs:18"
+    ],
+    "evidence_snippet": "var connection = new SqliteConnection(\"DataSource=:memory:\");\nawait connection.OpenAsync();\nvar options = new DbContextOptionsBuilder<ContestDbContext>()\n    .UseSqlite(connection)\n    .Options;\nvar context = new ContestDbContext(options);\nawait context.Database.EnsureCreatedAsync();",
+    "rule_violated": "xUnit best practices: test categorization for CI pipeline efficiency",
+    "remediation": "Add [Trait(\"Category\", \"Unit\")] to unit test classes and [Trait(\"Category\", \"Integration\")] to InfrastructureTests. Configure CI with dotnet test --filter \"Category!=Integration\" for PRs.",
+    "effort": "trivial",
+    "status": "open",
+    "domain": "tests",
+    "agent": "P1-C",
+    "related_findings": []
+  },
+  {
+    "id": "TEST-005",
+    "title": "ServiceCollectionExtensions.AddContestJudgingServices has no test coverage",
+    "severity": "medium",
+    "category": "testing",
+    "files": [
+      "src/ContestJudging.Services/Extensions/ServiceCollectionExtensions.cs:21"
+    ],
+    "evidence_snippet": "public static IServiceCollection AddContestJudgingServices(this IServiceCollection services, string connectionString = \"Data Source=:memory:\")\n{\n    services.AddDbContext<ContestDbContext>(options => options.UseSqlite(connectionString));\n    services.AddScoped<ICategoryRepository, SqliteCategoryRepository>();\n    services.AddScoped<IEntryRepository, SqliteEntryRepository>();\n    // ... 5 more registrations\n}",
+    "rule_violated": "Testing: critical infrastructure/pathway code should have coverage",
+    "remediation": "Add a test that calls AddContestJudgingServices, builds IServiceProvider, resolves each registered service, and asserts non-null and correct concrete type. Use in-memory SQLite.",
+    "effort": "small",
+    "status": "open",
+    "domain": "tests",
+    "agent": "P1-C",
+    "related_findings": []
+  },
+  {
+    "id": "TEST-006",
+    "title": "Vague test class name 'CoreTests' \u2014 unclear what it tests",
+    "severity": "low",
+    "category": "style",
+    "files": [
+      "tests/ContestJudging.Tests/CoreTests.cs:9"
+    ],
+    "evidence_snippet": "public class CoreTests\n{\n    [Fact]\n    public void Category_Constructor_ThrowsWhenMaxScoreIsOneOrLess() { }\n    [Fact]\n    public void Entry_SetScore_ValidScore_Succeeds() { }\n}",
+    "rule_violated": "Consistency: test class names should map to the class under test (e.g., CategoryTests, EntryTests)",
+    "remediation": "Split into CategoryTests.cs and EntryTests.cs, or rename to CoreEntityTests.",
+    "effort": "trivial",
+    "status": "open",
+    "domain": "tests",
+    "agent": "P1-C",
+    "related_findings": []
+  },
+  {
+    "id": "TEST-007",
+    "title": "E2E tests use NUnit while unit tests use xUnit \u2014 framework inconsistency",
+    "severity": "low",
+    "category": "testing",
+    "files": [
+      "tests/ContestJudging.E2ETests/AppE2ETests.cs:3",
+      "tests/ContestJudging.E2ETests/ContestJudging.E2ETests.csproj:16"
+    ],
+    "evidence_snippet": "using Microsoft.Playwright.NUnit;\nusing NUnit.Framework;\n\n[TestFixture]\npublic class AppE2ETests : PageTest\n{\n    [SetUp]\n    public async Task Setup() { }\n    [Test]\n    public async Task HomepageHasExpectedTitleAndContent() { }\n}",
+    "rule_violated": "Consistency: single test framework reduces cognitive load across the project",
+    "remediation": "Migrate E2E to xUnit (using Microsoft.Playwright without NUnit adapter) or document the rationale for the split.",
+    "effort": "small",
+    "status": "open",
+    "domain": "tests",
+    "agent": "P1-C",
+    "related_findings": [
+      "STRUCT-006"
+    ]
+  },
+  {
+    "id": "TEST-010",
+    "title": "ContestManager ExportDataAsync/ImportDataAsync untested",
+    "severity": "low",
+    "category": "testing",
+    "files": [
+      "src/ContestJudging.Services/Managers/ContestManager.cs:119",
+      "tests/ContestJudging.Tests/ContestManagerTests.cs:30"
+    ],
+    "evidence_snippet": "// These methods have zero test coverage:\npublic async Task<byte[]> ExportDataAsync() => await _context.ExportDatabaseAsync();\npublic async Task ImportDataAsync(byte[] data) => await _context.ImportDatabaseAsync(data);\n// Used by Setup.razor.cs BackupDatabase() and Program.cs startup restore",
+    "rule_violated": "Testing: critical data path (backup/restore) has no coverage",
+    "remediation": "Add integration tests using in-memory context that verify round-trip: export, wipe, import, verify data matches.",
+    "effort": "small",
+    "status": "open",
+    "domain": "tests",
+    "agent": "P1-C",
+    "related_findings": []
+  },
+  {
+    "id": "TEST-012",
+    "title": "TrimmingSafetyTests suppresses trimming warnings it's meant to validate",
+    "severity": "informational",
+    "category": "testing",
+    "files": [
+      "tests/ContestJudging.Tests/TrimmingSafetyTests.cs:19"
+    ],
+    "evidence_snippet": "[Fact]\n[RequiresUnreferencedCode(\"Testing reflection-based JSON serialization.\")]\npublic void JsonSerialization_ShouldWork_WithDomainEntities()\n{\n    var json = JsonSerializer.Serialize(entry, options);\n    var deserialized = JsonSerializer.Deserialize<Entry>(json);\n}",
+    "rule_violated": "Testing: trimming safety tests should validate behavior under trimming without suppressing trimming warnings",
+    "remediation": "Use source-generated JSON serializer (JsonSerializerContext) or remove [RequiresUnreferencedCode] and run this test explicitly in a trimmed publish build to detect actual breaks.",
+    "effort": "small",
+    "status": "open",
+    "domain": "tests",
+    "agent": "P1-C",
+    "related_findings": []
+  },
+  {
+    "id": "TEST-013",
+    "title": "No cancellation token support in async tests or underlying async methods",
+    "severity": "informational",
+    "category": "testing",
+    "files": [
+      "tests/ContestJudging.Tests/InfrastructureTests.cs:35",
+      "tests/ContestJudging.Tests/ContestManagerTests.cs:21"
+    ],
+    "evidence_snippet": "// All async tests use bare Task without CancellationToken:\npublic async Task CategoryRepository_AddAndGet_Succeeds() { }\npublic async Task CalculateGlobalScores_OrchestratesPipeline() { }",
+    "rule_violated": "Testing: async tests should validate cancellation behavior where applicable",
+    "remediation": "If the underlying async operations support cancellation, add tests with CancellationTokenSource(TimeSpan). If not, consider adding CancellationToken support to repository interfaces.",
+    "effort": "small",
+    "status": "open",
+    "domain": "tests",
+    "agent": "P1-C",
+    "related_findings": []
+  },
+  {
+    "id": "SEC-001",
+    "title": "Missing Content-Security-Policy header in index.html",
+    "severity": "medium",
+    "category": "security-misconfiguration",
+    "files": [
+      "src/ContestJudging.Web/wwwroot/index.html:4"
+    ],
+    "evidence_snippet": "<!-- index.html:4-15 -- no CSP meta tag present -->\n<head>\n    <meta charset=\"utf-8\" />\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\" />\n    <title>EOH 2026 Contest Judging</title>\n    <base href=\"/\" />\n    ...\n</head>",
+    "rule_violated": "OWASP A05:2021 Security Misconfiguration, CWE-1021",
+    "remediation": "Add a Content-Security-Policy meta tag with directives appropriate for Blazor WASM: default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; connect-src 'self'; img-src 'self' data:;",
+    "effort": "small",
+    "status": "open",
+    "domain": "security",
+    "agent": "P1-D",
+    "related_findings": []
+  },
+  {
+    "id": "SEC-002",
+    "title": "Insecure random number generation using System.Random in PartitionService",
+    "severity": "medium",
+    "category": "weak-cryptography",
+    "files": [
+      "src/ContestJudging.Services/Partitioning/PartitionService.cs:9",
+      "src/ContestJudging.Services/Partitioning/PartitionService.cs:24"
+    ],
+    "evidence_snippet": "// PartitionService.cs:9\nprivate readonly Random _random = new();\n\n// PartitionService.cs:24\nvar shuffled = allEntryIdsList.OrderBy(x => _random.Next()).ToList();",
+    "rule_violated": "CWE-338 Use of Cryptographically Weak PRNG",
+    "remediation": "Replace System.Random with System.Security.Cryptography.RandomNumberGenerator for partition shuffling, or use Random.Shared with explicit documentation that the randomness is non-cryptographic.",
+    "effort": "trivial",
+    "status": "open",
+    "domain": "security",
+    "agent": "P1-D",
+    "related_findings": []
+  },
+  {
+    "id": "SEC-004",
+    "title": "Database backup in localStorage lacks integrity verification",
+    "severity": "medium",
+    "category": "data-integrity",
+    "files": [
+      "src/ContestJudging.Web/Pages/Judging.razor.cs:76",
+      "src/ContestJudging.Web/Pages/Setup.razor.cs:49",
+      "src/ContestJudging.Web/Program.cs:39"
+    ],
+    "evidence_snippet": "// Judging.razor.cs:80-83\nvar data = await ContestManager.ExportDataAsync();\nif (data.Length > 0)\n{\n    await LocalStorage.SetItemAsStringAsync(\"db_backup\", Convert.ToBase64String(data));\n}\n\n// Program.cs:41-47\nvar backupBase64 = localStorage.GetItemAsString(\"db_backup\");\nif (!string.IsNullOrEmpty(backupBase64))\n{\n    var backupBytes = Convert.FromBase64String(backupBase64);\n    await contestManager.ImportDataAsync(backupBytes);\n}",
+    "rule_violated": "CWE-345 Insufficient Verification of Data Authenticity",
+    "remediation": "Append an HMAC-SHA256 or CRC32 checksum to the backup payload before storing in localStorage. Verify on restore and reject if integrity check fails.",
+    "effort": "small",
+    "status": "open",
+    "domain": "security",
+    "agent": "P1-D",
+    "related_findings": [
+      "BW-007"
+    ]
+  },
+  {
+    "id": "SEC-006",
+    "title": "Missing .db and .sqlite patterns in .gitignore",
+    "severity": "medium",
+    "category": "git-hygiene",
+    "files": [
+      ".gitignore:1"
+    ],
+    "evidence_snippet": "// .gitignore has *.dbmdl (line 244) but no *.db or *.sqlite pattern.\n// The application creates contest.db as its SQLite database file.",
+    "rule_violated": "Database files containing contest data should not be committed to version control",
+    "remediation": "Add *.db, *.sqlite, and *.sqlite3 patterns to .gitignore.",
+    "effort": "trivial",
+    "status": "open",
+    "domain": "security",
+    "agent": "P1-D",
+    "related_findings": [
+      "STRUCT-007"
+    ]
+  },
+  {
+    "id": "SEC-007",
+    "title": "No authentication on administrative operations",
+    "severity": "medium",
+    "category": "missing-authentication",
+    "files": [
+      "src/ContestJudging.Web/Pages/Setup.razor.cs:59",
+      "src/ContestJudging.Web/Pages/Setup.razor.cs:68",
+      "src/ContestJudging.Web/Pages/Judging.razor.cs:147",
+      "src/ContestJudging.Web/Pages/Judging.razor.cs:180"
+    ],
+    "evidence_snippet": "// Setup.razor.cs:59-66 \u2014 unprotected data clearing\nprivate async Task ClearCategories()\n{\n    foreach (var cat in categories.ToList())\n    {\n        await CategoryRepository.DeleteAsync(cat.Id);\n    }\n    await RefreshData();\n}",
+    "rule_violated": "CWE-306 Missing Authentication for Critical Function",
+    "remediation": "Add a passphrase gate on the Setup page or implement token-based auth if server-side deployment is planned. Document the trusted-device deployment model if auth is intentionally omitted.",
+    "effort": "small",
+    "status": "open",
+    "domain": "security",
+    "agent": "P1-D",
+    "related_findings": []
+  },
+  {
+    "id": "SEC-008",
+    "title": "Client-side SQLite \u2014 entire database accessible to browser user",
+    "severity": "informational",
+    "category": "architecture-awareness",
+    "files": [
+      "src/ContestJudging.Web/Program.cs:21",
+      "src/ContestJudging.Infrastructure/Persistence/ContestDbContext.cs:41"
+    ],
+    "evidence_snippet": "// Program.cs:21 \u2014 SQLite initializes in browser WebAssembly\nSQLitePCL.Batteries_V2.Init();\n\n// ContestDbContext.cs:68 \u2014 database file is local to browser\nvar path = \"contest.db\";",
+    "rule_violated": "Blazor WASM runs entirely client-side; all data is accessible via browser DevTools",
+    "remediation": "Document the trust model in a SECURITY.md or README: this app is designed for a trusted judge's local device. If data confidentiality is needed, implement a backend API with server-side persistence.",
+    "effort": "trivial",
+    "status": "open",
+    "domain": "security",
+    "agent": "P1-D",
+    "related_findings": []
+  },
+  {
+    "id": "CICD-001",
+    "title": "E2E test project excluded from solution \u2014 Playwright/NUnit tests never run in CI",
+    "severity": "high",
+    "category": "testing",
+    "files": [
+      "ContestJudging.slnx:8"
+    ],
+    "evidence_snippet": "<Folder Name=\"/tests/\">\n    <Project Path=\"tests/ContestJudging.Tests/ContestJudging.Tests.csproj\" />\n</Folder>",
+    "rule_violated": "CI completeness \u2014 all test projects must be exercised in the pipeline",
+    "remediation": "Add <Project Path=\"tests/ContestJudging.E2ETests/ContestJudging.E2ETests.csproj\" /> to the /tests/ folder in ContestJudging.slnx. Consider a separate CI job for E2E tests with Playwright browser installation.",
+    "effort": "small",
+    "status": "open",
+    "domain": "cicd",
+    "agent": "P1-E",
+    "related_findings": [
+      "STRUCT-002"
+    ]
+  },
+  {
+    "id": "CICD-002",
+    "title": "No code coverage collected in CI despite coverlet.collector being configured",
+    "severity": "medium",
+    "category": "testing",
+    "files": [
+      ".github/workflows/pipeline.yml:50"
+    ],
+    "evidence_snippet": "dotnet test ContestJudging.slnx --configuration Release --no-build --verbosity normal",
+    "rule_violated": "Test quality \u2014 coverage should be measured and tracked",
+    "remediation": "Add --collect:\"XPlat Code Coverage\" to the dotnet test command and optionally upload results to a coverage service.",
+    "effort": "trivial",
+    "status": "open",
+    "domain": "cicd",
+    "agent": "P1-E",
+    "related_findings": []
+  },
+  {
+    "id": "CICD-003",
+    "title": "Six of seven GitHub Actions use floating major-version tags (supply chain risk)",
+    "severity": "medium",
+    "category": "supply-chain",
+    "files": [
+      ".github/workflows/pipeline.yml:18",
+      ".github/workflows/pipeline.yml:21",
+      ".github/workflows/pipeline.yml:27",
+      ".github/workflows/pipeline.yml:73",
+      ".github/workflows/pipeline.yml:79",
+      ".github/workflows/pipeline.yml:100",
+      ".github/workflows/pipeline.yml:103",
+      ".github/workflows/pipeline.yml:108"
+    ],
+    "evidence_snippet": "uses: actions/checkout@v6\nuses: actions/setup-dotnet@v5\nuses: actions/cache@v5",
+    "rule_violated": "SLSA Level 2 \u2014 actions should be pinned to digest or full semver",
+    "remediation": "Pin all actions to full semver (e.g., actions/checkout@v6.1.0) or commit SHA. Enable Dependabot for GitHub Actions updates.",
+    "effort": "small",
+    "status": "open",
+    "domain": "cicd",
+    "agent": "P1-E",
+    "related_findings": []
+  },
+  {
+    "id": "CICD-004",
+    "title": "No SAST or CodeQL scanning \u2014 only dependency scanning is present",
+    "severity": "high",
+    "category": "security",
+    "files": [
+      ".github/workflows/pipeline.yml:52"
+    ],
+    "evidence_snippet": "security-scan:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@v6\n      - name: OSV-Scanner\n        uses: google/osv-scanner-action/osv-scanner-action@v2.3.5",
+    "rule_violated": "OWASP / DevSecOps \u2014 SAST should complement dependency vulnerability scanning",
+    "remediation": "Add a CodeQL analysis job targeting csharp (and optionally javascript for Blazor WASM client). github/codeql-action provides free scanning for public repos.",
+    "effort": "small",
+    "status": "open",
+    "domain": "cicd",
+    "agent": "P1-E",
+    "related_findings": []
+  },
+  {
+    "id": "CICD-005",
+    "title": "OSV-Scanner uses --allow-no-lockfiles reducing scan accuracy",
+    "severity": "low",
+    "category": "security",
+    "files": [
+      ".github/workflows/pipeline.yml:60"
+    ],
+    "evidence_snippet": "scan-args: ./ --allow-no-lockfiles",
+    "rule_violated": "Tool configuration \u2014 lock files provide precise dependency graphs",
+    "remediation": "Remove --allow-no-lockfiles. If scans fail without lock files, commit packages.lock.json or enable lock file generation in Directory.Packages.props.",
+    "effort": "trivial",
+    "status": "open",
+    "domain": "cicd",
+    "agent": "P1-E",
+    "related_findings": []
+  },
+  {
+    "id": "CICD-006",
+    "title": "release/ directory (published Blazor WASM output) is committed to the repository",
+    "severity": "medium",
+    "category": "repo-hygiene",
+    "files": [
+      "release/web.config:1"
+    ],
+    "evidence_snippet": "release/\n  ContestJudging.Web.runtimeconfig.json\n  dotnet.js\n  e_sqlite3.a\n  web.config\n  wwwroot/\n    _framework/\n    index.html\n    ...",
+    "rule_violated": "Repository hygiene \u2014 build artifacts should not be version-controlled",
+    "remediation": "Add release/ to .gitignore and run git rm -r --cached release/. The CI deploy job already publishes to this path.",
+    "effort": "trivial",
+    "status": "open",
+    "domain": "cicd",
+    "agent": "P1-E",
+    "related_findings": []
+  },
+  {
+    "id": "CICD-007",
+    "title": "No Dependabot configuration for automated dependency updates",
+    "severity": "medium",
+    "category": "dependency-management",
+    "files": [
+      ".github/dependabot.yml:0"
+    ],
+    "evidence_snippet": "(missing) .github/dependabot.yml",
+    "rule_violated": "Dependency hygiene \u2014 automated updates prevent staleness and known vulnerabilities",
+    "remediation": "Create .github/dependabot.yml with nuget and github-actions ecosystems on a weekly schedule.",
+    "effort": "trivial",
+    "status": "open",
+    "domain": "cicd",
+    "agent": "P1-E",
+    "related_findings": []
+  },
+  {
+    "id": "CICD-008",
+    "title": "No CODEOWNERS file for automated PR review assignment",
+    "severity": "low",
+    "category": "code-review",
+    "files": [
+      ".github/CODEOWNERS:0"
+    ],
+    "evidence_snippet": "(missing) .github/CODEOWNERS",
+    "rule_violated": "Code review hygiene \u2014 CODEOWNERS ensures appropriate reviewers",
+    "remediation": "Create .github/CODEOWNERS with default ownership (e.g., * @pngdeity/maintainers).",
+    "effort": "trivial",
+    "status": "open",
+    "domain": "cicd",
+    "agent": "P1-E",
+    "related_findings": []
+  },
+  {
+    "id": "CICD-009",
+    "title": "No PR template or issue templates",
+    "severity": "low",
+    "category": "contribution",
+    "files": [
+      ".github/PULL_REQUEST_TEMPLATE.md:0"
+    ],
+    "evidence_snippet": "(missing) .github/PULL_REQUEST_TEMPLATE.md and .github/ISSUE_TEMPLATE/",
+    "rule_violated": "Contribution hygiene \u2014 templates standardize submissions",
+    "remediation": "Add .github/PULL_REQUEST_TEMPLATE.md with a checklist (tests, format, docs) and a bug report issue template.",
+    "effort": "trivial",
+    "status": "open",
+    "domain": "cicd",
+    "agent": "P1-E",
+    "related_findings": []
+  },
+  {
+    "id": "CICD-010",
+    "title": "dotnet-tools.json manifest has no tools configured",
+    "severity": "informational",
+    "category": "tooling",
+    "files": [
+      "dotnet-tools.json:4"
+    ],
+    "evidence_snippet": "\"tools\": {}",
+    "rule_violated": "Reproducibility \u2014 local tool pinning ensures consistent CLI tool versions across environments",
+    "remediation": "No action required currently. If additional CLI tools are introduced (dotnet-coverage, dotnet-outdated, etc.), register them via dotnet tool install --local.",
+    "effort": "trivial",
+    "status": "open",
+    "domain": "cicd",
+    "agent": "P1-E",
+    "related_findings": []
+  },
+  {
+    "id": "CICD-011",
+    "title": "Deploy job redundantly rebuilds from source instead of reusing tested artifacts",
+    "severity": "medium",
+    "category": "ci-optimization",
+    "files": [
+      ".github/workflows/pipeline.yml:62"
+    ],
+    "evidence_snippet": "deploy:\n    needs: [quality-and-test, security-scan]\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@v6\n      - name: Setup .NET ...\n      - name: Publish Blazor WASM\n        run: dotnet publish src/ContestJudging.Web/ContestJudging.Web.csproj ...",
+    "rule_violated": "CI integrity \u2014 deploy should use tested artifacts, not rebuild",
+    "remediation": "In the quality-and-test job, run dotnet publish and upload the result via actions/upload-artifact. In the deploy job, download that artifact via actions/download-artifact instead of rebuilding.",
+    "effort": "small",
+    "status": "open",
+    "domain": "cicd",
+    "agent": "P1-E",
+    "related_findings": []
+  },
+  {
+    "id": "ARCH-001",
+    "title": "Web project directly references Infrastructure layer \u2014 SQLitePCL init and ContestDbContext resolved in UI startup",
+    "severity": "medium",
+    "category": "architecture",
+    "files": [
+      "src/ContestJudging.Web/Program.cs:5",
+      "src/ContestJudging.Web/Program.cs:21",
+      "src/ContestJudging.Web/Program.cs:34",
+      "src/ContestJudging.Web/ContestJudging.Web.csproj:29",
+      "src/ContestJudging.Web/ContestJudging.Web.csproj:30",
+      "src/ContestJudging.Web/ContestJudging.Web.csproj:36"
+    ],
+    "evidence_snippet": "// Program.cs:5 \u2014 namespace import\nusing ContestJudging.Infrastructure.Persistence;\n\n// Program.cs:21 \u2014 SQLite native init in UI layer\nSQLitePCL.Batteries_V2.Init();\n\n// Program.cs:34 \u2014 UI layer resolves Infrastructure DbContext directly\nvar context = scope.ServiceProvider.GetRequiredService<ContestDbContext>();\n\n// Web.csproj:29-30,36 \u2014 duplicated EF Core/SQLite packages and Infrastructure project reference\n<PackageReference Include=\"Microsoft.EntityFrameworkCore.Sqlite\" />\n<PackageReference Include=\"SQLitePCLRaw.bundle_e_sqlite3\" />\n<ProjectReference Include=\"..\\ContestJudging.Infrastructure\\...\" />",
+    "rule_violated": "Clean Architecture: Dependency Rule \u2014 outer layers (Web) must not depend on inner layers (Infrastructure) for anything except DI composition",
+    "remediation": "1) Remove Infrastructure ProjectReference and EF Core/SQLite PackageReferences from Web.csproj. 2) Move SQLitePCL.Batteries_V2.Init() into ServiceCollectionExtensions.AddContestJudgingServices(). 3) Replace direct ContestDbContext resolution in Program.cs with an IDatabaseInitializer abstraction or move database restore into Services. 4) Web should only call builder.Services.AddContestJudgingServices() as its single composition entry point.",
+    "effort": "medium",
+    "status": "open",
+    "domain": "architecture",
+    "agent": "P2-A",
+    "related_findings": [
+      "ARCH-002",
+      "ARCH-005",
+      "BW-010",
+      "STRUCT-001"
+    ]
+  },
+  {
+    "id": "ARCH-002",
+    "title": "ContestManager (Services/Application layer) directly depends on concrete ContestDbContext from Infrastructure",
+    "severity": "high",
+    "category": "architecture",
+    "files": [
+      "src/ContestJudging.Services/Managers/ContestManager.cs:9",
+      "src/ContestJudging.Services/Managers/ContestManager.cs:23",
+      "src/ContestJudging.Services/Managers/ContestManager.cs:32",
+      "tests/ContestJudging.Tests/ContestManagerTests.cs:30",
+      "tests/ContestJudging.Tests/ContestManagerTests.cs:64",
+      "tests/ContestJudging.Tests/ContestManagerTests.cs:101"
+    ],
+    "evidence_snippet": "// ContestManager.cs:9 \u2014 imports Infrastructure namespace\nusing ContestJudging.Infrastructure.Persistence;\n\n// ContestManager.cs:23,32 \u2014 concrete Infrastructure dependency in constructor\nprivate readonly ContestDbContext _context;\npublic ContestManager(..., ContestDbContext context) { _context = context; }\n\n// ContestManagerTests.cs:30,64,101 \u2014 tests forced to pass null! for unmockable concrete dependency\nvar manager = new ContestManager(mockCatRepo.Object, mockEntryRepo.Object, mockRelRepo.Object, mockValidation.Object, mockResolution.Object, mockScoring.Object, null!);",
+    "rule_violated": "SOLID: Dependency Inversion Principle \u2014 high-level modules (Services/ContestManager) must not depend on low-level modules (Infrastructure/ContestDbContext); both should depend on abstractions. Clean Architecture: inner layers must not know about outer layer concretions.",
+    "remediation": "1) Extract an IDatabaseBackupService interface (export/import byte array) into Core.Interfaces. 2) Implement DatabaseBackupService in Infrastructure with raw file I/O. 3) Have ContestManager depend on IDatabaseBackupService instead of ContestDbContext. 4) Remove ExportDatabaseAsync/ImportDatabaseAsync from ContestDbContext (fixing ARCH-004). 5) Update tests to use the mockable IDatabaseBackupService abstraction.",
+    "effort": "small",
+    "status": "open",
+    "domain": "architecture",
+    "agent": "P2-A",
+    "related_findings": [
+      "ARCH-001",
+      "ARCH-004"
+    ]
+  },
+  {
+    "id": "ARCH-003",
+    "title": "Service interfaces (IValidationService, IPartitionService, IGlobalRankingService, IContestManager) defined in Services project instead of Core",
+    "severity": "medium",
+    "category": "architecture",
+    "files": [
+      "src/ContestJudging.Services/Validation/IValidationService.cs:1",
+      "src/ContestJudging.Services/Partitioning/IPartitionService.cs:1",
+      "src/ContestJudging.Services/Resolution/IGlobalRankingService.cs:1",
+      "src/ContestJudging.Services/Managers/IContestManager.cs:1",
+      "src/ContestJudging.Web/Pages/Setup.razor.cs:11",
+      "src/ContestJudging.Web/Pages/Judging.razor.cs:11",
+      "src/ContestJudging.Web/Pages/Results.razor.cs:3"
+    ],
+    "evidence_snippet": "// Four service interfaces live in Services project, not Core:\n// IValidationService.cs:1 \u2014 namespace ContestJudging.Services.Validation\n// IPartitionService.cs:1 \u2014 namespace ContestJudging.Services.Partitioning\n// IGlobalRankingService.cs:1 \u2014 namespace ContestJudging.Services.Resolution\n// IContestManager.cs:1 \u2014 namespace ContestJudging.Services.Managers\n\n// Contrast with correctly-placed interfaces in Core:\n// IScoringStrategy (Core.Interfaces), ICategoryRepository (Core.Interfaces.Repositories)\n\n// Web pages must import Services namespaces to use these interfaces:\n// Setup.razor.cs:11 \u2014 using ContestJudging.Services.Partitioning;\n// Results.razor.cs:3 \u2014 using ContestJudging.Services.Managers;",
+    "rule_violated": "SOLID: Dependency Inversion Principle \u2014 abstractions should be owned by the policy-defining layer (Core or Application.Abstractions), not the implementation layer. Clean Architecture: Dependency Rule \u2014 all compile-time dependencies point inward.",
+    "remediation": "1) Move IValidationService, IPartitionService, IGlobalRankingService, and IContestManager to ContestJudging.Core.Interfaces. 2) Update using directives in all implementations and Web consumers. 3) Consider a separate ContestJudging.Core.Interfaces.Services sub-namespace or a ContestJudging.Application.Abstractions project for service-level abstractions distinct from domain abstractions.",
+    "effort": "medium",
+    "status": "open",
+    "domain": "architecture",
+    "agent": "P2-A",
+    "related_findings": [
+      "ARCH-008"
+    ]
+  },
+  {
+    "id": "ARCH-004",
+    "title": "ContestDbContext violates Single Responsibility \u2014 mixes ORM configuration with raw file I/O export/import",
+    "severity": "medium",
+    "category": "architecture",
+    "files": [
+      "src/ContestJudging.Infrastructure/Persistence/ContestDbContext.cs:66",
+      "src/ContestJudging.Infrastructure/Persistence/ContestDbContext.cs:76"
+    ],
+    "evidence_snippet": "// ContestDbContext.cs:66-74 \u2014 raw file I/O in EF Core DbContext\npublic async Task<byte[]> ExportDatabaseAsync()\n{\n    var path = \"contest.db\";\n    if (File.Exists(path))\n    {\n        return await File.ReadAllBytesAsync(path);\n    }\n    return Array.Empty<byte>();\n}\n\n// ContestDbContext.cs:76-79 \u2014 raw file I/O in EF Core DbContext\npublic async Task ImportDatabaseAsync(byte[] data)\n{\n    var path = \"contest.db\";\n    await File.WriteAllBytesAsync(path, data);\n}",
+    "rule_violated": "SOLID: Single Responsibility Principle \u2014 a class should have only one reason to change. ContestDbContext should change only when the data model changes, not when the backup persistence mechanism changes. Clean Code: separation of concerns \u2014 data access and file I/O backup are distinct responsibilities that should not be co-located.",
+    "remediation": "1) Move ExportDatabaseAsync and ImportDatabaseAsync into a dedicated DatabaseBackupService class in Infrastructure. 2) Inject database path via configuration instead of hardcoding 'contest.db'. 3) Register IDatabaseBackupService in DI. 4) Remove these methods from ContestDbContext entirely. This also enables fixing ARCH-002 by giving ContestManager a mockable abstraction for backup operations.",
+    "effort": "small",
+    "status": "open",
+    "domain": "architecture",
+    "agent": "P2-A",
+    "related_findings": [
+      "ARCH-002",
+      "EF-011"
+    ]
+  },
+  {
+    "id": "ARCH-005",
+    "title": "Composition root (ServiceCollectionExtensions.AddContestJudgingServices) in Services layer instead of outermost layer",
+    "severity": "low",
+    "category": "architecture",
+    "files": [
+      "src/ContestJudging.Services/Extensions/ServiceCollectionExtensions.cs:5",
+      "src/ContestJudging.Services/Extensions/ServiceCollectionExtensions.cs:6",
+      "src/ContestJudging.Services/Extensions/ServiceCollectionExtensions.cs:21",
+      "src/ContestJudging.Web/Program.cs:7",
+      "src/ContestJudging.Web/Program.cs:64"
+    ],
+    "evidence_snippet": "// ServiceCollectionExtensions.cs:5-6 \u2014 Services layer imports Infrastructure namespaces to do DI\nusing ContestJudging.Infrastructure.Persistence;\nusing ContestJudging.Infrastructure.Repositories;\n\n// ServiceCollectionExtensions.cs:21 \u2014 DI composition lives in Services project\npublic static IServiceCollection AddContestJudgingServices(this IServiceCollection services, string connectionString)\n\n// Program.cs:7 \u2014 Web imports the Services extension\nusing ContestJudging.Services.Extensions;\n\n// Program.cs:64 \u2014 Web wraps Services DI in a local function (does not move composition root)\nstatic void AddServices(IServiceCollection services) { services.AddContestJudgingServices(\"Data Source=contest.db\"); }",
+    "rule_violated": "Clean Architecture Composition Root pattern \u2014 the composition root should be as close to the application entry point (the outermost layer, Web) as possible. Only the entry-point assembly should reference all other assemblies. Inner layers should not need knowledge of concrete implementations from outer layers.",
+    "remediation": "1) Move ServiceCollectionExtensions.AddContestJudgingServices to the Web project (or a Web DI folder). 2) Remove the Services \u2192 Infrastructure project reference. 3) Services should only reference Core and define interfaces there (see ARCH-003). 4) Register all implementations from the Web composition root, where references to all projects are natural.",
+    "effort": "medium",
+    "status": "open",
+    "domain": "architecture",
+    "agent": "P2-A",
+    "related_findings": [
+      "ARCH-001",
+      "ARCH-002",
+      "ARCH-003"
+    ]
+  },
+  {
+    "id": "ARCH-006",
+    "title": "Two IScoringStrategy implementations exist but are never registered in DI container",
+    "severity": "low",
+    "category": "architecture",
+    "files": [
+      "src/ContestJudging.Services/Extensions/ServiceCollectionExtensions.cs:33",
+      "src/ContestJudging.Services/Scoring/PercentileScoring.cs:1",
+      "src/ContestJudging.Services/Scoring/DefinedIntervalScoring.cs:1"
+    ],
+    "evidence_snippet": "// ServiceCollectionExtensions.cs:33 \u2014 only LinearSpacingScoring is registered\nservices.AddScoped<IScoringStrategy, LinearSpacingScoring>();\n\n// PercentileScoring.cs exists and is tested (ScoringStrategyTests) but never wired in DI\n// DefinedIntervalScoring.cs exists and is tested (ScoringStrategyTests) but never wired in DI\n// DefinedIntervalScoring also has a parameterized constructor (IEnumerable<double> rankPoints)\n// which cannot be registered via simple AddScoped<,> \u2014 needs a factory registration",
+    "rule_violated": "Principle of Least Surprise \u2014 multiple strategy implementations exist but only one is wired in DI. If the alternatives are dead code they should be removed; if they're live, they should be selectable via configuration. YAGNI \u2014 code that ships but can never be reached from the application entry point is dead weight.",
+    "remediation": "1) If PercentileScoring and DefinedIntervalScoring are production features: add a configuration mechanism (enum, settings key) to select the active scoring strategy at startup. 2) For DefinedIntervalScoring, implement a factory registration that reads rank points from configuration. 3) If they are legacy/experimental: delete the unused implementation files and their tests.",
+    "effort": "trivial",
+    "status": "open",
+    "domain": "architecture",
+    "agent": "P2-A",
+    "related_findings": [
+      "CQ-001"
+    ]
+  },
+  {
+    "id": "ARCH-007",
+    "title": "AddScoped DbContext lifetime in Blazor WASM \u2014 DbContext effectively singleton, change tracker grows unbounded",
+    "severity": "informational",
+    "category": "architecture",
+    "files": [
+      "src/ContestJudging.Services/Extensions/ServiceCollectionExtensions.cs:23",
+      "src/ContestJudging.Web/Program.cs:21"
+    ],
+    "evidence_snippet": "// ServiceCollectionExtensions.cs:23 \u2014 AddDbContext registers as Scoped by default\nservices.AddDbContext<ContestDbContext>(options => options.UseSqlite(connectionString));\n\n// In Blazor WASM, Scoped == Singleton unless OwningComponentBase is used.\n// The codebase never uses OwningComponentBase.\n// All 8 service registrations use AddScoped.\n//\n// EF Core DbContext accumulates tracked entities in the ChangeTracker.\n// A DbContext living for the entire browser session will:\n//   - Grow the change tracker with every Add/Update/Delete operation\n//   - Never release memory for discarded entities\n//   - Degrade SaveChangesAsync performance over time\n//\n// Program.cs:21 \u2014 SQLitePCL.Batteries_V2.Init() happens once at startup, so\n// EnsureCreatedAsync (line 56) only runs once, but the DbContext persists forever.",
+    "rule_violated": "EF Core best practices \u2014 DbContext instances should be short-lived per unit-of-work. In Blazor WASM, AddDbContextFactory<T> should be used to create short-lived contexts per operation, or ChangeTracker.Clear() should be called periodically to prevent unbounded memory growth.",
+    "remediation": "1) Replace AddDbContext<ContestDbContext> with AddDbContextFactory<ContestDbContext>. 2) Update repositories to inject IDbContextFactory<ContestDbContext> and create/dispose DbContext per operation. 3) Alternatively, call context.ChangeTracker.Clear() after batch operations (e.g., after CalculateGlobalScoresAsync in ContestManager). 4) The startup database restore in Program.cs should create a temporary context and dispose it immediately.",
+    "effort": "medium",
+    "status": "open",
+    "domain": "architecture",
+    "agent": "P2-A",
+    "related_findings": [
+      "ARCH-001"
+    ]
+  },
+  {
+    "id": "ALGO-001",
+    "title": "GetSortedTiers silently ignores contradictory self-loop edges unlike IsTotalOrder/IsValidOrder",
+    "severity": "medium",
+    "category": "correctness-defense-in-depth",
+    "files": [
+      "src/ContestJudging.Services/Validation/GraphValidationService.cs:264",
+      "src/ContestJudging.Services/Validation/GraphValidationService.cs:90",
+      "src/ContestJudging.Services/Validation/GraphValidationService.cs:176"
+    ],
+    "evidence_snippet": "// IsTotalOrder line 90, IsValidOrder line 176:\nif (u == v) return false;\n\n// GetSortedTiers line 264:\nif (u == v) continue;",
+    "rule_violated": "Defense in depth \u2014 contradictory equivalence-class self-loop must be rejected uniformly across all analysis methods",
+    "remediation": "Change line 264 to `if (u == v) throw new InvalidOperationException(...)` or add a boolean output parameter to signal validity. At minimum, match the `return false` behavior of the other two methods.",
+    "effort": "small",
+    "status": "open",
+    "domain": "algorithm-correctness",
+    "agent": "P2-B",
+    "related_findings": [
+      "CQ-002"
+    ]
+  },
+  {
+    "id": "ALGO-002",
+    "title": "Three methods contain 100% duplicated Kahn's Algorithm logic with only minor behavioral differences",
+    "severity": "medium",
+    "category": "duplication",
+    "files": [
+      "src/ContestJudging.Services/Validation/GraphValidationService.cs:43",
+      "src/ContestJudging.Services/Validation/GraphValidationService.cs:129",
+      "src/ContestJudging.Services/Validation/GraphValidationService.cs:214"
+    ],
+    "evidence_snippet": "// IsTotalOrder (43-127): 85 lines, checks queue.Count > 1\n// IsValidOrder (129-212): 84 lines, no queue.Count check, otherwise identical\n// GetSortedTiers (214-310): 97 lines, batch-processes tiers, silenty skips self-loops\n// All three independently build UnionFind, adjacency, in-degree, and run Kahn BFS.",
+    "rule_violated": "DRY \u2014 algorithm must be defined once and composed; duplicate implementations create divergent-fix risk",
+    "remediation": "Extract a private method (e.g., TryBuildTopologicalOrder) returning the order list or null on cycle. IsValidOrder wraps it checking for non-null. IsTotalOrder additionally verifies uniqueness via the single-source BFS property. GetSortedTiers groups the resulting order into tiers.",
+    "effort": "small",
+    "status": "open",
+    "domain": "algorithm-correctness",
+    "agent": "P2-B",
+    "related_findings": [
+      "ALGO-001",
+      "CQ-002",
+      "TE-014"
+    ]
+  },
+  {
+    "id": "ALGO-003",
+    "title": "UnionFind implementation lacks union-by-rank/size for optimal complexity",
+    "severity": "low",
+    "category": "performance-algorithm",
+    "files": [
+      "src/ContestJudging.Services/Validation/GraphValidationService.cs:32"
+    ],
+    "evidence_snippet": "public void Union(string i, string j)\n{\n    string rootI = Find(i);\n    string rootJ = Find(j);\n    if (rootI != rootJ)\n    {\n        _parent[rootI] = rootJ;\n    }\n}",
+    "rule_violated": "Union-Find textbook optimality requires both path compression and union-by-rank to achieve O(alpha(n)) amortized; missing union-by-rank limits to O(log n)",
+    "remediation": "Add a private Dictionary<string, int> _rank field. In Union, attach the smaller-rank tree under the larger-rank root, incrementing rank when equal.",
+    "effort": "trivial",
+    "status": "open",
+    "domain": "algorithm-correctness",
+    "agent": "P2-B",
+    "related_findings": []
+  },
+  {
+    "id": "ALGO-004",
+    "title": "Theoretical division-by-zero in BradleyTerry denominator for crafted zero-gamma entries",
+    "severity": "low",
+    "category": "correctness-edge-case",
+    "files": [
+      "src/ContestJudging.Services/Resolution/BradleyTerryResolutionService.cs:69"
+    ],
+    "evidence_snippet": "denominator += totalComparisons[i, j] / (gamma[i] + gamma[j]);\n// gamma[i] can be exactly 0.0 when totalWins[i] == 0.\n// If two such entries are compared, division by zero -> NaN.",
+    "rule_violated": "Robustness \u2014 numeric algorithms must guard against division-by-zero even in edge cases only reachable through crafted input",
+    "remediation": "Add a guard: if (gamma[i] + gamma[j] < 1e-12) continue; inside the inner loop at line 69.",
+    "effort": "trivial",
+    "status": "open",
+    "domain": "algorithm-correctness",
+    "agent": "P2-B",
+    "related_findings": []
+  },
+  {
+    "id": "ALGO-005",
+    "title": "Partition bridge node count can evaluate to zero at small overlap rates, breaking connectivity guarantee",
+    "severity": "low",
+    "category": "correctness-edge-case",
+    "files": [
+      "src/ContestJudging.Services/Partitioning/PartitionService.cs:21"
+    ],
+    "evidence_snippet": "int bCount = (int)Math.Round(n * overlapRate);\n// When n * overlapRate < 0.5, Round returns 0.\n// e.g., n=50, overlapRate=0.005 -> Round(0.25)=0 -> no bridge nodes.",
+    "rule_violated": "Invariant from README \u2014 partitioning must ensure statistical connectivity; zero bridge nodes violates this guarantee",
+    "remediation": "Enforce a minimum: int bCount = Math.Max(1, (int)Math.Round(n * overlapRate)) when kPartitions > 1 and n > 0. Alternatively validate overlapRate * n >= kPartitions - 1 before proceeding.",
+    "effort": "trivial",
+    "status": "open",
+    "domain": "algorithm-correctness",
+    "agent": "P2-B",
+    "related_findings": []
+  },
+  {
+    "id": "BW-001",
+    "title": "OnInitializedAsync methods lack exception handling in all three page components",
+    "severity": "medium",
+    "category": "lifecycle",
+    "files": [
+      "src/ContestJudging.Web/Pages/Setup.razor.cs:37",
+      "src/ContestJudging.Web/Pages/Judging.razor.cs:44",
+      "src/ContestJudging.Web/Pages/Results.razor.cs:20"
+    ],
+    "evidence_snippet": "// Setup.razor.cs:37-40\nprotected override async Task OnInitializedAsync()\n{\n    await RefreshData();  // no try-catch\n}\n\n// Judging.razor.cs:44-48\nprotected override async Task OnInitializedAsync()\n{\n    categories = (await CategoryRepository.GetAllAsync()).ToList();\n    entries = (await EntryRepository.GetAllAsync()).ToList();  // no try-catch\n}\n\n// Results.razor.cs:20-24\nprotected override async Task OnInitializedAsync()\n{\n    categories = (await CategoryRepository.GetAllAsync()).ToList();\n    entries = (await EntryRepository.GetAllAsync()).ToList();  // no try-catch\n}",
+    "rule_violated": "Blazor best practice: lifecycle methods that perform I/O should catch exceptions and display user-friendly errors",
+    "remediation": "Wrap OnInitializedAsync bodies in try-catch; set an errorMessage field to display in the UI rather than crashing to the global error boundary.",
+    "effort": "trivial",
+    "status": "open",
+    "domain": "blazor-wasm",
+    "agent": "P2-C",
+    "related_findings": []
+  },
+  {
+    "id": "BW-002",
+    "title": "BackupDatabase invoked on every Setup page load and every mutation, causing excessive localStorage writes",
+    "severity": "medium",
+    "category": "performance",
+    "files": [
+      "src/ContestJudging.Web/Pages/Setup.razor.cs:42",
+      "src/ContestJudging.Web/Pages/Setup.razor.cs:49",
+      "src/ContestJudging.Web/Pages/Setup.razor.cs:55"
+    ],
+    "evidence_snippet": "private async Task RefreshData()\n{\n    categories = (await CategoryRepository.GetAllAsync()).ToList();\n    entries = (await EntryRepository.GetAllAsync()).ToList();\n    await BackupDatabase();  // called on EVERY page load + every add/delete/clear\n}\n\nprivate async Task BackupDatabase()\n{\n    var data = await ContestManager.ExportDataAsync();  // full DB read\n    if (data.Length > 0)\n    {\n        await LocalStorage.SetItemAsStringAsync(\"db_backup\", Convert.ToBase64String(data));\n    }\n}",
+    "rule_violated": "Performance: full-database export + base64 encode + localStorage write on every CRUD operation is excessive I/O in a browser runtime",
+    "remediation": "Decouple backup from RefreshData. Save on a debounced timer, on page navigation away (Dispose), or use a dirty flag to track whether data has changed since last save.",
+    "effort": "small",
+    "status": "open",
+    "domain": "blazor-wasm",
+    "agent": "P2-C",
+    "related_findings": []
+  },
+  {
+    "id": "BW-003",
+    "title": "No localStorage quota check before storing multi-MB SQLite backup",
+    "severity": "medium",
+    "category": "data-loss",
+    "files": [
+      "src/ContestJudging.Web/Pages/Setup.razor.cs:55",
+      "src/ContestJudging.Web/Pages/Judging.razor.cs:82"
+    ],
+    "evidence_snippet": "await LocalStorage.SetItemAsStringAsync(\"db_backup\", Convert.ToBase64String(data));\n// No QuotaExceededError handling, no size threshold check before storing",
+    "rule_violated": "Defensive programming: browser localStorage has 5-10MB origin quota; exceeding it throws QuotaExceededError which is uncaught here",
+    "remediation": "Check data.Length against a safe threshold (e.g., 4MB) before writing. Wrap SetItemAsStringAsync in try-catch for QuotaExceededError. Show a user warning when the backup cannot be saved.",
+    "effort": "small",
+    "status": "open",
+    "domain": "blazor-wasm",
+    "agent": "P2-C",
+    "related_findings": []
+  },
+  {
+    "id": "BW-004",
+    "title": "Bootstrap JavaScript not loaded in index.html \u2014 accordion UI in Judging page is non-functional",
+    "severity": "high",
+    "category": "functionality",
+    "files": [
+      "src/ContestJudging.Web/wwwroot/index.html:14",
+      "src/ContestJudging.Web/Pages/Judging.razor:97"
+    ],
+    "evidence_snippet": "<!-- index.html:9-11 -- only Bootstrap CSS, no JS -->\n<link rel=\"stylesheet\" href=\"lib/bootstrap/dist/css/bootstrap.min.css\" />\n\n<!-- Judging.razor:97 -- depends on Bootstrap JS which is never loaded -->\n<button class=\"accordion-button collapsed\" type=\"button\"\n        data-bs-toggle=\"collapse\" data-bs-target=\"#manualEntry\">\n    Manual Override / Correction\n</button>",
+    "rule_violated": "Functional correctness: Bootstrap JS-dependent components (accordion) are broken because the JS bundle is not referenced",
+    "remediation": "Add <script src=\"lib/bootstrap/dist/js/bootstrap.bundle.min.js\"></script> to index.html before </body>. Or replace the Bootstrap accordion with Blazor-native conditional rendering (@if (showManualEntry) { ... }) to eliminate the JS dependency.",
+    "effort": "trivial",
+    "status": "open",
+    "domain": "blazor-wasm",
+    "agent": "P2-C",
+    "related_findings": []
+  },
+  {
+    "id": "BW-005",
+    "title": "Interactive div elements missing ARIA roles, keyboard handlers, and tabindex",
+    "severity": "medium",
+    "category": "accessibility",
+    "files": [
+      "src/ContestJudging.Web/Pages/Judging.razor:6",
+      "src/ContestJudging.Web/Pages/Judging.razor:66",
+      "src/ContestJudging.Web/Pages/Judging.razor:74",
+      "src/ContestJudging.Web/Pages/Judging.razor:84",
+      "src/ContestJudging.Web/Layout/NavMenu.razor:4"
+    ],
+    "evidence_snippet": "<!-- Clickable divs acting as buttons without button semantics -->\n<div class=\"judge-card h-100 text-center p-5 ...\"\n     @onclick=\"() => RecordResult(Operator.GreaterThan)\">\n    <!-- No role=\"button\", no tabindex, no @onkeydown -->\n\n<!-- Toggle button without aria-label -->\n<button title=\"Navigation menu\" class=\"navbar-toggler\" @onclick=\"ToggleNavMenu\">",
+    "rule_violated": "WCAG 2.1: 4.1.2 Name/Role/Value \u2014 interactive elements must expose their role and state to assistive technology; 2.1.1 Keyboard \u2014 all functionality must be operable through keyboard",
+    "remediation": "Replace judge-card divs with <button> elements for built-in ARIA semantics, or add role=\"button\", tabindex=\"0\", @onkeydown handlers for Enter/Space, and aria-label to each div. Add aria-keyshortcuts=\"A S D\" to the judging container. Add aria-label to the navbar toggle button.",
+    "effort": "small",
+    "status": "open",
+    "domain": "blazor-wasm",
+    "agent": "P2-C",
+    "related_findings": []
+  },
+  {
+    "id": "BW-006",
+    "title": "Large lists rendered without Virtualize component",
+    "severity": "medium",
+    "category": "performance",
+    "files": [
+      "src/ContestJudging.Web/Pages/Setup.razor:35",
+      "src/ContestJudging.Web/Pages/Setup.razor:67",
+      "src/ContestJudging.Web/Pages/Judging.razor:162",
+      "src/ContestJudging.Web/Pages/Results.razor:55"
+    ],
+    "evidence_snippet": "@foreach (var cat in categories)\n{\n    <li class=\"list-group-item...\">...</li>\n}\n\n@foreach (var rel in relations)\n{\n    <tr>...</tr>\n}",
+    "rule_violated": "Performance: rendering 200+ items without Virtualize causes unnecessary DOM nodes, memory usage, and slow initial render",
+    "remediation": "Replace @foreach with <Virtualize Items=\"@categories\" Context=\"cat\"> for lists that can exceed ~50 items. Relations list and leaderboard are the best candidates.",
+    "effort": "small",
+    "status": "open",
+    "domain": "blazor-wasm",
+    "agent": "P2-C",
+    "related_findings": []
+  },
+  {
+    "id": "BW-009",
+    "title": "Orphaned weather.json scaffold file in production wwwroot output",
+    "severity": "low",
+    "category": "dead-code",
+    "files": [
+      "src/ContestJudging.Web/wwwroot/sample-data/weather.json:1"
+    ],
+    "evidence_snippet": "[\n  { \"date\": \"2022-01-06\", \"temperatureC\": 1, \"summary\": \"Freezing\" },\n  ...\n]",
+    "rule_violated": "Clean code: scaffold/template artifacts should be removed before production use",
+    "remediation": "Delete wwwroot/sample-data/weather.json and the containing sample-data/ directory.",
+    "effort": "trivial",
+    "status": "open",
+    "domain": "blazor-wasm",
+    "agent": "P2-C",
+    "related_findings": []
+  },
+  {
+    "id": "EF-001",
+    "title": "No database migration files; schema managed exclusively via EnsureCreatedAsync()",
+    "severity": "high",
+    "category": "schema-management",
+    "files": [
+      "src/ContestJudging.Infrastructure/Persistence/ContestDbContext.cs:53",
+      "src/ContestJudging.Web/Program.cs:56"
+    ],
+    "evidence_snippet": "// Zero migration files in the repository (glob **/Migrations/** returns empty).\n// Program.cs:56: await context.Database.EnsureCreatedAsync();\n// ContestDbContext.cs:53-63: OnModelCreating configures schema but no migration snapshot exists.",
+    "rule_violated": "EF Core best practice: EnsureCreated() is for testing/in-memory scenarios only. Production apps must use migrations for versioned, upgradeable schema management.",
+    "remediation": "Run 'dotnet ef migrations add InitialCreate' to generate a migration. Replace EnsureCreatedAsync() with Database.MigrateAsync() in Program.cs. This preserves data across schema changes and tracks model snapshots.",
+    "effort": "small",
+    "status": "open",
+    "domain": "efcore",
+    "agent": "P2-D",
+    "related_findings": []
+  },
+  {
+    "id": "EF-002",
+    "title": "Missing foreign key relationships in entity configuration",
+    "severity": "high",
+    "category": "schema-design",
+    "files": [
+      "src/ContestJudging.Infrastructure/Persistence/ContestDbContext.cs:54"
+    ],
+    "evidence_snippet": "// OnModelCreating only configures keys + one unique index:\nmodelBuilder.Entity<CategoryEntity>().HasKey(c => c.Id);\nmodelBuilder.Entity<EntryEntity>().HasKey(e => e.Id);\nmodelBuilder.Entity<RelationEntity>().HasKey(r => r.Id);\nmodelBuilder.Entity<EntryScoreEntity>().HasKey(es => es.Id);\nmodelBuilder.Entity<EntryScoreEntity>().HasIndex(es => new { es.EntryId, es.CategoryId }).IsUnique();\n// Zero .HasOne(), .HasForeignKey(), or .OnDelete() calls.",
+    "rule_violated": "EF Core schema integrity: without explicit FK configuration, referential integrity is not enforced at the database level. SQLite has FK enforcement off by default.",
+    "remediation": "Add Fluent API relationships (HasOne/WithMany/HasForeignKey/OnDelete) for EntryEntity->EntryScoreEntity, EntryScoreEntity->CategoryEntity, and RelationEntity->CategoryEntity. Enable foreign keys at connection open. Remove manual cascade deletion code in repository DeleteAsync methods after FKs are configured.",
+    "effort": "small",
+    "status": "open",
+    "domain": "efcore",
+    "agent": "P2-D",
+    "related_findings": []
+  },
+  {
+    "id": "EF-003",
+    "title": "Database restore overwrites file with active DbContext connection; swallowed exception masks data loss",
+    "severity": "high",
+    "category": "error-handling",
+    "files": [
+      "src/ContestJudging.Web/Program.cs:35",
+      "src/ContestJudging.Web/Program.cs:47",
+      "src/ContestJudging.Web/Program.cs:49",
+      "src/ContestJudging.Web/Program.cs:56"
+    ],
+    "evidence_snippet": "// Program.cs:34-35: DbContext resolved, connection opened\nvar context = scope.ServiceProvider.GetRequiredService<ContestDbContext>();\n// Program.cs:47: raw file overwrite while DbContext is connected\nawait contestManager.ImportDataAsync(backupBytes);\n// Program.cs:49: all exceptions swallowed with ex.Message only\ncatch (Exception ex) { Console.WriteLine($\"Failed to restore database: {ex.Message}\"); }\n// Program.cs:56: runs after potentially-corrupted restore\nawait context.Database.EnsureCreatedAsync();",
+    "rule_violated": "Best practice: never overwrite an open database file via raw filesystem I/O. Never swallow exceptions silently when data operations are at stake.",
+    "remediation": "Restructure startup: check LocalStorage for backup before creating the DbContext scope. Dispose of existing connection, restore file, then create fresh DbContext. Log ex.ToString() instead of ex.Message. Set an error flag for UI notification.",
+    "effort": "medium",
+    "status": "open",
+    "domain": "efcore",
+    "agent": "P2-D",
+    "related_findings": [
+      "BW-008",
+      "CQ-003",
+      "SEC-005"
+    ]
+  },
+  {
+    "id": "EF-004",
+    "title": "O(n*m) client-side join in SqliteEntryRepository queries",
+    "severity": "medium",
+    "category": "performance",
+    "files": [
+      "src/ContestJudging.Infrastructure/Repositories/SqliteRepositories.cs:87",
+      "src/ContestJudging.Infrastructure/Repositories/SqliteRepositories.cs:91",
+      "src/ContestJudging.Infrastructure/Repositories/SqliteRepositories.cs:107",
+      "src/ContestJudging.Infrastructure/Repositories/SqliteRepositories.cs:115"
+    ],
+    "evidence_snippet": "// GetByIdAsync (line 87) and GetAllAsync (line 107):\nvar categories = await _context.Categories.ToListAsync();\n// Inside nested loops (lines 91, 115):\nvar categoryEntity = categories.FirstOrDefault(c => c.Id == scoreEntity.CategoryId);\n// O(N*M) linear scan in C# instead of single SQL JOIN",
+    "rule_violated": "EF Core query efficiency: prefer database-side JOINs over client-side correlation loops. O(n*m) vs O(n) with SQL JOIN.",
+    "remediation": "Add a Category navigation property to EntryScoreEntity. Configure FK in OnModelCreating. Use .Include(e => e.Scores).ThenInclude(s => s.Category) and access scoreEntity.Category directly. This emits a single SQL JOIN.",
+    "effort": "small",
+    "status": "open",
+    "domain": "efcore",
+    "agent": "P2-D",
+    "related_findings": [
+      "CQ-007"
+    ]
+  },
+  {
+    "id": "EF-005",
+    "title": "Missing .AsNoTracking() on all read-only repository queries",
+    "severity": "medium",
+    "category": "performance",
+    "files": [
+      "src/ContestJudging.Infrastructure/Repositories/SqliteRepositories.cs:30",
+      "src/ContestJudging.Infrastructure/Repositories/SqliteRepositories.cs:80",
+      "src/ContestJudging.Infrastructure/Repositories/SqliteRepositories.cs:103",
+      "src/ContestJudging.Infrastructure/Repositories/SqliteRepositories.cs:200"
+    ],
+    "evidence_snippet": "// GetAllAsync (line 30): await _context.Categories.ToListAsync();\n// GetByIdAsync (line 80): await _context.Entries.Include(e => e.Scores).FirstOrDefaultAsync(...);\n// GetAllAsync (line 103): await _context.Entries.Include(e => e.Scores).ToListAsync();\n// GetByCategoryIdAsync (line 200): await _context.Relations.Where(...).ToListAsync();\n// All lack .AsNoTracking(); entities are tracked but never mutated in these read paths.",
+    "rule_violated": "EF Core performance best practice: use .AsNoTracking() for read-only queries to avoid change tracker overhead.",
+    "remediation": "Add .AsNoTracking() to GetAllAsync, GetByIdAsync, and GetByCategoryIdAsync queries. For UpdateAsync methods that mutate entities, keep tracking enabled.",
+    "effort": "trivial",
+    "status": "open",
+    "domain": "efcore",
+    "agent": "P2-D",
+    "related_findings": []
+  },
+  {
+    "id": "EF-006",
+    "title": "CalculateGlobalScoresAsync performs individual entry updates without transaction wrapping",
+    "severity": "medium",
+    "category": "transactions",
+    "files": [
+      "src/ContestJudging.Services/Managers/ContestManager.cs:107",
+      "src/ContestJudging.Services/Managers/ContestManager.cs:112"
+    ],
+    "evidence_snippet": "// ContestManager.cs:106-114: each entry update commits independently\nforeach (var entry in entries)\n{\n    if (scores.TryGetValue(entry.Id, out double score))\n    {\n        entry.SetScore(category, score);\n        await _entryRepository.UpdateAsync(entry); // calls SaveChangesAsync internally\n    }\n}\n// No BeginTransaction / CommitTransaction wrapping. Partial updates possible on failure.",
+    "rule_violated": "ACID best practice: multi-entity mutations representing a single logical operation must be wrapped in a transaction.",
+    "remediation": "Wrap the scoring loop in a transaction via _context.Database.BeginTransactionAsync(). Alternatively, refactor UpdateAsync to not call SaveChangesAsync internally and batch all changes in a single SaveChangesAsync call at the end of the loop.",
+    "effort": "small",
+    "status": "open",
+    "domain": "efcore",
+    "agent": "P2-D",
+    "related_findings": []
+  },
+  {
+    "id": "EF-007",
+    "title": "Connection string hardcoded in Program.cs rather than sourced from configuration",
+    "severity": "low",
+    "category": "configuration",
+    "files": [
+      "src/ContestJudging.Web/Program.cs:66"
+    ],
+    "evidence_snippet": "// Program.cs:66: hardcoded connection string\nservices.AddContestJudgingServices(\"Data Source=contest.db\");\n// ServiceCollectionExtensions.cs:21 has misleading :memory: default never used by caller",
+    "rule_violated": "Twelve-Factor App / .NET conventions: configuration should come from appsettings.json, environment variables, or configuration providers.",
+    "remediation": "Read connection string from builder.Configuration.GetConnectionString(\"ContestDb\") or appsettings. Store the DB path there. This also makes swapping to :memory: for tests trivial.",
+    "effort": "trivial",
+    "status": "open",
+    "domain": "efcore",
+    "agent": "P2-D",
+    "related_findings": [
+      "SEC-003"
+    ]
+  },
+  {
+    "id": "EF-008",
+    "title": "Missing indexes on frequently queried foreign key columns",
+    "severity": "low",
+    "category": "schema-design",
+    "files": [
+      "src/ContestJudging.Infrastructure/Persistence/ContestDbContext.cs:54"
+    ],
+    "evidence_snippet": "// RelationEntity.CategoryId used in WHERE at SqliteRepositories.cs:57, 173, 201 \u2014 no index.\n// EntryScoreEntity.EntryId used in WHERE at SqliteRepositories.cs:176 \u2014 no separate index (only covered by composite unique).\n// OnModelCreating has zero .HasIndex() calls beyond the single composite unique on EntryScoreEntity.",
+    "rule_violated": "Database performance: index columns used in WHERE and JOIN clauses.",
+    "remediation": "Add .HasIndex(r => r.CategoryId) on RelationEntity and .HasIndex(es => es.EntryId) on EntryScoreEntity in OnModelCreating.",
+    "effort": "trivial",
+    "status": "open",
+    "domain": "efcore",
+    "agent": "P2-D",
+    "related_findings": []
+  },
+  {
+    "id": "EF-009",
+    "title": "No error handling around SaveChangesAsync calls in repository methods",
+    "severity": "low",
+    "category": "error-handling",
+    "files": [
+      "src/ContestJudging.Infrastructure/Repositories/SqliteRepositories.cs:38",
+      "src/ContestJudging.Infrastructure/Repositories/SqliteRepositories.cs:47",
+      "src/ContestJudging.Infrastructure/Repositories/SqliteRepositories.cs:64",
+      "src/ContestJudging.Infrastructure/Repositories/SqliteRepositories.cs:140",
+      "src/ContestJudging.Infrastructure/Repositories/SqliteRepositories.cs:163",
+      "src/ContestJudging.Infrastructure/Repositories/SqliteRepositories.cs:180",
+      "src/ContestJudging.Infrastructure/Repositories/SqliteRepositories.cs:228",
+      "src/ContestJudging.Infrastructure/Repositories/SqliteRepositories.cs:238"
+    ],
+    "evidence_snippet": "// All 8 SaveChangesAsync() calls lack try/catch. Example:\nawait _context.Categories.AddAsync(entity);\nawait _context.SaveChangesAsync();\n// No handling for DbUpdateException, constraint violations, or I/O errors.",
+    "rule_violated": "Defensive programming: persistence operations should catch and wrap data-access exceptions with domain-meaningful error types.",
+    "remediation": "Wrap SaveChangesAsync() in try/catch. Catch DbUpdateException and inspect its inner exception to provide user-actionable messages. Re-throw as a custom domain exception or log with context.",
+    "effort": "small",
+    "status": "open",
+    "domain": "efcore",
+    "agent": "P2-D",
+    "related_findings": []
+  },
+  {
+    "id": "EF-010",
+    "title": "EntryScoreEntity has redundant surrogate key alongside natural composite unique constraint",
+    "severity": "low",
+    "category": "schema-design",
+    "files": [
+      "src/ContestJudging.Infrastructure/Persistence/ContestDbContext.cs:24",
+      "src/ContestJudging.Infrastructure/Persistence/ContestDbContext.cs:60"
+    ],
+    "evidence_snippet": "// EntryScoreEntity: auto-increment int Id as PK (line 26)\n// Plus unique composite index on (EntryId, CategoryId) (lines 60-62)\n// The surrogate Id is never referenced by any FK and never used in any query.",
+    "rule_violated": "Schema normalization: avoid redundant surrogate keys when the natural key is sufficient and no referencing FKs require it.",
+    "remediation": "Remove the Id property and make (EntryId, CategoryId) the composite primary key via modelBuilder.Entity<EntryScoreEntity>().HasKey(es => new { es.EntryId, es.CategoryId }).",
+    "effort": "trivial",
+    "status": "open",
+    "domain": "efcore",
+    "agent": "P2-D",
+    "related_findings": []
+  },
+  {
+    "id": "EF-012",
+    "title": "No .IsRequired() or .HasMaxLength() configuration on string entity properties",
+    "severity": "informational",
+    "category": "schema-design",
+    "files": [
+      "src/ContestJudging.Infrastructure/Persistence/ContestDbContext.cs:54"
+    ],
+    "evidence_snippet": "// OnModelCreating only configures keys and one index.\n// All string properties (CategoryEntity.Id, EntryEntity.Id, EntryScoreEntity.EntryId/CategoryId,\n// RelationEntity.CategoryId/EntryAId/EntryBId) lack .IsRequired() and .HasMaxLength().\n// EF Core defaults to nvarchar(max) nullable \u2014 semantically imprecise for non-null PK/FK columns.",
+    "rule_violated": "EF Core schema precision: explicit column constraints improve model clarity and enable database-level validation.",
+    "remediation": "Add .IsRequired() and .HasMaxLength(256) to all string PK/FK properties in OnModelCreating.",
+    "effort": "trivial",
+    "status": "open",
+    "domain": "efcore",
+    "agent": "P2-D",
+    "related_findings": []
+  },
+  {
+    "id": "TE-001",
+    "title": "PartitionService tests are non-deterministic due to unseeded Random",
+    "severity": "high",
+    "category": "test-isolation",
+    "files": [
+      "src/ContestJudging.Services/Partitioning/PartitionService.cs:9",
+      "tests/ContestJudging.Tests/PartitionServiceTests.cs:22",
+      "tests/ContestJudging.Tests/PartitionServiceTests.cs:31"
+    ],
+    "evidence_snippet": "private readonly Random _random = new(); // PartitionService.cs:9\n// ...\nAssert.Equal(10, common.Count); // PartitionServiceTests.cs:31 \u2014 non-deterministic",
+    "rule_violated": "Testing: tests must be deterministic and reproducible; unseeded Random produces different results per run",
+    "remediation": "Inject Random or an IRandomProvider into PartitionService. Tests should use new Random(42) for deterministic shuffling.",
+    "effort": "small",
+    "status": "open",
+    "domain": "test-effectiveness",
+    "agent": "P2-E",
+    "related_findings": [
+      "TEST-001"
+    ]
+  },
+  {
+    "id": "TE-002",
+    "title": "ContestManager ExportDataAsync/ImportDataAsync are structurally untestable due to concrete ContestDbContext dependency",
+    "severity": "high",
+    "category": "mock-quality",
+    "files": [
+      "src/ContestJudging.Services/Managers/ContestManager.cs:23",
+      "src/ContestJudging.Services/Managers/ContestManager.cs:119",
+      "src/ContestJudging.Services/Managers/ContestManager.cs:124",
+      "tests/ContestJudging.Tests/ContestManagerTests.cs:30",
+      "src/ContestJudging.Infrastructure/Persistence/ContestDbContext.cs:66",
+      "src/ContestJudging.Infrastructure/Persistence/ContestDbContext.cs:76"
+    ],
+    "evidence_snippet": "// ContestManager.cs:23 \u2014 concrete dependency, not an interface\nprivate readonly ContestDbContext _context;\n\n// ContestManagerTests.cs:30 \u2014 null! masks fragility\nvar manager = new ContestManager(... , null!);\n\n// ContestDbContext.cs:66 \u2014 hardcoded path makes mocking impossible\nvar path = \"contest.db\";\nreturn await File.ReadAllBytesAsync(path);",
+    "rule_violated": "SOLID:DIP \u2014 depending on concrete implementation prevents unit testing of I/O-bound methods",
+    "remediation": "Extract IDatabaseExportImport interface with ExportAsync/ImportAsync, implement in ContestDbContext, inject into ContestManager.",
+    "effort": "medium",
+    "status": "open",
+    "domain": "test-effectiveness",
+    "agent": "P2-E",
+    "related_findings": [
+      "CQ-003",
+      "TE-010",
+      "TEST-004",
+      "TEST-010"
+    ]
+  },
+  {
+    "id": "TE-003",
+    "title": "LocalStorage backup/restore pipeline has zero test coverage across all layers",
+    "severity": "high",
+    "category": "coverage-gap",
+    "files": [
+      "src/ContestJudging.Web/Pages/Setup.razor.cs:49",
+      "src/ContestJudging.Web/Pages/Setup.razor.cs:55",
+      "src/ContestJudging.Web/Pages/Judging.razor.cs:76",
+      "src/ContestJudging.Web/Pages/Judging.razor.cs:82",
+      "src/ContestJudging.Web/Program.cs:39",
+      "src/ContestJudging.Web/Program.cs:46"
+    ],
+    "evidence_snippet": "// Setup.razor.cs:49-57 \u2014 BackupDatabase untested\nprivate async Task BackupDatabase()\n{\n    var data = await ContestManager.ExportDataAsync();\n    await LocalStorage.SetItemAsStringAsync(\"db_backup\", Convert.ToBase64String(data));\n}\n\n// Program.cs:39-54 \u2014 restore path catches and swallows, untested\ncatch (Exception ex) { Console.WriteLine($\"Failed to restore database: {ex.Message}\"); }",
+    "rule_violated": "Testing: critical data persistence path (only persistence in Blazor WASM) has no coverage",
+    "remediation": "Extract backup/restore to dedicated IBackupService. Add integration test for round-trip: write data, backup, wipe, restore, verify.",
+    "effort": "medium",
+    "status": "open",
+    "domain": "test-effectiveness",
+    "agent": "P2-E",
+    "related_findings": [
+      "CQ-002",
+      "CQ-003",
+      "TE-002"
+    ]
+  },
+  {
+    "id": "TE-004",
+    "title": "BradleyTerryResolutionService convergence and early-exit paths completely untested",
+    "severity": "high",
+    "category": "coverage-gap",
+    "files": [
+      "src/ContestJudging.Services/Resolution/BradleyTerryResolutionService.cs:56",
+      "src/ContestJudging.Services/Resolution/BradleyTerryResolutionService.cs:90",
+      "src/ContestJudging.Services/Resolution/BradleyTerryResolutionService.cs:108",
+      "src/ContestJudging.Services/Resolution/BradleyTerryResolutionService.cs:118",
+      "tests/ContestJudging.Tests/ResolutionServiceTests.cs:13",
+      "tests/ContestJudging.Tests/ResolutionServiceTests.cs:41"
+    ],
+    "evidence_snippet": "// BradleyTerryResolutionService.cs:90-111 \u2014 rank-stability early exit never reached\nif (iter > 50 && iter % 10 == 0)\n{\n    if (stable && maxDiff < 1e-3) { gamma = nextGamma; break; }\n}\n// Both existing tests use \u22643 entries and converge in 1 iteration",
+    "rule_violated": "Testing: algorithmic correctness \u2014 convergence path with the most complex logic (MLE + rank stability) is unexercised",
+    "remediation": "Add test with 10+ entries and partial rankings requiring 50+ iterations. Add tests for empty input, single entry, and MaxIterations exhaustion.",
+    "effort": "medium",
+    "status": "open",
+    "domain": "test-effectiveness",
+    "agent": "P2-E",
+    "related_findings": [
+      "CQ-006",
+      "CQ-008"
+    ]
+  },
+  {
+    "id": "TE-005",
+    "title": "CalculateScoresFromStrengths untested across all three scoring strategies",
+    "severity": "high",
+    "category": "coverage-gap",
+    "files": [
+      "src/ContestJudging.Services/Scoring/LinearSpacingScoring.cs:38",
+      "src/ContestJudging.Services/Scoring/PercentileScoring.cs:40",
+      "src/ContestJudging.Services/Scoring/DefinedIntervalScoring.cs:38",
+      "tests/ContestJudging.Tests/ScoringStrategyTests.cs:13"
+    ],
+    "evidence_snippet": "// LinearSpacingScoring.cs:52-63 \u2014 untested normalization with division-by-zero guard\ndouble range = maxStrength - minStrength;\nif (range < 1e-9) { normalized = 1.0; }\nelse { normalized = (kvp.Value - minStrength) / range; }\n// Called by ContestManager.CalculateGlobalScoresAsync line 104, but never directly tested",
+    "rule_violated": "Testing: IScoringStrategy interface has two methods; only CalculateScores is tested; CalculateScoresFromStrengths exercises different code paths",
+    "remediation": "Add tests for each strategy's CalculateScoresFromStrengths with varied strengths, identical strengths (range < 1e-9), and single entry.",
+    "effort": "small",
+    "status": "open",
+    "domain": "test-effectiveness",
+    "agent": "P2-E",
+    "related_findings": [
+      "CQ-008",
+      "TE-004"
+    ]
+  },
+  {
+    "id": "TE-006",
+    "title": "Repository UpdateAsync and GetAllAsync methods have zero test coverage",
+    "severity": "medium",
+    "category": "coverage-gap",
+    "files": [
+      "src/ContestJudging.Infrastructure/Repositories/SqliteRepositories.cs:41",
+      "src/ContestJudging.Infrastructure/Repositories/SqliteRepositories.cs:28",
+      "src/ContestJudging.Infrastructure/Repositories/SqliteRepositories.cs:101",
+      "src/ContestJudging.Infrastructure/Repositories/SqliteRepositories.cs:143",
+      "tests/ContestJudging.Tests/InfrastructureTests.cs:35"
+    ],
+    "evidence_snippet": "// SqliteRepositories.cs:143-165 \u2014 Entry UpdateAsync untested (destructive: removes all scores and rebuilds)\n_context.EntryScores.RemoveRange(entity.Scores);\nforeach (var score in entry.Scores) { entity.Scores.Add(new EntryScoreEntity { ... }); }\n// SqliteRepositories.cs:101-125 \u2014 Entry GetAllAsync untested (client-side join pattern)",
+    "rule_violated": "Testing: CRUD operations not covered \u2014 UpdateAsync/GetAllAsync are not tested in any repository",
+    "remediation": "Add tests for all UpdateAsync and GetAllAsync methods across all three repositories. Include edge: update non-existent ID, empty table, update with zero scores.",
+    "effort": "small",
+    "status": "open",
+    "domain": "test-effectiveness",
+    "agent": "P2-E",
+    "related_findings": [
+      "CQ-007",
+      "TE-009",
+      "TEST-009"
+    ]
+  },
+  {
+    "id": "TE-007",
+    "title": "ValidatePartitionedGraph tests fail to assert error message content",
+    "severity": "medium",
+    "category": "assertion-strength",
+    "files": [
+      "tests/ContestJudging.Tests/ValidationServiceTests.cs:175",
+      "tests/ContestJudging.Tests/ValidationServiceTests.cs:201",
+      "tests/ContestJudging.Tests/ValidationServiceTests.cs:228",
+      "src/ContestJudging.Services/Validation/GraphValidationService.cs:312"
+    ],
+    "evidence_snippet": "// ValidationServiceTests.cs:175 \u2014 checks IsValid/ComponentCount but not ErrorMessage\nAssert.False(result.IsValid);\nAssert.Equal(2, result.ComponentCount);\n// Never asserts result.ErrorMessage \u2014 could return false for wrong reason\n\n// GraphValidationService.cs:339 \u2014 error message never asserted in any test\nreturn new ValidationResult(false, \"The graph is not fully connected. Bridge nodes failed to overlap correctly.\", componentCount);",
+    "rule_violated": "Testing: assertions must verify the specific failure reason, not just that failure occurred",
+    "remediation": "Add Assert.Equal(...) for result.ErrorMessage in both disconnected and cycle test cases to validate correct error discrimination.",
+    "effort": "trivial",
+    "status": "open",
+    "domain": "test-effectiveness",
+    "agent": "P2-E",
+    "related_findings": []
+  },
+  {
+    "id": "TE-008",
+    "title": "LessThan operator never tested in IsTotalOrder or IsValidOrder",
+    "severity": "medium",
+    "category": "coverage-gap",
+    "files": [
+      "src/ContestJudging.Services/Validation/GraphValidationService.cs:80",
+      "src/ContestJudging.Services/Validation/GraphValidationService.cs:166",
+      "tests/ContestJudging.Tests/ValidationServiceTests.cs:15",
+      "tests/ContestJudging.Tests/ValidationServiceTests.cs:89"
+    ],
+    "evidence_snippet": "// GraphValidationService.cs:80-83 \u2014 LessThan branch has zero coverage\nelse if (rel.Operator == Operator.LessThan)\n{\n    u = rootB;\n    v = rootA;\n}\n// All 10 validation tests use only GreaterThan and EqualTo",
+    "rule_violated": "Testing: enum value coverage \u2014 Operator.LessThan is used in production (keyboard handler) but not in any validation test",
+    "remediation": "Add one test each for IsTotalOrder and IsValidOrder with a LessThan relation to verify directional inversion.",
+    "effort": "trivial",
+    "status": "open",
+    "domain": "test-effectiveness",
+    "agent": "P2-E",
+    "related_findings": []
+  },
+  {
+    "id": "TE-011",
+    "title": "E2E tests are shallow smoke tests with no functional workflow validation",
+    "severity": "low",
+    "category": "assertion-strength",
+    "files": [
+      "tests/ContestJudging.E2ETests/AppE2ETests.cs:23",
+      "tests/ContestJudging.E2ETests/AppE2ETests.cs:30"
+    ],
+    "evidence_snippet": "// AppE2ETests.cs:30-37 \u2014 navigation test with no functional assertions\nawait Page.Locator(\"text=Get Started\").ClickAsync();\nawait Expect(Page.Locator(\"h2:has-text('Contest Setup')\")).ToBeVisibleAsync();\n// Neither test exercises judging workflow, backup/restore, or result calculation",
+    "rule_violated": "Testing: E2E tests should validate critical user workflows, not just page render",
+    "remediation": "Add E2E test for full judging workflow: create category, add entries, record comparisons, calculate results, verify leaderboard. Add backup/restore test.",
+    "effort": "medium",
+    "status": "open",
+    "domain": "test-effectiveness",
+    "agent": "P2-E",
+    "related_findings": [
+      "TEST-002",
+      "TEST-007"
+    ]
+  },
+  {
+    "id": "TE-012",
+    "title": "TrimmingSafetyTests uses fragile string-contains assertions for JSON validation",
+    "severity": "low",
+    "category": "assertion-strength",
+    "files": [
+      "tests/ContestJudging.Tests/TrimmingSafetyTests.cs:33",
+      "tests/ContestJudging.Tests/TrimmingSafetyTests.cs:34"
+    ],
+    "evidence_snippet": "Assert.Contains(\"E1\", json);      // weak: matches anywhere in JSON\nAssert.Contains(\"85.5\", json);    // weak: matches anywhere\n// Deserialized object check at line 38 is sufficient for round-trip validation",
+    "rule_violated": "Testing: string-based assertions on serialized output are fragile and nondeterministic",
+    "remediation": "Remove the string-contains assertions. The deserialized object check on lines 38-39 already validates correct round-trip.",
+    "effort": "trivial",
+    "status": "open",
+    "domain": "test-effectiveness",
+    "agent": "P2-E",
+    "related_findings": []
+  },
+  {
+    "id": "TE-013",
+    "title": "PartitionService constructor validation (k <= 0, invalid overlap) untested",
+    "severity": "low",
+    "category": "coverage-gap",
+    "files": [
+      "src/ContestJudging.Services/Partitioning/PartitionService.cs:16",
+      "src/ContestJudging.Services/Partitioning/PartitionService.cs:17",
+      "tests/ContestJudging.Tests/PartitionServiceTests.cs:13"
+    ],
+    "evidence_snippet": "// PartitionService.cs:16-17 \u2014 validation paths untested\nif (kPartitions <= 0) throw new ArgumentException(\"kPartitions must be greater than 0\", nameof(kPartitions));\nif (overlapRate < 0 || overlapRate > 1) throw new ArgumentException(\"overlapRate must be between 0 and 1\", nameof(overlapRate));",
+    "rule_violated": "Testing: constructor guard clauses should be verified with theory/parameterized tests",
+    "remediation": "Add Theory with InlineData for: k=0, k=-1, overlap=-0.1, overlap=1.1 \u2014 all should throw ArgumentException.",
+    "effort": "trivial",
+    "status": "open",
+    "domain": "test-effectiveness",
+    "agent": "P2-E",
+    "related_findings": []
+  },
+  {
+    "id": "TE-015",
+    "title": "ScoringStrategy empty-tiers and single-entry edge cases untested",
+    "severity": "low",
+    "category": "coverage-gap",
+    "files": [
+      "src/ContestJudging.Services/Scoring/LinearSpacingScoring.cs:15",
+      "src/ContestJudging.Services/Scoring/PercentileScoring.cs:16",
+      "src/ContestJudging.Services/Scoring/DefinedIntervalScoring.cs:22",
+      "tests/ContestJudging.Tests/ScoringStrategyTests.cs:13"
+    ],
+    "evidence_snippet": "// All three scoring files: early return for empty tiers untested\nif (k == 0) return assignedScores;           // LinearSpacing, DefinedInterval\nif (totalEntries == 0) return assignedScores; // Percentile\nif (totalEntries == 1 || sortedTiers.Count == 1) { ... }  // Percentile single entry path",
+    "rule_violated": "Testing: edge case and boundary condition coverage for algorithmic methods",
+    "remediation": "Add tests: empty tiers for each strategy, single entry/single tier for PercentileScoring.",
+    "effort": "trivial",
+    "status": "open",
+    "domain": "test-effectiveness",
+    "agent": "P2-E",
+    "related_findings": []
+  },
+  {
+    "id": "TE-016",
+    "title": "Entry.SetScore boundary values (0 and maxScore) never tested",
+    "severity": "low",
+    "category": "coverage-gap",
+    "files": [
+      "src/ContestJudging.Core/Entities/Entry.cs:19",
+      "tests/ContestJudging.Tests/CoreTests.cs:27",
+      "tests/ContestJudging.Tests/CoreTests.cs:36"
+    ],
+    "evidence_snippet": "// Entry.cs:19 \u2014 boundary condition: >= 0 && <= MaxScore\nif (score >= 0 && score <= category.MaxScore)\n// CoreTests.cs:27-33 \u2014 only tests mid-range value 5 (category.MaxScore=10)\nentry.SetScore(category, 5);\n// Neither boundary tested: score=0 (valid) or score=category.MaxScore (valid)",
+    "rule_violated": "Testing: boundary value analysis \u2014 valid edge values at the boundary should be tested",
+    "remediation": "Add Theory with InlineData for SetScore(category, 0) and SetScore(category, category.MaxScore) to validate boundary acceptance.",
+    "effort": "trivial",
+    "status": "open",
+    "domain": "test-effectiveness",
+    "agent": "P2-E",
+    "related_findings": [
+      "TEST-001"
+    ]
+  }
+]

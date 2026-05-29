@@ -1,0 +1,246 @@
+{
+  "agent_id": "PA2-A",
+  "domain": "architecture",
+  "type": "reaudit",
+  "based_on": "reports/audit/findings-P2-architecture.json",
+  "branch": "fix/audit-remediate",
+  "status": "success",
+  "original_findings_status": {
+    "total": 8,
+    "resolved": 2,
+    "open": 6,
+    "details": {
+      "ARCH-001": {
+        "title": "Web project directly references Infrastructure layer",
+        "original_severity": "medium",
+        "status": "open",
+        "reaudit_notes": "Program.cs still imports ContestJudging.Infrastructure.Persistence (line 6), calls SQLitePCL.Batteries_V2.Init() (line 21), resolves ContestDbContext directly (line 36). Web.csproj still references Microsoft.EntityFrameworkCore.Sqlite, SQLitePCLRaw.bundle_e_sqlite3, and ContestJudging.Infrastructure. No change from original audit."
+      },
+      "ARCH-002": {
+        "title": "ContestManager directly depends on concrete ContestDbContext",
+        "original_severity": "high",
+        "status": "resolved",
+        "reaudit_notes": "ContestManager.cs uses IDatabaseBackupService instead of ContestDbContext. No using ContestJudging.Infrastructure.Persistence import. Tests updated to mock IDatabaseBackupService. Fully remediated."
+      },
+      "ARCH-003": {
+        "title": "Service interfaces defined in Services project instead of Core",
+        "original_severity": "medium",
+        "status": "open",
+        "reaudit_notes": "IContestManager still in Services.Managers, IValidationService still in Services.Validation, IPartitionService still in Services.Partitioning, IGlobalRankingService still in Services.Resolution. No change from original audit. Exacerbated by RA-ARCH-003."
+      },
+      "ARCH-004": {
+        "title": "ContestDbContext violates SRP mixing ORM config with file I/O",
+        "original_severity": "medium",
+        "status": "resolved",
+        "reaudit_notes": "ExportDatabaseAsync and ImportDatabaseAsync removed from ContestDbContext. Methods now live in DatabaseBackupService (Infrastructure). Fully remediated."
+      },
+      "ARCH-005": {
+        "title": "Composition root in Services layer instead of outermost layer",
+        "original_severity": "low",
+        "status": "open",
+        "reaudit_notes": "AddContestJudgingServices still in Services.Extensions. Services.csproj still references Infrastructure. No change from original audit."
+      },
+      "ARCH-006": {
+        "title": "Two IScoringStrategy implementations never registered in DI",
+        "original_severity": "low",
+        "status": "open",
+        "reaudit_notes": "Only LinearSpacingScoring registered (line 33). PercentileScoring and DefinedIntervalScoring still exist but not wired. No change from original audit."
+      },
+      "ARCH-007": {
+        "title": "AddScoped DbContext lifetime in Blazor WASM",
+        "original_severity": "informational",
+        "status": "open",
+        "reaudit_notes": "AddDbContext<ContestDbContext> still used (line 23). No AddDbContextFactory replacement. No ChangeTracker.Clear() calls. Informational finding remains valid."
+      },
+      "ARCH-008": {
+        "title": "No consistent rule for interface placement",
+        "original_severity": "informational",
+        "status": "open",
+        "reaudit_notes": "Repository/scoring interfaces in Core, service interfaces in Services. No documented rationale. Exacerbated by new IBackupService in Core (RA-ARCH-003)."
+      }
+    }
+  },
+  "new_findings": [
+    {
+      "id": "RA-ARCH-001",
+      "title": "BackupService in Services layer depends on Blazored.LocalStorage platform-specific package",
+      "severity": "low",
+      "category": "architecture",
+      "files": [
+        "src/ContestJudging.Services/Managers/BackupService.cs:3",
+        "src/ContestJudging.Services/Managers/BackupService.cs:14",
+        "src/ContestJudging.Services/ContestJudging.Services.csproj:14"
+      ],
+      "evidence_snippet": "// BackupService.cs:3 — imports platform-specific library\nusing Blazored.LocalStorage;\n\n// BackupService.cs:14 — constructor depends on ILocalStorageService\npublic BackupService(ILocalStorageService localStorage, ...)\n\n// Services.csproj:14 — direct NuGet reference\n<PackageReference Include=\"Blazored.LocalStorage\"/>",
+      "rule_violated": "Clean Architecture Dependency Rule — the Services/Application layer should not depend on platform/framework-specific packages. Blazored.LocalStorage is a Blazor browser-localStorage abstraction, which is a presentation/infrastructure concern.",
+      "mitigation": "In Blazor WASM, browser localStorage is the sole persistent storage mechanism (no server-side file system, no IndexedDB adapter in this project), making Blazored.LocalStorage analogous to a database driver. The IBackupService abstraction is correctly in Core; only the implementation's package dependency is concerning. Risk is theoretical unless targeting non-Blazor platforms.",
+      "remediation": "Option A: Accept Blazored.LocalStorage as infrastructure-level dependency (pragmatic for WASM-only). Option B: Extract BackupService to a dedicated adapter project (ContestJudging.Infrastructure.LocalStorage) or move to Web project.",
+      "effort": "trivial",
+      "status": "open",
+      "related_findings": ["ARCH-003", "ARCH-005"]
+    },
+    {
+      "id": "RA-ARCH-002",
+      "title": "DatabaseBackupService factory hardcodes DB path independently of connection string parameter",
+      "severity": "low",
+      "category": "architecture",
+      "files": [
+        "src/ContestJudging.Services/Extensions/ServiceCollectionExtensions.cs:34",
+        "src/ContestJudging.Services/Extensions/ServiceCollectionExtensions.cs:35",
+        "src/ContestJudging.Services/Extensions/ServiceCollectionExtensions.cs:21"
+      ],
+      "evidence_snippet": "// ServiceCollectionExtensions.cs:21 — connectionString parameter available\npublic static IServiceCollection AddContestJudgingServices(this IServiceCollection services, string connectionString = \"Data Source=:memory:\")\n\n// ServiceCollectionExtensions.cs:34-35 — hardcoded path ignores connectionString\nservices.AddScoped<IDatabaseBackupService>(sp =>\n    new DatabaseBackupService(\"contest.db\"));",
+      "rule_violated": "Principle of Least Surprise / Single Source of Truth — the DB path should be derived from the connection string. If connectionString is changed to a different path, the backup service operates on the wrong file.",
+      "remediation": "Parse Data Source from connectionString using SqliteConnectionStringBuilder and pass to DatabaseBackupService. Example: `var builder = new SqliteConnectionStringBuilder(connectionString); new DatabaseBackupService(builder.DataSource);`",
+      "effort": "trivial",
+      "status": "open",
+      "related_findings": ["ARCH-001"]
+    },
+    {
+      "id": "RA-ARCH-003",
+      "title": "IBackupService and IDatabaseBackupService in Core exacerbate ARCH-008 interface placement inconsistency",
+      "severity": "informational",
+      "category": "architecture",
+      "files": [
+        "src/ContestJudging.Core/Interfaces/IBackupService.cs",
+        "src/ContestJudging.Core/Interfaces/IDatabaseBackupService.cs",
+        "src/ContestJudging.Services/Managers/IContestManager.cs",
+        "src/ContestJudging.Services/Validation/IValidationService.cs",
+        "src/ContestJudging.Services/Partitioning/IPartitionService.cs",
+        "src/ContestJudging.Services/Resolution/IGlobalRankingService.cs"
+      ],
+      "evidence_snippet": "// Correctly in Core (consistent with IScoringStrategy):\n// IBackupService.cs — ContestJudging.Core.Interfaces\n// IDatabaseBackupService.cs — ContestJudging.Core.Interfaces\n\n// Still in Services (inconsistent):\n// IContestManager.cs — ContestJudging.Services.Managers\n// IValidationService.cs — ContestJudging.Services.Validation\n// IPartitionService.cs — ContestJudging.Services.Partitioning\n// IGlobalRankingService.cs — ContestJudging.Services.Resolution\n\n// Now 6 interfaces in Core vs 4 in Services — inconsistency grows.",
+      "rule_violated": "Architecture consistency — the split between Core-placed and Services-placed interfaces lacks documented rationale and diverges further with each new abstraction.",
+      "remediation": "Move IContestManager, IValidationService, IPartitionService, and IGlobalRankingService to Core.Interfaces to establish a single, consistent rule (all interfaces in Core). This would also resolve ARCH-003 and ARCH-008.",
+      "effort": "small",
+      "status": "open",
+      "related_findings": ["ARCH-003", "ARCH-008"]
+    }
+  ],
+  "di_registration_map": [
+    {
+      "interface": "(none)",
+      "implementation": "ContestDbContext",
+      "lifetime": "Scoped",
+      "dependencies": ["DbContextOptions"],
+      "layer": "Infrastructure.Persistence",
+      "registration_method": "AddDbContext"
+    },
+    {
+      "interface": "ICategoryRepository",
+      "implementation": "SqliteCategoryRepository",
+      "lifetime": "Scoped",
+      "dependencies": ["ContestDbContext"],
+      "layer": "Infrastructure.Repositories"
+    },
+    {
+      "interface": "IEntryRepository",
+      "implementation": "SqliteEntryRepository",
+      "lifetime": "Scoped",
+      "dependencies": ["ContestDbContext"],
+      "layer": "Infrastructure.Repositories"
+    },
+    {
+      "interface": "IRelationRepository",
+      "implementation": "SqliteRelationRepository",
+      "lifetime": "Scoped",
+      "dependencies": ["ContestDbContext"],
+      "layer": "Infrastructure.Repositories"
+    },
+    {
+      "interface": "IValidationService",
+      "implementation": "GraphValidationService",
+      "lifetime": "Scoped",
+      "dependencies": [],
+      "layer": "Services.Validation"
+    },
+    {
+      "interface": "IPartitionService",
+      "implementation": "PartitionService",
+      "lifetime": "Scoped",
+      "dependencies": [],
+      "layer": "Services.Partitioning"
+    },
+    {
+      "interface": "IGlobalRankingService",
+      "implementation": "BradleyTerryResolutionService",
+      "lifetime": "Scoped",
+      "dependencies": [],
+      "layer": "Services.Resolution"
+    },
+    {
+      "interface": "IScoringStrategy",
+      "implementation": "LinearSpacingScoring",
+      "lifetime": "Scoped",
+      "dependencies": [],
+      "layer": "Services.Scoring"
+    },
+    {
+      "interface": "IDatabaseBackupService",
+      "implementation": "DatabaseBackupService",
+      "lifetime": "Scoped",
+      "dependencies": ["dbPath (hardcoded 'contest.db')"],
+      "layer": "Infrastructure.Persistence",
+      "registration_method": "AddScoped (factory)"
+    },
+    {
+      "interface": "IBackupService",
+      "implementation": "BackupService",
+      "lifetime": "Scoped",
+      "dependencies": [
+        "ILocalStorageService",
+        "IDatabaseBackupService",
+        "ILogger<BackupService>"
+      ],
+      "layer": "Services.Managers"
+    },
+    {
+      "interface": "IContestManager",
+      "implementation": "ContestManager",
+      "lifetime": "Scoped",
+      "dependencies": [
+        "ICategoryRepository",
+        "IEntryRepository",
+        "IRelationRepository",
+        "IValidationService",
+        "IGlobalRankingService",
+        "IScoringStrategy",
+        "IDatabaseBackupService"
+      ],
+      "layer": "Services.Managers"
+    },
+    {
+      "interface": "(none)",
+      "implementation": "HttpClient",
+      "lifetime": "Scoped",
+      "dependencies": ["BaseAddress"],
+      "layer": "(Program.cs)"
+    },
+    {
+      "interface": "ILocalStorageService / ISyncLocalStorageService",
+      "implementation": "(Blazored internal)",
+      "lifetime": "Singleton",
+      "dependencies": [],
+      "layer": "(Blazored.LocalStorage)"
+    }
+  ],
+  "captive_dependency_analysis": {
+    "verdict": "no_issues",
+    "notes": "Blazor WASM environment: Scoped == Singleton due to absence of request scopes. No practical captive dependency risk. BackupService (Scoped) depends on ILocalStorageService (Singleton) — correct direction (shorter-lived depending on longer-lived is acceptable)."
+  },
+  "circular_dependency_analysis": {
+    "verdict": "none",
+    "notes": "No circular dependencies detected. IDatabaseBackupService and IBackupService are independent abstractions. ContestManager depends on IDatabaseBackupService but not IBackupService. BackupService depends on IDatabaseBackupService but not ContestManager. Clean separation of concerns."
+  },
+  "architecture_health": {
+    "overall": "moderately_improved",
+    "resolved_high": 1,
+    "resolved_medium": 1,
+    "open_medium": 2,
+    "open_low": 4,
+    "open_informational": 3,
+    "new_findings": 3,
+    "assessment": "The most critical finding (ARCH-002 HIGH) is fully remediated. ContestManager is now properly decoupled from Infrastructure. ARCH-004 SRP violation is also resolved. However, 6 original findings remain open, including foundational Clean Architecture violations (ARCH-001 web→infrastructure coupling, ARCH-003 interface placement, ARCH-005 composition root location). The new abstractions (IDatabaseBackupService, IBackupService) are well-designed with proper layer discipline. Three minor new findings were identified (RA-ARCH-001 through RA-ARCH-003) — none high severity."
+  },
+  "errors": []
+}

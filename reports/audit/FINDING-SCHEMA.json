@@ -1,0 +1,188 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://eoh-2026-judging/audit/finding-schema",
+  "title": "Audit Finding Schema",
+  "description": "Structured output schema for every audit agent. Every agent must produce a JSON artifact conforming to this schema alongside its Markdown report.",
+  "type": "object",
+  "required": ["agent_id", "pass", "domain", "findings", "metrics"],
+  "properties": {
+    "agent_id": {
+      "type": "string",
+      "description": "Unique agent identifier, e.g. P1-A, V2-E, P3-B",
+      "pattern": "^[PV]\\d-[A-E]$|^[PV]\\d-(SpotCheck|CrossCheck|Integrity)$"
+    },
+    "pass": {
+      "type": "integer",
+      "description": "Pass number this agent belongs to",
+      "minimum": 1,
+      "maximum": 3
+    },
+    "domain": {
+      "type": "string",
+      "description": "Analysis domain (structure, code-quality, tests, security, cicd, architecture, algorithm-correctness, blazor-wasm, efcore, test-effectiveness, synthesis, prioritization, remediation)",
+      "enum": [
+        "structure",
+        "code-quality",
+        "tests",
+        "security",
+        "cicd",
+        "architecture",
+        "algorithm-correctness",
+        "blazor-wasm",
+        "efcore",
+        "test-effectiveness",
+        "synthesis",
+        "prioritization",
+        "remediation",
+        "validation"
+      ]
+    },
+    "status": {
+      "type": "string",
+      "description": "Overall agent run status",
+      "enum": ["success", "partial", "failed", "blocked"],
+      "default": "success"
+    },
+    "findings": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/finding"
+      }
+    },
+    "metrics": {
+      "type": "object",
+      "required": ["files_scanned", "findings_count"],
+      "properties": {
+        "files_scanned": {
+          "type": "integer",
+          "description": "Total number of files this agent examined",
+          "minimum": 0
+        },
+        "findings_count": {
+          "type": "integer",
+          "description": "Total number of findings in this report",
+          "minimum": 0
+        },
+        "lines_of_code": {
+          "type": "integer",
+          "description": "Approximate total lines of code scanned (optional)",
+          "minimum": 0
+        },
+        "duration_ms": {
+          "type": "integer",
+          "description": "Wall clock duration of agent execution in milliseconds (optional)",
+          "minimum": 0
+        }
+      }
+    },
+    "errors": {
+      "type": "array",
+      "description": "Any errors encountered during execution that prevented complete analysis",
+      "items": {
+        "type": "object",
+        "required": ["message"],
+        "properties": {
+          "message": { "type": "string" },
+          "file": { "type": "string" },
+          "recoverable": { "type": "boolean" }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "finding": {
+      "type": "object",
+      "required": ["id", "title", "severity", "files"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Globally unique finding ID: domain-prefix + sequential number, e.g. CQ-001, ARCH-042",
+          "pattern": "^[A-Z]+-\\d{3,}$"
+        },
+        "title": {
+          "type": "string",
+          "description": "Concise one-line description of the finding",
+          "minLength": 1
+        },
+        "severity": {
+          "type": "string",
+          "description": "Severity classification per the Audit Plan rubric",
+          "enum": ["critical", "high", "medium", "low", "informational"]
+        },
+        "category": {
+          "type": "string",
+          "description": "Optional subcategory within the domain",
+          "examples": [
+            "null-safety",
+            "performance",
+            "security",
+            "style",
+            "architecture",
+            "testing"
+          ]
+        },
+        "files": {
+          "type": "array",
+          "description": "One or more file:line references where the issue was observed",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "pattern": "^[^:]+:\\d+$"
+          }
+        },
+        "evidence_snippet": {
+          "type": "string",
+          "description": "Relevant code snippet or excerpt demonstrating the finding"
+        },
+        "rule_violated": {
+          "type": "string",
+          "description": "The rule, standard, or principle being violated, e.g. editorconfig:csharp_new_line_before_open_brace, SOLID:ISP, CWE-89"
+        },
+        "remediation": {
+          "type": "string",
+          "description": "Concrete, actionable fix recommendation"
+        },
+        "effort": {
+          "type": "string",
+          "description": "Estimated fix complexity (used by Pass 3 prioritization)",
+          "enum": ["trivial", "small", "medium", "large", "rewrite"]
+        },
+        "status": {
+          "type": "string",
+          "description": "Pipeline status for this finding",
+          "enum": [
+            "open",
+            "contested",
+            "dead",
+            "escalated",
+            "coverage_gap",
+            "low_confidence",
+            "resolved"
+          ],
+          "default": "open"
+        },
+        "retry_history": {
+          "type": "array",
+          "description": "Record of validation rejections and retries",
+          "items": {
+            "type": "object",
+            "properties": {
+              "attempt": { "type": "integer" },
+              "reject_reason": { "type": "string" },
+              "detail": { "type": "string" },
+              "action_taken": { "type": "string" }
+            }
+          }
+        },
+        "related_findings": {
+          "type": "array",
+          "description": "IDs of related findings from other agents/domains",
+          "items": {
+            "type": "string",
+            "pattern": "^[A-Z]+-\\d{3,}$"
+          }
+        }
+      }
+    }
+  }
+}

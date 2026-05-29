@@ -1,0 +1,185 @@
+{
+  "agent_id": "PA1-E",
+  "pass": "remediation",
+  "domain": "cicd",
+  "status": "success",
+  "original_findings": 11,
+  "resolved": 4,
+  "new": 3,
+  "open_total": 9,
+  "high_open": 0,
+  "medium_open": 4,
+  "low_open": 4,
+  "info_open": 1,
+  "ci_cd_trend": "improving",
+  "original_findings_reevaluated": [
+    {
+      "id": "CICD-001",
+      "title": "E2E test project excluded from solution — Playwright/NUnit tests never run in CI",
+      "original_severity": "high",
+      "status": "resolved",
+      "resolution": "ContestJudging.E2ETests.csproj added to ContestJudging.slnx:11. dotnet test ContestJudging.slnx now exercises all three test projects including E2E."
+    },
+    {
+      "id": "CICD-002",
+      "title": "No code coverage collected in CI despite coverlet.collector being configured",
+      "original_severity": "medium",
+      "status": "open",
+      "note": "--collect:\"XPlat Code Coverage\" flag still missing from dotnet test command."
+    },
+    {
+      "id": "CICD-003",
+      "title": "Six of seven GitHub Actions use floating major-version tags (supply chain risk)",
+      "original_severity": "medium",
+      "status": "resolved",
+      "resolution": "All action versions updated to valid 2026 releases (checkout@v6 v6.0.2, setup-dotnet@v5 v5.2.0, cache@v5 v5.0.5, configure-pages@v6 v6.0.0, deploy-pages@v5 v5.0.0). Original defect was non-existent version tags; all now resolve. Floating-tag pattern remains (GitHub-recommended practice)."
+    },
+    {
+      "id": "CICD-004",
+      "title": "No SAST or CodeQL scanning — only dependency scanning is present",
+      "original_severity": "high",
+      "status": "resolved",
+      "resolution": "codeql-analysis job added at pipeline.yml:48-73 with github/codeql-action/init@v3 + analyze@v3, csharp language matrix, and security-events write permission."
+    },
+    {
+      "id": "CICD-005",
+      "title": "OSV-Scanner uses --allow-no-lockfiles reducing scan accuracy",
+      "original_severity": "low",
+      "status": "open",
+      "note": "scan-args: ./ --allow-no-lockfiles still present at pipeline.yml:47."
+    },
+    {
+      "id": "CICD-006",
+      "title": "release/ directory (published Blazor WASM output) is committed to the repository",
+      "original_severity": "medium",
+      "status": "resolved",
+      "resolution": "release/ no longer tracked by git. .gitignore [Rr]elease/ pattern on line 25 case-insensitively matches release/. Directory still exists on disk from prior local builds but is gitignored."
+    },
+    {
+      "id": "CICD-007",
+      "title": "No Dependabot configuration for automated dependency updates",
+      "original_severity": "medium",
+      "status": "open",
+      "note": ".github/dependabot.yml still missing."
+    },
+    {
+      "id": "CICD-008",
+      "title": "No CODEOWNERS file for automated PR review assignment",
+      "original_severity": "low",
+      "status": "open",
+      "note": ".github/CODEOWNERS still missing."
+    },
+    {
+      "id": "CICD-009",
+      "title": "No PR template or issue templates",
+      "original_severity": "low",
+      "status": "open",
+      "note": ".github/PULL_REQUEST_TEMPLATE.md and .github/ISSUE_TEMPLATE/ still missing."
+    },
+    {
+      "id": "CICD-010",
+      "title": "dotnet-tools.json manifest has no tools configured",
+      "original_severity": "informational",
+      "status": "open",
+      "note": "dotnet-tools.json still contains \"tools\": {}. No action needed until additional CLI tools are required."
+    },
+    {
+      "id": "CICD-011",
+      "title": "Deploy job redundantly rebuilds from source instead of reusing tested artifacts",
+      "original_severity": "medium",
+      "status": "open",
+      "note": "Deploy job still calls dotnet publish independently instead of using actions/upload-artifact + actions/download-artifact."
+    }
+  ],
+  "new_findings": [
+    {
+      "id": "RA-CICD-001",
+      "title": "E2E test reliability — no explicit Playwright browser installation in CI",
+      "severity": "low",
+      "category": "testing",
+      "files": [
+        ".github/workflows/pipeline.yml:38-39",
+        "tests/ContestJudging.E2ETests/ContestJudging.E2ETests.csproj"
+      ],
+      "evidence_snippet": "dotnet test ContestJudging.slnx --configuration Release --no-build --verbosity normal",
+      "rule_violated": "CI completeness — E2E browser tests need browser binaries",
+      "remediation": "Add explicit pwsh bin/Debug/net10.0/playwright.ps1 install --with-deps chromium step before dotnet test, or verify Microsoft.Playwright.NUnit MSBuild targets handle install on ubuntu-latest.",
+      "effort": "trivial",
+      "status": "open"
+    },
+    {
+      "id": "RA-CICD-002",
+      "title": "actions/upload-pages-artifact@v3 is outdated — latest is v5",
+      "severity": "low",
+      "category": "supply-chain",
+      "files": [".github/workflows/pipeline.yml:107"],
+      "evidence_snippet": "uses: actions/upload-pages-artifact@v3",
+      "rule_violated": "Action freshness — v3 bundles @actions/artifact pre-punycode-fix and pre-Node24",
+      "remediation": "Bump to actions/upload-pages-artifact@v4 or @v5.",
+      "effort": "trivial",
+      "status": "open"
+    },
+    {
+      "id": "RA-CICD-003",
+      "title": "CodeQL Action v3 scheduled for deprecation in December 2026",
+      "severity": "low",
+      "category": "security",
+      "files": [
+        ".github/workflows/pipeline.yml:63",
+        ".github/workflows/pipeline.yml:73"
+      ],
+      "evidence_snippet": "uses: github/codeql-action/init@v3\nuses: github/codeql-action/analyze@v3",
+      "rule_violated": "Action lifecycle — v3 logs deprecation warning; v4 is current",
+      "remediation": "Bump github/codeql-action/init and github/codeql-action/analyze to @v4.",
+      "effort": "trivial",
+      "status": "open"
+    }
+  ],
+  "pipeline_analysis": {
+    "triggers": {
+      "push": ["main"],
+      "pull_request": ["main"],
+      "assessment": "adequate — covers default branch only, no tag triggers"
+    },
+    "jobs": {
+      "quality-and-test": {
+        "status": "pass",
+        "issues": [
+          "No code coverage collection (--collect flag missing)",
+          "No explicit Playwright browser install for E2E tests"
+        ]
+      },
+      "security-scan": {
+        "status": "pass",
+        "issues": [
+          "--allow-no-lockfiles weakens dependency scan accuracy",
+          "No packages.lock.json files committed"
+        ]
+      },
+      "codeql-analysis": {
+        "status": "pass",
+        "issues": [
+          "Using @v3 which will be deprecated December 2026; @v4 available",
+          "No .github/codeql/codeql-config.yml for custom query packs"
+        ]
+      },
+      "deploy": {
+        "status": "pass",
+        "issues": [
+          "Rebuilds from source instead of reusing tested artifacts",
+          "actions/upload-pages-artifact@v3 outdated",
+          "Gated by codeql-analysis (adds latency, acceptable for security)",
+          "release/ directory not explicitly in .gitignore (covered by [Rr]elease/ pattern)"
+        ]
+      }
+    },
+    "action_pinning": {
+      "total_actions": 9,
+      "floating_major": 7,
+      "full_semver": 1,
+      "sha_pinned": 0,
+      "valid_versions": true,
+      "note": "All floating major tags resolve to valid 2026 releases. Floating major is GitHub's recommended pattern."
+    }
+  }
+}

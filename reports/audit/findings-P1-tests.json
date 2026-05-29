@@ -1,0 +1,208 @@
+{
+  "agent_id": "P1-C",
+  "pass": 1,
+  "domain": "tests",
+  "status": "success",
+  "findings": [
+    {
+      "id": "TEST-001",
+      "title": "No parameterized tests (Theories) used — all tests use Fact with sequential Assert.Throws",
+      "severity": "high",
+      "category": "testing",
+      "files": [
+        "tests/ContestJudging.Tests/CoreTests.cs:12",
+        "tests/ContestJudging.Tests/CoreTests.cs:36",
+        "tests/ContestJudging.Tests/ScoringStrategyTests.cs:12",
+        "tests/ContestJudging.Tests/ValidationServiceTests.cs:153",
+        "tests/ContestJudging.Tests/PartitionServiceTests.cs:37"
+      ],
+      "evidence_snippet": "[Fact]\npublic void Category_Constructor_ThrowsWhenMaxScoreIsOneOrLess()\n{\n    Assert.Throws<ArgumentOutOfRangeException>(() => new Category(\"cat1\", 1));\n    Assert.Throws<ArgumentOutOfRangeException>(() => new Category(\"cat1\", 0));\n}",
+      "rule_violated": "xUnit best practices: parameterized tests ([Theory]) over repeated Assert.Throws in a single [Fact]",
+      "remediation": "Convert boundary tests to [Theory] with [InlineData]. If the first assertion throws/fails, the second never executes, masking defects. Same for Entry_SetScore_InvalidScore_Throws (tests 11 and -1 in one Fact).",
+      "effort": "small",
+      "status": "open"
+    },
+    {
+      "id": "TEST-002",
+      "title": "ContestJudging.Web project has zero unit tests",
+      "severity": "high",
+      "category": "testing",
+      "files": [
+        "src/ContestJudging.Web/Program.cs:1",
+        "src/ContestJudging.Web/Pages/Setup.razor.cs:1",
+        "src/ContestJudging.Web/Pages/Judging.razor.cs:1",
+        "src/ContestJudging.Web/Pages/Results.razor.cs:1"
+      ],
+      "evidence_snippet": "// ContestJudging.Tests.csproj ProjectReference:\n<ProjectReference Include=\"..\\..\\src\\ContestJudging.Core\\ContestJudging.Core.csproj\" />\n<ProjectReference Include=\"..\\..\\src\\ContestJudging.Services\\ContestJudging.Services.csproj\" />\n<ProjectReference Include=\"..\\..\\src\\ContestJudging.Infrastructure\\ContestJudging.Infrastructure.csproj\" />\n// NOTE: ContestJudging.Web is NOT referenced",
+      "rule_violated": "Testing pyramid: missing unit tests for UI/presentation layer logic",
+      "remediation": "Add bunit or similar Blazor testing library. Test pure-logic methods: FindSuggestedPair(), GetFilteredEntries(), GeneratePartitions(), CalculateResults(), keyboard handler, DI validation. Add ContestJudging.Web.Tests project.",
+      "effort": "large",
+      "status": "open"
+    },
+    {
+      "id": "TEST-003",
+      "title": "No test categories/traits to distinguish unit tests from integration tests",
+      "severity": "medium",
+      "category": "testing",
+      "files": [
+        "tests/ContestJudging.Tests/InfrastructureTests.cs:18"
+      ],
+      "evidence_snippet": "var connection = new SqliteConnection(\"DataSource=:memory:\");\nawait connection.OpenAsync();\nvar options = new DbContextOptionsBuilder<ContestDbContext>()\n    .UseSqlite(connection)\n    .Options;\nvar context = new ContestDbContext(options);\nawait context.Database.EnsureCreatedAsync();",
+      "rule_violated": "xUnit best practices: test categorization for CI pipeline efficiency",
+      "remediation": "Add [Trait(\"Category\", \"Unit\")] to unit test classes and [Trait(\"Category\", \"Integration\")] to InfrastructureTests. Configure CI with dotnet test --filter \"Category!=Integration\" for PRs.",
+      "effort": "trivial",
+      "status": "open"
+    },
+    {
+      "id": "TEST-004",
+      "title": "ContestManager constructor takes concrete ContestDbContext; tests pass null!",
+      "severity": "medium",
+      "category": "testing",
+      "files": [
+        "src/ContestJudging.Services/Managers/ContestManager.cs:25",
+        "tests/ContestJudging.Tests/ContestManagerTests.cs:30"
+      ],
+      "evidence_snippet": "var manager = new ContestManager(mockCatRepo.Object, mockEntryRepo.Object, mockRelRepo.Object, mockValidation.Object, mockResolution.Object, mockScoring.Object, null!);",
+      "rule_violated": "SOLID:DIP — depending on concrete implementation instead of abstraction",
+      "remediation": "Introduce IDatabaseExportImport interface abstracting ExportDatabaseAsync/ImportDatabaseAsync, or add dedicated integration tests for those methods using a real in-memory context. The null! suppression masks fragility.",
+      "effort": "medium",
+      "status": "open"
+    },
+    {
+      "id": "TEST-005",
+      "title": "ServiceCollectionExtensions.AddContestJudgingServices has no test coverage",
+      "severity": "medium",
+      "category": "testing",
+      "files": [
+        "src/ContestJudging.Services/Extensions/ServiceCollectionExtensions.cs:21"
+      ],
+      "evidence_snippet": "public static IServiceCollection AddContestJudgingServices(this IServiceCollection services, string connectionString = \"Data Source=:memory:\")\n{\n    services.AddDbContext<ContestDbContext>(options => options.UseSqlite(connectionString));\n    services.AddScoped<ICategoryRepository, SqliteCategoryRepository>();\n    services.AddScoped<IEntryRepository, SqliteEntryRepository>();\n    // ... 5 more registrations\n}",
+      "rule_violated": "Testing: critical infrastructure/pathway code should have coverage",
+      "remediation": "Add a test that calls AddContestJudgingServices, builds IServiceProvider, resolves each registered service, and asserts non-null and correct concrete type. Use in-memory SQLite.",
+      "effort": "small",
+      "status": "open"
+    },
+    {
+      "id": "TEST-006",
+      "title": "Vague test class name 'CoreTests' — unclear what it tests",
+      "severity": "low",
+      "category": "style",
+      "files": [
+        "tests/ContestJudging.Tests/CoreTests.cs:9"
+      ],
+      "evidence_snippet": "public class CoreTests\n{\n    [Fact]\n    public void Category_Constructor_ThrowsWhenMaxScoreIsOneOrLess() { }\n    [Fact]\n    public void Entry_SetScore_ValidScore_Succeeds() { }\n}",
+      "rule_violated": "Consistency: test class names should map to the class under test (e.g., CategoryTests, EntryTests)",
+      "remediation": "Split into CategoryTests.cs and EntryTests.cs, or rename to CoreEntityTests.",
+      "effort": "trivial",
+      "status": "open"
+    },
+    {
+      "id": "TEST-007",
+      "title": "E2E tests use NUnit while unit tests use xUnit — framework inconsistency",
+      "severity": "low",
+      "category": "testing",
+      "files": [
+        "tests/ContestJudging.E2ETests/AppE2ETests.cs:3",
+        "tests/ContestJudging.E2ETests/ContestJudging.E2ETests.csproj:16"
+      ],
+      "evidence_snippet": "using Microsoft.Playwright.NUnit;\nusing NUnit.Framework;\n\n[TestFixture]\npublic class AppE2ETests : PageTest\n{\n    [SetUp]\n    public async Task Setup() { }\n    [Test]\n    public async Task HomepageHasExpectedTitleAndContent() { }\n}",
+      "rule_violated": "Consistency: single test framework reduces cognitive load across the project",
+      "remediation": "Migrate E2E to xUnit (using Microsoft.Playwright without NUnit adapter) or document the rationale for the split.",
+      "effort": "small",
+      "status": "open"
+    },
+    {
+      "id": "TEST-008",
+      "title": "E2E project package versions missing from central package management",
+      "severity": "medium",
+      "category": "testing",
+      "files": [
+        "tests/ContestJudging.E2ETests/ContestJudging.E2ETests.csproj:11",
+        "Directory.Packages.props:1"
+      ],
+      "evidence_snippet": "<!-- Directory.Packages.props has no entries for these E2E csproj references: -->\n<PackageReference Include=\"NUnit\" />\n<PackageReference Include=\"NUnit.Analyzers\" />\n<PackageReference Include=\"NUnit3TestAdapter\" />\n<PackageReference Include=\"Microsoft.Playwright.NUnit\" />",
+      "rule_violated": "Build integrity: central package management must cover all projects",
+      "remediation": "Add version entries to Directory.Packages.props for NUnit, NUnit.Analyzers, NUnit3TestAdapter, and Microsoft.Playwright.NUnit. Verify with dotnet restore.",
+      "effort": "trivial",
+      "status": "open"
+    },
+    {
+      "id": "TEST-009",
+      "title": "Repository edge cases untested (non-existent IDs, duplicates, nulls, empty tables)",
+      "severity": "low",
+      "category": "testing",
+      "files": [
+        "tests/ContestJudging.Tests/InfrastructureTests.cs:35"
+      ],
+      "evidence_snippet": "// Only happy-path tests exist:\n// CategoryRepository_AddAndGet_Succeeds, EntryRepository_AddWithScores_Succeeds,\n// RelationRepository_AddAndGet_Succeeds, CategoryRepository_Delete_Cascades,\n// EntryRepository_Delete_Cascades\n// Missing: GetByIdAsync with non-existent ID, AddAsync with duplicate, DeleteAsync with non-existent ID, GetAllAsync on empty table",
+      "rule_violated": "Testing: edge case and error path coverage",
+      "remediation": "Add tests for: GetByIdAsync with non-existent ID, AddAsync with duplicate ID, AddAsync with null entity, DeleteAsync with non-existent ID, UpdateAsync with non-existent entity, GetAllAsync on empty table.",
+      "effort": "small",
+      "status": "open"
+    },
+    {
+      "id": "TEST-010",
+      "title": "ContestManager ExportDataAsync/ImportDataAsync untested",
+      "severity": "low",
+      "category": "testing",
+      "files": [
+        "src/ContestJudging.Services/Managers/ContestManager.cs:119",
+        "tests/ContestJudging.Tests/ContestManagerTests.cs:30"
+      ],
+      "evidence_snippet": "// These methods have zero test coverage:\npublic async Task<byte[]> ExportDataAsync() => await _context.ExportDatabaseAsync();\npublic async Task ImportDataAsync(byte[] data) => await _context.ImportDatabaseAsync(data);\n// Used by Setup.razor.cs BackupDatabase() and Program.cs startup restore",
+      "rule_violated": "Testing: critical data path (backup/restore) has no coverage",
+      "remediation": "Add integration tests using in-memory context that verify round-trip: export, wipe, import, verify data matches.",
+      "effort": "small",
+      "status": "open"
+    },
+    {
+      "id": "TEST-011",
+      "title": "Dead placeholder code: Class1.cs in Infrastructure project",
+      "severity": "informational",
+      "category": "testing",
+      "files": [
+        "src/ContestJudging.Infrastructure/Class1.cs:3"
+      ],
+      "evidence_snippet": "namespace ContestJudging.Infrastructure;\npublic class Class1\n{\n\n}",
+      "rule_violated": "Clean code: remove unused code",
+      "remediation": "Delete Class1.cs if it serves no purpose.",
+      "effort": "trivial",
+      "status": "open"
+    },
+    {
+      "id": "TEST-012",
+      "title": "TrimmingSafetyTests suppresses trimming warnings it's meant to validate",
+      "severity": "informational",
+      "category": "testing",
+      "files": [
+        "tests/ContestJudging.Tests/TrimmingSafetyTests.cs:19"
+      ],
+      "evidence_snippet": "[Fact]\n[RequiresUnreferencedCode(\"Testing reflection-based JSON serialization.\")]\npublic void JsonSerialization_ShouldWork_WithDomainEntities()\n{\n    var json = JsonSerializer.Serialize(entry, options);\n    var deserialized = JsonSerializer.Deserialize<Entry>(json);\n}",
+      "rule_violated": "Testing: trimming safety tests should validate behavior under trimming without suppressing trimming warnings",
+      "remediation": "Use source-generated JSON serializer (JsonSerializerContext) or remove [RequiresUnreferencedCode] and run this test explicitly in a trimmed publish build to detect actual breaks.",
+      "effort": "small",
+      "status": "open"
+    },
+    {
+      "id": "TEST-013",
+      "title": "No cancellation token support in async tests or underlying async methods",
+      "severity": "informational",
+      "category": "testing",
+      "files": [
+        "tests/ContestJudging.Tests/InfrastructureTests.cs:35",
+        "tests/ContestJudging.Tests/ContestManagerTests.cs:21"
+      ],
+      "evidence_snippet": "// All async tests use bare Task without CancellationToken:\npublic async Task CategoryRepository_AddAndGet_Succeeds() { }\npublic async Task CalculateGlobalScores_OrchestratesPipeline() { }",
+      "rule_violated": "Testing: async tests should validate cancellation behavior where applicable",
+      "remediation": "If the underlying async operations support cancellation, add tests with CancellationTokenSource(TimeSpan). If not, consider adding CancellationToken support to repository interfaces.",
+      "effort": "small",
+      "status": "open"
+    }
+  ],
+  "metrics": {
+    "files_scanned": 9,
+    "findings_count": 13,
+    "lines_of_code": 1069
+  },
+  "errors": []
+}

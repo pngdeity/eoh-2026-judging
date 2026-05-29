@@ -1,0 +1,90 @@
+{
+  "agent_id": "P2-B",
+  "pass": 2,
+  "domain": "algorithm-correctness",
+  "status": "success",
+  "findings": [
+    {
+      "id": "ALGO-001",
+      "title": "GetSortedTiers silently ignores contradictory self-loop edges unlike IsTotalOrder/IsValidOrder",
+      "severity": "medium",
+      "category": "correctness-defense-in-depth",
+      "files": [
+        "src/ContestJudging.Services/Validation/GraphValidationService.cs:264",
+        "src/ContestJudging.Services/Validation/GraphValidationService.cs:90",
+        "src/ContestJudging.Services/Validation/GraphValidationService.cs:176"
+      ],
+      "evidence_snippet": "// IsTotalOrder line 90, IsValidOrder line 176:\nif (u == v) return false;\n\n// GetSortedTiers line 264:\nif (u == v) continue;",
+      "rule_violated": "Defense in depth — contradictory equivalence-class self-loop must be rejected uniformly across all analysis methods",
+      "remediation": "Change line 264 to `if (u == v) throw new InvalidOperationException(...)` or add a boolean output parameter to signal validity. At minimum, match the `return false` behavior of the other two methods.",
+      "effort": "small",
+      "status": "open",
+      "related_findings": ["CQ-002"]
+    },
+    {
+      "id": "ALGO-002",
+      "title": "Three methods contain 100% duplicated Kahn's Algorithm logic with only minor behavioral differences",
+      "severity": "medium",
+      "category": "duplication",
+      "files": [
+        "src/ContestJudging.Services/Validation/GraphValidationService.cs:43",
+        "src/ContestJudging.Services/Validation/GraphValidationService.cs:129",
+        "src/ContestJudging.Services/Validation/GraphValidationService.cs:214"
+      ],
+      "evidence_snippet": "// IsTotalOrder (43-127): 85 lines, checks queue.Count > 1\n// IsValidOrder (129-212): 84 lines, no queue.Count check, otherwise identical\n// GetSortedTiers (214-310): 97 lines, batch-processes tiers, silenty skips self-loops\n// All three independently build UnionFind, adjacency, in-degree, and run Kahn BFS.",
+      "rule_violated": "DRY — algorithm must be defined once and composed; duplicate implementations create divergent-fix risk",
+      "remediation": "Extract a private method (e.g., TryBuildTopologicalOrder) returning the order list or null on cycle. IsValidOrder wraps it checking for non-null. IsTotalOrder additionally verifies uniqueness via the single-source BFS property. GetSortedTiers groups the resulting order into tiers.",
+      "effort": "small",
+      "status": "open",
+      "related_findings": ["CQ-002", "ALGO-001"]
+    },
+    {
+      "id": "ALGO-003",
+      "title": "UnionFind implementation lacks union-by-rank/size for optimal complexity",
+      "severity": "low",
+      "category": "performance-algorithm",
+      "files": [
+        "src/ContestJudging.Services/Validation/GraphValidationService.cs:32"
+      ],
+      "evidence_snippet": "public void Union(string i, string j)\n{\n    string rootI = Find(i);\n    string rootJ = Find(j);\n    if (rootI != rootJ)\n    {\n        _parent[rootI] = rootJ;\n    }\n}",
+      "rule_violated": "Union-Find textbook optimality requires both path compression and union-by-rank to achieve O(alpha(n)) amortized; missing union-by-rank limits to O(log n)",
+      "remediation": "Add a private Dictionary<string, int> _rank field. In Union, attach the smaller-rank tree under the larger-rank root, incrementing rank when equal.",
+      "effort": "trivial",
+      "status": "open"
+    },
+    {
+      "id": "ALGO-004",
+      "title": "Theoretical division-by-zero in BradleyTerry denominator for crafted zero-gamma entries",
+      "severity": "low",
+      "category": "correctness-edge-case",
+      "files": [
+        "src/ContestJudging.Services/Resolution/BradleyTerryResolutionService.cs:69"
+      ],
+      "evidence_snippet": "denominator += totalComparisons[i, j] / (gamma[i] + gamma[j]);\n// gamma[i] can be exactly 0.0 when totalWins[i] == 0.\n// If two such entries are compared, division by zero -> NaN.",
+      "rule_violated": "Robustness — numeric algorithms must guard against division-by-zero even in edge cases only reachable through crafted input",
+      "remediation": "Add a guard: if (gamma[i] + gamma[j] < 1e-12) continue; inside the inner loop at line 69.",
+      "effort": "trivial",
+      "status": "open"
+    },
+    {
+      "id": "ALGO-005",
+      "title": "Partition bridge node count can evaluate to zero at small overlap rates, breaking connectivity guarantee",
+      "severity": "low",
+      "category": "correctness-edge-case",
+      "files": [
+        "src/ContestJudging.Services/Partitioning/PartitionService.cs:21"
+      ],
+      "evidence_snippet": "int bCount = (int)Math.Round(n * overlapRate);\n// When n * overlapRate < 0.5, Round returns 0.\n// e.g., n=50, overlapRate=0.005 -> Round(0.25)=0 -> no bridge nodes.",
+      "rule_violated": "Invariant from README — partitioning must ensure statistical connectivity; zero bridge nodes violates this guarantee",
+      "remediation": "Enforce a minimum: int bCount = Math.Max(1, (int)Math.Round(n * overlapRate)) when kPartitions > 1 and n > 0. Alternatively validate overlapRate * n >= kPartitions - 1 before proceeding.",
+      "effort": "trivial",
+      "status": "open"
+    }
+  ],
+  "metrics": {
+    "files_scanned": 17,
+    "findings_count": 5,
+    "lines_of_code": 1500
+  },
+  "errors": []
+}

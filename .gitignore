@@ -488,6 +488,11 @@ $RECYCLE.BIN/
 # APM dependencies
 apm_modules/
 
+# SQLite database files
+*.db
+*.sqlite
+*.sqlite3
+
 # APM generated files
 .agents/
 .opencode/
@@ -498,3 +503,6 @@ apm_modules/
 .github/copilot-instructions.md
 AGENTS.md
 GEMINI.md
+
+# Prevent accidentally committing tool manifests
+dotnet-tools.json

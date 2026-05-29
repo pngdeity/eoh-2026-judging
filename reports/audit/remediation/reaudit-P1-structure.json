@@ -1,0 +1,244 @@
+{
+  "agent_id": "PA1-A",
+  "pass": 1,
+  "domain": "structure",
+  "branch": "fix/audit-remediate",
+  "status": "success",
+  "findings": [
+    {
+      "id": "STRUCT-001",
+      "title": "Layer isolation violation: Web project directly references Infrastructure layer",
+      "severity": "medium",
+      "category": "architecture",
+      "files": [
+        "src/ContestJudging.Web/ContestJudging.Web.csproj:29",
+        "src/ContestJudging.Web/ContestJudging.Web.csproj:30",
+        "src/ContestJudging.Web/ContestJudging.Web.csproj:36",
+        "src/ContestJudging.Web/Program.cs:6",
+        "src/ContestJudging.Web/Program.cs:12",
+        "src/ContestJudging.Web/Program.cs:21",
+        "src/ContestJudging.Web/Program.cs:36"
+      ],
+      "evidence_snippet": "// Web.csproj still has EF Core pkgs + Infrastructure ProjectReference:\n<PackageReference Include=\"Microsoft.EntityFrameworkCore.Sqlite\" />\n<PackageReference Include=\"SQLitePCLRaw.bundle_e_sqlite3\" />\n<ProjectReference Include=\"..\\ContestJudging.Infrastructure\\ContestJudging.Infrastructure.csproj\" />\n\n// Program.cs still directly references Infrastructure types:\nusing ContestJudging.Infrastructure.Persistence;\nSQLitePCL.Batteries_V2.Init();\nvar context = scope.ServiceProvider.GetRequiredService<ContestDbContext>();",
+      "rule_violated": "Clean Architecture: Dependency Rule (Web should only depend on Core + Services, not Infrastructure)",
+      "remediation": "Move all Infrastructure initialization (EF Core, SQLite init) into the Services layer's DI extension method (ServiceCollectionExtensions.AddContestJudgingServices). Remove the ProjectReference to Infrastructure from Web.csproj and the EF Core/SQLite PackageReferences. Web should only reference Services (and Core for entities).",
+      "effort": "medium",
+      "status": "open"
+    },
+    {
+      "id": "STRUCT-002",
+      "title": "E2E test project not included in solution file",
+      "severity": "medium",
+      "category": "architecture",
+      "files": [
+        "ContestJudging.slnx:11"
+      ],
+      "evidence_snippet": "ContestJudging.slnx now contains <Project Path=\"tests/ContestJudging.E2ETests/ContestJudging.E2ETests.csproj\"/> under Folder /tests/.",
+      "rule_violated": "Solution Completeness (all buildable projects must be in the solution)",
+      "remediation": "Fixed. E2E project now included in solution.",
+      "effort": "trivial",
+      "status": "resolved"
+    },
+    {
+      "id": "STRUCT-003",
+      "title": "E2E tests reference packages not declared in Directory.Packages.props (central package management violation)",
+      "severity": "critical",
+      "category": "architecture",
+      "files": [
+        "Directory.Packages.props:22",
+        "Directory.Packages.props:23",
+        "Directory.Packages.props:24",
+        "Directory.Packages.props:25"
+      ],
+      "evidence_snippet": "Directory.Packages.props now includes PackageVersion entries for all E2E packages:\n  <PackageVersion Include=\"NUnit\" Version=\"4.3.2\" />\n  <PackageVersion Include=\"NUnit.Analyzers\" Version=\"4.6.0\" />\n  <PackageVersion Include=\"NUnit3TestAdapter\" Version=\"5.0.0\" />\n  <PackageVersion Include=\"Microsoft.Playwright.NUnit\" Version=\"1.52.0\" />",
+      "rule_violated": "Central Package Management: all PackageReference items must have a corresponding PackageVersion in Directory.Packages.props",
+      "remediation": "Fixed. CPM entries added.",
+      "effort": "trivial",
+      "status": "resolved"
+    },
+    {
+      "id": "STRUCT-004",
+      "title": "E2ETests project missing explicit RootNamespace and AssemblyName properties",
+      "severity": "low",
+      "category": "style",
+      "files": [
+        "tests/ContestJudging.E2ETests/ContestJudging.E2ETests.csproj:1"
+      ],
+      "evidence_snippet": "E2ETests.csproj still has no <RootNamespace> or <AssemblyName>. All other projects (Core, Infrastructure, Services, Web, Tests) define these explicitly in their PropertyGroup.",
+      "rule_violated": "Project Convention Consistency (all projects should use explicit RootNamespace/AssemblyName)",
+      "remediation": "Add <RootNamespace>ContestJudging.E2ETests</RootNamespace> and <AssemblyName>ContestJudging.E2ETests</AssemblyName> to E2ETests.csproj PropertyGroup.",
+      "effort": "trivial",
+      "status": "open"
+    },
+    {
+      "id": "STRUCT-005",
+      "title": "Orphaned scaffolding placeholder file in Infrastructure project",
+      "severity": "low",
+      "category": "style",
+      "files": [
+        "src/ContestJudging.Infrastructure/Class1.cs (DELETED)"
+      ],
+      "evidence_snippet": "src/ContestJudging.Infrastructure/Class1.cs no longer exists on disk. Only 3 legitimate .cs files remain: ContestDbContext.cs, SqliteRepositories.cs, DatabaseBackupService.cs.",
+      "rule_violated": "Clean Code: no dead/orphaned code",
+      "remediation": "Fixed. File deleted.",
+      "effort": "trivial",
+      "status": "resolved"
+    },
+    {
+      "id": "STRUCT-006",
+      "title": "Mixed test frameworks across test projects",
+      "severity": "informational",
+      "category": "testing",
+      "files": [
+        "tests/ContestJudging.Tests/ContestJudging.Tests.csproj:13",
+        "tests/ContestJudging.E2ETests/ContestJudging.E2ETests.csproj:14",
+        "tests/ContestJudging.Web.Tests/ContestJudging.Web.Tests.csproj:11"
+      ],
+      "evidence_snippet": "Unit tests use xunit; E2E tests use NUnit + Playwright; Web.Tests uses xunit + bunit. The addition of a third test project (Web.Tests) with xunit means one test project (E2E) uses NUnit while two use xunit.",
+      "rule_violated": "Testing Consistency (single test framework per solution is standard practice)",
+      "remediation": "Either convert E2E tests to xUnit (matching the unit test projects) or document the rationale for two frameworks. If E2E tests use NUnit for Playwright integration, add a note in the project README.",
+      "effort": "small",
+      "status": "open"
+    },
+    {
+      "id": "STRUCT-007",
+      "title": ".gitignore missing SQLite database file patterns",
+      "severity": "medium",
+      "category": "architecture",
+      "files": [
+        ".gitignore:1"
+      ],
+      "evidence_snippet": "contest.db is the SQLite filename used throughout the project (see DatabaseBackupService.cs referencing 'contest.db'). .gitignore still has no *.db, *.sqlite, or *.sqlite3 patterns.",
+      "rule_violated": "Git Hygiene (build/runtime artifacts should be gitignored)",
+      "remediation": "Add '*.db', '*.sqlite', and '*.sqlite3' patterns to .gitignore to prevent accidentally committing SQLite database files.",
+      "effort": "trivial",
+      "status": "open"
+    },
+    {
+      "id": "STRUCT-008",
+      "title": "Redundant TargetFramework/Nullable/ImplicitUsings overrides in Web.csproj",
+      "severity": "low",
+      "category": "style",
+      "files": [
+        "src/ContestJudging.Web/ContestJudging.Web.csproj:9",
+        "src/ContestJudging.Web/ContestJudging.Web.csproj:10",
+        "src/ContestJudging.Web/ContestJudging.Web.csproj:11",
+        "Directory.Build.props:3",
+        "Directory.Build.props:4",
+        "Directory.Build.props:5"
+      ],
+      "evidence_snippet": "Web.csproj still duplicates Directory.Build.props values:\n<TargetFramework>net10.0</TargetFramework>\n<Nullable>enable</Nullable>\n<ImplicitUsings>enable</ImplicitUsings>",
+      "rule_violated": "DRY (Don't Repeat Yourself) / Build configuration conventions",
+      "remediation": "Remove the TargetFramework, Nullable, and ImplicitUsings properties from Web.csproj's PropertyGroup; rely on Directory.Build.props inheritance.",
+      "effort": "trivial",
+      "status": "open"
+    },
+    {
+      "id": "STRUCT-009",
+      "title": "Orphaned testapp scaffold project outside solution",
+      "severity": "medium",
+      "category": "architecture",
+      "files": [
+        "testapp/testapp.csproj:1",
+        "testapp/Program.cs:1"
+      ],
+      "evidence_snippet": "testapp/ directory persists on disk with 62 files (excluding obj/bin). Git status shows it as untracked (??). It was never committed, but still pollutes the working tree. Contains a standalone Blazor WASM scaffold with hardcoded package versions (bypasses Directory.Packages.props), non-standard namespace 'testapp', and large wwwroot/lib/bootstrap/ assets.",
+      "rule_violated": "Solution Hygiene (no orphaned/unreferenced projects in working tree)",
+      "remediation": "Delete the entire testapp/ directory. Add 'testapp/' to .gitignore if warranted for local development tooling artifacts.",
+      "effort": "small",
+      "status": "open"
+    },
+    {
+      "id": "STRUCT-010",
+      "title": "Trim analyzer enabled globally but EF Core (Infrastructure) is not trimming-safe",
+      "severity": "informational",
+      "category": "architecture",
+      "files": [
+        "Directory.Build.props:10",
+        "Directory.Build.props:11",
+        "src/ContestJudging.Infrastructure/Persistence/ContestDbContext.cs:48",
+        "src/ContestJudging.Web/ContestJudging.Web.csproj:22"
+      ],
+      "evidence_snippet": "Directory.Build.props still applies <IsTrimmable>true</IsTrimmable> and <EnableTrimAnalyzer>true</EnableTrimAnalyzer> to ALL projects. This now causes 10 IL2026 trim warnings in the new tests/ContestJudging.Web.Tests/ModelValidationTests.cs (Validator.TryValidateObject + ValidationContext constructors). Infrastructure still uses [RequiresUnreferencedCode] attribute, and Web still suppresses IL2111.",
+      "rule_violated": "Build Configuration (trim settings should be scoped to the published project, not class libraries)",
+      "remediation": "Move <IsTrimmable> and <EnableTrimAnalyzer> from Directory.Build.props into the Web.csproj PropertyGroup. Class libraries (Core, Infrastructure, Services) should not be marked trimmable. Or scope with a Condition=\"'$(IsPublishable)' == 'true'\".",
+      "effort": "trivial",
+      "status": "open"
+    },
+    {
+      "id": "RA-STRUCT-001",
+      "title": "Web.Tests project missing explicit RootNamespace and AssemblyName properties",
+      "severity": "low",
+      "category": "style",
+      "files": [
+        "tests/ContestJudging.Web.Tests/ContestJudging.Web.Tests.csproj:1"
+      ],
+      "evidence_snippet": "The newly added Web.Tests.csproj (created by R3-B remediation) has no <RootNamespace> or <AssemblyName> elements. All other projects in the solution (Core, Infrastructure, Services, Web, and unit Tests) define these explicitly.",
+      "rule_violated": "Project Convention Consistency (all projects should use explicit RootNamespace/AssemblyName)",
+      "remediation": "Add <RootNamespace>ContestJudging.Web.Tests</RootNamespace> and <AssemblyName>ContestJudging.Web.Tests</AssemblyName> to Web.Tests.csproj PropertyGroup.",
+      "effort": "trivial",
+      "status": "open"
+    },
+    {
+      "id": "RA-STRUCT-002",
+      "title": "Redundant TargetFramework/Nullable overrides in E2ETests.csproj and Web.Tests.csproj",
+      "severity": "low",
+      "category": "style",
+      "files": [
+        "tests/ContestJudging.E2ETests/ContestJudging.E2ETests.csproj:4",
+        "tests/ContestJudging.E2ETests/ContestJudging.E2ETests.csproj:5",
+        "tests/ContestJudging.E2ETests/ContestJudging.E2ETests.csproj:7",
+        "tests/ContestJudging.Web.Tests/ContestJudging.Web.Tests.csproj:4",
+        "tests/ContestJudging.Web.Tests/ContestJudging.Web.Tests.csproj:5",
+        "Directory.Build.props:3",
+        "Directory.Build.props:4",
+        "Directory.Build.props:5"
+      ],
+      "evidence_snippet": "Both test projects duplicate Directory.Build.props values:\nE2ETests: <TargetFramework>net10.0</TargetFramework>, <ImplicitUsings>enable</ImplicitUsings>, <Nullable>enable</Nullable>\nWeb.Tests: <TargetFramework>net10.0</TargetFramework>, <Nullable>enable</Nullable>\n\nSame pattern as STRUCT-008 (Web.csproj).",
+      "rule_violated": "DRY (Don't Repeat Yourself) / Build configuration conventions",
+      "remediation": "Remove the redundant TargetFramework, Nullable, and ImplicitUsings properties from E2ETests.csproj and Web.Tests.csproj; rely on Directory.Build.props inheritance.",
+      "effort": "trivial",
+      "status": "open"
+    },
+    {
+      "id": "RA-STRUCT-003",
+      "title": "E2ETests.csproj uses non-standard LangVersion=latest override",
+      "severity": "low",
+      "category": "style",
+      "files": [
+        "tests/ContestJudging.E2ETests/ContestJudging.E2ETests.csproj:5"
+      ],
+      "evidence_snippet": "E2ETests.csproj contains <LangVersion>latest</LangVersion>. No other project in the solution overrides LangVersion. With net10.0 TFM, the default LangVersion already maps to C# 14 (latest). This explicit override is redundant and introduces inconsistency.",
+      "rule_violated": "Build Configuration Consistency (unnecessary LangVersion overrides fragment the build contract)",
+      "remediation": "Remove the <LangVersion>latest</LangVersion> line from E2ETests.csproj. Rely on the TFM-implied default.",
+      "effort": "trivial",
+      "status": "open"
+    },
+    {
+      "id": "RA-STRUCT-004",
+      "title": "Stale testapp/ directory persists on disk with 62 untracked scaffold files",
+      "severity": "medium",
+      "category": "architecture",
+      "files": [
+        "testapp/testapp.csproj",
+        "testapp/Program.cs",
+        "testapp/Pages/*.razor",
+        "testapp/wwwroot/lib/bootstrap/dist/**"
+      ],
+      "evidence_snippet": "The testapp/ directory remains on disk with 62 files (excluding obj/). git status shows '?? testapp/'. It was never committed but was also never cleaned up. Contains: a standalone Blazor WASM scaffold with hardcoded PackageReference versions (bypasses CPM), empty scaffold pages (Counter, Weather, Home), bootstrap 5.x assets, and stale obj/ build artifacts.",
+      "rule_violated": "Solution Hygiene (no orphaned scaffold remnants in working tree)",
+      "remediation": "Delete the entire testapp/ directory. Optionally add 'testapp/' to .gitignore to prevent reoccurrence. The directory's files were never committed to git history so no history is lost.",
+      "effort": "trivial",
+      "status": "open"
+    }
+  ],
+  "metrics": {
+    "files_scanned": 48,
+    "findings_count": 14,
+    "resolved_count": 3,
+    "open_count": 7,
+    "new_count": 4,
+    "lines_of_code": 2100
+  },
+  "errors": []
+}
