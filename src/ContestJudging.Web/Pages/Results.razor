@@ -1,86 +1,89 @@
 @page "/results"
 @using ContestJudging.Core.Entities
 
-<PageTitle>EOH 2026 - Results</PageTitle>
+<div class="container mt-4 mb-5">
+    <h3 class="display-5 mb-4" style="font-family: var(--eoh-font-headings); font-weight: 300; letter-spacing: -0.05rem;">Results</h3>
 
-<h3>Results</h3>
-
-<div class="alert alert-info border-start border-4 shadow-sm mb-4">
-    <i class="bi bi-info-circle-fill me-2"></i>
-    <strong>Statistical Resolution:</strong> Standings are now calculated using the Bradley-Terry model (Maximum Likelihood Estimation) to resolve sparse judging partitions.
-</div>
-
-@if (!string.IsNullOrEmpty(errorMessage))
-{
-    <div class="alert alert-danger border-start border-4 shadow-sm mb-4">
-        <i class="bi bi-exclamation-circle-fill me-2"></i>@errorMessage
+    <div class="alert border-0 shadow-sm mb-4 border-start border-4" style="background-color: #eef4fc; color: var(--eoh-blue); border-left-color: var(--eoh-blue) !important; border-radius: var(--eoh-radius);">
+        <i class="bi bi-info-circle-fill me-2" style="color: var(--eoh-altgeld-orange);"></i>
+        <strong>Statistical Resolution:</strong> Standings are now calculated using the Bradley-Terry model (Maximum Likelihood Estimation) to resolve sparse judging partitions.
     </div>
-}
 
-<button class="btn btn-primary mb-3 shadow-sm" @onclick="CalculateResults">
-    <i class="bi bi-calculator-fill me-2"></i>Calculate Results
-</button>
-
-@if (validationErrors.Any())
-{
-    <div class="alert alert-warning border-start border-4 shadow-sm mb-4">
-        <h4 class="alert-heading fw-bold">
-            <i class="bi bi-exclamation-triangle-fill me-2"></i>
-            Validation Feedback
-        </h4>
-        <ul class="mb-0">
-            @foreach (var error in validationErrors)
-            {
-                <li>@error</li>
-            }
-        </ul>
-    </div>
-}
-
-@if (leaderboard.Any())
-{
-    <div class="card border-0 shadow-sm mt-4">
-        <div class="card-header bg-blue text-white py-3">
-            <h4 class="mb-0 fw-bold text-uppercase"><i class="bi bi-trophy-fill me-2"></i>Leaderboard</h4>
+    @if (!string.IsNullOrEmpty(errorMessage))
+    {
+        <div class="alert alert-danger border-start border-4 shadow-sm mb-4" style="border-left-color: var(--eoh-red) !important; border-radius: var(--eoh-radius);">
+            <i class="bi bi-exclamation-circle-fill me-2"></i>@errorMessage
         </div>
-        <div class="card-body p-0">
-            <div class="table-responsive">
-                <table class="table table-hover mb-0">
-                    <thead class="table-light">
-                        <tr>
-                            <th class="ps-4">Rank</th>
-                            <th>Exhibit ID</th>
-                            @foreach (var cat in categories)
-                            {
-                                <th>@cat.Id</th>
-                            }
-                            <th class="pe-4 text-end">Total Score</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <Virtualize Items="@leaderboard" Context="item">
-                            <tr class="@(item.Rank == 1 ? "table-success" : "")">
-                                <td class="ps-4 fw-bold">#@item.Rank</td>
-                                <td class="fw-semibold">@item.Entry.Id</td>
+    }
+
+    <button class="btn btn-primary mb-4 shadow-sm px-4 py-2" style="background-color: var(--eoh-altgeld-orange); border-color: var(--eoh-altgeld-orange);" @onclick="CalculateResults">
+        <i class="bi bi-calculator-fill me-2"></i>Calculate Results
+    </button>
+
+    @if (validationErrors.Any())
+    {
+        <div class="alert alert-warning border-start border-4 shadow-sm mb-4" style="border-left-color: var(--eoh-orange) !important; border-radius: var(--eoh-radius);">
+            <h4 class="alert-heading fw-bold" style="font-family: var(--eoh-font-headings); font-size: 1.1rem;">
+                <i class="bi bi-exclamation-triangle-fill me-2 text-warning"></i>
+                Validation Feedback
+            </h4>
+            <ul class="mb-0" style="font-size: 0.95rem;">
+                @foreach (var error in validationErrors)
+                {
+                    <li>@error</li>
+                }
+            </ul>
+        </div>
+    }
+
+    @if (leaderboard.Any())
+    {
+        <div class="card border-0 shadow-sm mt-4" style="overflow: hidden;">
+            <div class="card-header text-white py-3" style="background-color: var(--eoh-blue); border-bottom: 2px solid var(--eoh-orange);">
+                <h4 class="mb-0 fw-bold text-uppercase" style="font-family: var(--eoh-font-headings); font-size: 1.05rem; letter-spacing: 0.05rem;"><i class="bi bi-trophy-fill me-2 text-warning"></i>Leaderboard</h4>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr style="background-color: #fcfcfc;">
+                                <th class="ps-4 py-3" style="font-family: var(--eoh-font-headings); font-size: 0.85rem; letter-spacing: 0.03rem; text-transform: uppercase; color: var(--eoh-blue);">Rank</th>
+                                <th class="py-3" style="font-family: var(--eoh-font-headings); font-size: 0.85rem; letter-spacing: 0.03rem; text-transform: uppercase; color: var(--eoh-blue);">Exhibit ID</th>
                                 @foreach (var cat in categories)
                                 {
-                                    <td>@item.Entry.Scores.GetValueOrDefault(cat.Id, 0).ToString("N2")</td>
+                                    <th class="py-3" style="font-family: var(--eoh-font-headings); font-size: 0.85rem; letter-spacing: 0.03rem; text-transform: uppercase; color: var(--eoh-blue);">@cat.Id</th>
                                 }
-                                <td class="pe-4 text-end fw-bold text-orange">@item.Entry.TotalScore.ToString("N2")</td>
+                                <th class="pe-4 text-end py-3" style="font-family: var(--eoh-font-headings); font-size: 0.85rem; letter-spacing: 0.03rem; text-transform: uppercase; color: var(--eoh-blue);">Total Score</th>
                             </tr>
-                        </Virtualize>
-                    </tbody>
-                </table>
+                        </thead>
+                        <tbody>
+                            <Virtualize Items="@leaderboard" Context="item">
+                                <tr style="@(item.Rank == 1 ? "background-color: #fff9e6;" : "")" class="border-bottom border-light">
+                                    <td class="ps-4 py-3 fw-bold" style="color: @(item.Rank == 1 ? "#b89314" : "var(--eoh-blue)"); @(item.Rank == 1 ? "border-left: 4px solid #d4af37;" : "")">
+                                        @if (item.Rank == 1)
+                                        {
+                                            <i class="bi bi-award-fill me-1"></i>
+                                        }
+                                        #@item.Rank
+                                    </td>
+                                    <td class="fw-semibold text-primary py-3" style="color: var(--eoh-blue) !important;">@item.Entry.Id</td>
+                                    @foreach (var cat in categories)
+                                    {
+                                        <td class="py-3" style="color: var(--eoh-charcoal);">@item.Entry.Scores.GetValueOrDefault(cat.Id, 0).ToString("N2")</td>
+                                    }
+                                    <td class="pe-4 text-end fw-bold py-3 text-orange" style="font-size: 1.1rem; color: var(--eoh-altgeld-orange) !important;">@item.Entry.TotalScore.ToString("N2")</td>
+                                </tr>
+                            </Virtualize>
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
-    </div>
-}
+    }
+</div>
 
 <style>
-    .bg-blue {
-        background-color: var(--eoh-blue);
-    }
     .text-orange {
-        color: var(--eoh-orange);
+        color: var(--eoh-altgeld-orange);
     }
 </style>

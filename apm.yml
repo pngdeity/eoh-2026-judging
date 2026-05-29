@@ -3,10 +3,12 @@ version: 1.0.0
 description: APM project for eoh-2026-judging
 author: pngdeity
 targets:
-- opencode
-- copilot
+  - opencode
+  - copilot
 dependencies:
   apm:
-  - /home/nathan/repos/pngdeity/apm-user-repository/packages/development-practices
+    - pngdeity/apm-user-repository/packages/development-practices#v0.4.2
+    - pngdeity/apm-user-repository/packages/configure-trim-safe-efcore#v0.4.2
+    - pngdeity/apm-user-repository/packages/implement-offline-first-sync#v0.4.2
+    - pngdeity/apm-user-repository/packages/manage-sqlite-wasm-lifecycle#v0.4.2
 includes: auto
-scripts: {}

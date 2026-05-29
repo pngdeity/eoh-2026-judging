@@ -12,9 +12,9 @@ main {
 }
 
 .footer {
-    background-color: var(--eoh-blue);
-    color: white;
-    border-top: 3px solid var(--eoh-orange);
+    background-color: #0c182b;
+    color: rgba(255, 255, 255, 0.8);
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
     z-index: 10;
 }
 
@@ -38,18 +38,17 @@ main {
 }
 
 .sidebar {
-    background: linear-gradient(180deg, var(--eoh-blue) 0%, var(--eoh-purple) 100%);
-    border-right: 2px solid var(--eoh-orange);
+    background: linear-gradient(180deg, var(--eoh-blue) 0%, #091424 100%);
+    border-right: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .top-row {
-    background-color: #fff;
-    border-bottom: 2px solid var(--eoh-border);
+    background-color: var(--eoh-warm-neutral);
+    border-bottom: 1px solid var(--eoh-border);
     justify-content: flex-end;
     height: 3.5rem;
     display: flex;
     align-items: center;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
 }
 
     .top-row ::deep a, .top-row ::deep .btn-link {

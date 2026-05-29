@@ -3,6 +3,7 @@ using System.IO;
 
 using Blazored.LocalStorage;
 
+using ContestJudging.Core;
 using ContestJudging.Infrastructure.Persistence;
 using ContestJudging.Services.Extensions;
 using ContestJudging.Web;
@@ -29,16 +30,17 @@ AddServices(builder.Services);
 var host = builder.Build();
 
 var js = host.Services.GetRequiredService<IJSRuntime>();
-var raw = await js.InvokeAsync<string>("localStorage.getItem", "db_backup");
+var raw = await js.InvokeAsync<string>("localStorage.getItem", Constants.BackupStorageKey);
 if (!string.IsNullOrEmpty(raw))
 {
     try
     {
-        var rawBase64 = System.Text.Json.JsonSerializer.Deserialize<string>(raw);
+        using var doc = System.Text.Json.JsonDocument.Parse(raw);
+        var rawBase64 = doc.RootElement.GetString();
         if (!string.IsNullOrEmpty(rawBase64))
         {
             var backupBytes = Convert.FromBase64String(rawBase64);
-            await File.WriteAllBytesAsync("contest.db", backupBytes);
+            await File.WriteAllBytesAsync(Constants.DatabaseFileName, backupBytes);
         }
     }
     catch
@@ -63,5 +65,5 @@ static void AddServices(IServiceCollection services)
     // Connection string is hardcoded because this is a client-side WASM app
     // with no server-side config file or environment variable support.
     // SQLite is embedded in the browser — the path is safe and appropriate.
-    services.AddContestJudgingServices("Data Source=contest.db;foreign keys=true");
+    services.AddContestJudgingServices(Constants.DefaultConnectionString);
 }

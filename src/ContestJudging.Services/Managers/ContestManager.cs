@@ -42,75 +42,52 @@ namespace ContestJudging.Services.Managers
 
         public async Task AddCategoryAsync(Category category, CancellationToken cancellationToken = default)
         {
-            await _categoryRepository.AddAsync(category, cancellationToken);
+            await _categoryRepository.AddAsync(category, cancellationToken).ConfigureAwait(false);
         }
 
         public async Task AddEntryAsync(Entry entry, CancellationToken cancellationToken = default)
         {
-            await _entryRepository.AddAsync(entry, cancellationToken);
+            await _entryRepository.AddAsync(entry, cancellationToken).ConfigureAwait(false);
         }
 
         public async Task AddEntriesAsync(IEnumerable<Entry> entries, CancellationToken cancellationToken = default)
         {
             foreach (var entry in entries)
             {
-                await _entryRepository.AddAsync(entry, cancellationToken);
+                await _entryRepository.AddAsync(entry, cancellationToken).ConfigureAwait(false);
             }
         }
 
         public async Task DeleteCategoryAsync(string categoryId, CancellationToken cancellationToken = default)
         {
-            await _categoryRepository.DeleteAsync(categoryId, cancellationToken);
+            await _categoryRepository.DeleteAsync(categoryId, cancellationToken).ConfigureAwait(false);
         }
 
         public async Task DeleteEntryAsync(string entryId, CancellationToken cancellationToken = default)
         {
-            await _entryRepository.DeleteAsync(entryId, cancellationToken);
+            await _entryRepository.DeleteAsync(entryId, cancellationToken).ConfigureAwait(false);
         }
 
         public async Task AddRelationAsync(Relation relation, CancellationToken cancellationToken = default)
         {
-            await _relationRepository.AddAsync(relation, cancellationToken);
+            await _relationRepository.AddAsync(relation, cancellationToken).ConfigureAwait(false);
         }
 
         public async Task DeleteRelationAsync(string categoryId, string entryAId, string entryBId, CancellationToken cancellationToken = default)
         {
-            await _relationRepository.DeleteAsync(categoryId, entryAId, entryBId, cancellationToken);
-        }
-
-        public async Task<bool> ValidateCategoryRelationsAsync(string categoryId, CancellationToken cancellationToken = default)
-        {
-            var relations = (await _relationRepository.GetByCategoryIdAsync(categoryId, cancellationToken)).ToList();
-            if (!relations.Any()) return false;
-
-            var entries = (await _entryRepository.GetAllAsync(cancellationToken)).ToList();
-            var entriesInRelations = new HashSet<string>();
-            foreach (var relation in relations)
-            {
-                entriesInRelations.Add(relation.EntryA.Id);
-                entriesInRelations.Add(relation.EntryB.Id);
-            }
-
-            return entries.All(e => entriesInRelations.Contains(e.Id));
-        }
-
-        public async Task<bool> CheckTotalOrderAsync(string categoryId, CancellationToken cancellationToken = default)
-        {
-            var relations = await _relationRepository.GetByCategoryIdAsync(categoryId, cancellationToken);
-            var entries = await _entryRepository.GetAllAsync(cancellationToken);
-            return _validationService.IsTotalOrder(relations, entries.Select(e => e.Id));
+            await _relationRepository.DeleteAsync(categoryId, entryAId, entryBId, cancellationToken).ConfigureAwait(false);
         }
 
         public async Task<ValidationResult> CalculateGlobalScoresAsync(string categoryId, double maxScore, CancellationToken cancellationToken = default)
         {
-            var category = await _categoryRepository.GetByIdAsync(categoryId, cancellationToken);
+            var category = await _categoryRepository.GetByIdAsync(categoryId, cancellationToken).ConfigureAwait(false);
             if (category == null)
             {
                 return new ValidationResult(false, "Category not found.", 0);
             }
 
-            var relations = (await _relationRepository.GetByCategoryIdAsync(categoryId, cancellationToken)).ToList();
-            var entries = (await _entryRepository.GetAllAsync(cancellationToken)).ToList();
+            var relations = (await _relationRepository.GetByCategoryIdAsync(categoryId, cancellationToken).ConfigureAwait(false)).ToList();
+            var entries = (await _entryRepository.GetAllAsync(cancellationToken).ConfigureAwait(false)).ToList();
             var allEntryIds = entries.Select(e => e.Id).ToList();
 
             var validationResult = _validationService.ValidatePartitionedGraph(relations, allEntryIds);
@@ -128,7 +105,7 @@ namespace ContestJudging.Services.Managers
                 if (scores.TryGetValue(entry.Id, out double score))
                 {
                     entry.SetScore(category, score);
-                    await _entryRepository.UpdateAsync(entry, cancellationToken);
+                    await _entryRepository.UpdateAsync(entry, cancellationToken).ConfigureAwait(false);
                 }
             }
 
@@ -137,12 +114,12 @@ namespace ContestJudging.Services.Managers
 
         public async Task<byte[]> ExportDataAsync(CancellationToken cancellationToken = default)
         {
-            return await _backupService.ExportAsync(cancellationToken);
+            return await _backupService.ExportAsync(cancellationToken).ConfigureAwait(false);
         }
 
         public async Task ImportDataAsync(byte[] data, CancellationToken cancellationToken = default)
         {
-            await _backupService.ImportAsync(data, cancellationToken);
+            await _backupService.ImportAsync(data, cancellationToken).ConfigureAwait(false);
         }
     }
 }
