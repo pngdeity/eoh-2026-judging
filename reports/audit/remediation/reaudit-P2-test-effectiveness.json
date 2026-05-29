@@ -1,0 +1,268 @@
+{
+  "agent_id": "PA2-E",
+  "pass": 2,
+  "domain": "test-effectiveness",
+  "status": "success",
+  "score": {
+    "original": 4,
+    "remediated": 6,
+    "change": 2,
+    "summary": "High-severity findings largely addressed; medium/low severity mostly unresolved. Core algorithmic coverage improved significantly."
+  },
+  "test_counts": {
+    "original": 33,
+    "new": 59,
+    "delta": 26,
+    "breakdown": {
+      "ContestJudging.Tests": 51,
+      "ContestJudging.Web.Tests": 8,
+      "ContestJudging.E2ETests": 2
+    }
+  },
+  "finding_resolution": {
+    "total_original": 16,
+    "resolved": 4,
+    "partially_resolved": 3,
+    "not_resolved": 9,
+    "details": [
+      {
+        "id": "TE-001",
+        "severity": "high",
+        "status": "resolved",
+        "note": "Seeded Random(42) in PartitionServiceTests"
+      },
+      {
+        "id": "TE-002",
+        "severity": "high",
+        "status": "resolved",
+        "note": "IDatabaseBackupService abstraction, Export/Import delegation tests"
+      },
+      {
+        "id": "TE-003",
+        "severity": "high",
+        "status": "partially_resolved",
+        "note": "BackupService unit tests exist; web orchestration layer still untested"
+      },
+      {
+        "id": "TE-004",
+        "severity": "high",
+        "status": "resolved",
+        "note": "20-entry convergence test exercises early-exit path"
+      },
+      {
+        "id": "TE-005",
+        "severity": "high",
+        "status": "resolved",
+        "note": "5 tests across all 3 strategies for CalculateScoresFromStrengths"
+      },
+      {
+        "id": "TE-006",
+        "severity": "medium",
+        "status": "not_resolved",
+        "note": "UpdateAsync/GetAllAsync never tested as subjects"
+      },
+      {
+        "id": "TE-007",
+        "severity": "medium",
+        "status": "not_resolved",
+        "note": "ErrorMessage still not asserted in ValidatePartitionedGraph tests"
+      },
+      {
+        "id": "TE-008",
+        "severity": "medium",
+        "status": "not_resolved",
+        "note": "LessThan operator path untested in all validation tests"
+      },
+      {
+        "id": "TE-009",
+        "severity": "medium",
+        "status": "not_resolved",
+        "note": "Non-existent ID and empty-table edge cases untested"
+      },
+      {
+        "id": "TE-010",
+        "severity": "medium",
+        "status": "resolved",
+        "note": "null! removed; ContestManager depends on IDatabaseBackupService"
+      },
+      {
+        "id": "TE-011",
+        "severity": "low",
+        "status": "not_resolved",
+        "note": "E2E tests unchanged; no functional workflow added"
+      },
+      {
+        "id": "TE-012",
+        "severity": "low",
+        "status": "not_resolved",
+        "note": "String-contains assertions remain in TrimmingSafetyTests"
+      },
+      {
+        "id": "TE-013",
+        "severity": "low",
+        "status": "not_resolved",
+        "note": "PartitionService constructor validation untested"
+      },
+      {
+        "id": "TE-014",
+        "severity": "low",
+        "status": "not_resolved",
+        "note": "Duplicate validation code not refactored"
+      },
+      {
+        "id": "TE-015",
+        "severity": "low",
+        "status": "partially_resolved",
+        "note": "CalculateScoresFromStrengths edges covered; CalculateScores edges still untested"
+      },
+      {
+        "id": "TE-016",
+        "severity": "low",
+        "status": "not_resolved",
+        "note": "SetScore boundary values (0, MaxScore) untested"
+      }
+    ]
+  },
+  "new_findings": [
+    {
+      "id": "RA-TE-001",
+      "title": "ModelValidationTests.LeaderboardItem_StoresEntryCorrectly is a smoke test of a property setter",
+      "severity": "low",
+      "category": "assertion-strength",
+      "files": ["tests/ContestJudging.Web.Tests/ModelValidationTests.cs:71"],
+      "evidence_snippet": "item.Entry = entry;\nAssert.Same(entry, item.Entry);",
+      "rule_violated": "Testing: tests must exercise business logic, not language-level property assignment",
+      "remediation": "Remove or replace with a test of LeaderboardItem ordering/sorting logic.",
+      "effort": "trivial"
+    },
+    {
+      "id": "RA-TE-002",
+      "title": "LinearSpacing_CalculateScoresFromStrengths_VariedStrengths uses fuzzy assertions",
+      "severity": "low",
+      "category": "assertion-strength",
+      "files": ["tests/ContestJudging.Tests/ScoringStrategyTests.cs:96"],
+      "evidence_snippet": "Assert.True(scores[\"A\"] > 90.0, \"Highest strength should get near max\");\nAssert.True(scores[\"C\"] < 10.0, \"Lowest strength should get near min\");",
+      "rule_violated": "Testing: assertions should use exact expected values when the algorithm is deterministic (Math.Round output is predictable)",
+      "remediation": "Compute expected values manually: strengths {3.0,1.0,0.0} with maxScore=100 → normalized {1.0, 0.333, 0.0} → {100, 33.33, 0}. Assert exact.",
+      "effort": "trivial"
+    },
+    {
+      "id": "RA-TE-003",
+      "title": "BackupService version mismatch test omits verification of schema version key removal",
+      "severity": "low",
+      "category": "assertion-strength",
+      "files": ["tests/ContestJudging.Tests/BackupServiceTests.cs:45"],
+      "evidence_snippet": "mockStorage.Verify(s => s.RemoveItemAsync(\"db_backup\"), Times.Once);\n// Missing: Verify RemoveItemAsync(\"db_schema_version\")",
+      "rule_violated": "Testing: verify all side effects of the method under test",
+      "remediation": "Add _mockStorage.Verify(s => s.RemoveItemAsync(\"db_schema_version\"), Times.Once);",
+      "effort": "trivial"
+    },
+    {
+      "id": "RA-TE-004",
+      "title": "BackupService mocks ILogger but never verifies log calls on warning/error paths",
+      "severity": "low",
+      "category": "assertion-strength",
+      "files": ["tests/ContestJudging.Tests/BackupServiceTests.cs:17"],
+      "evidence_snippet": "// _mockLogger instantiated but never verified via Verify or VerifyLog",
+      "rule_violated": "Testing: mocks that represent observed side effects (logging) should be verified",
+      "remediation": "Use Mock.Of<ILogger>() (no verification needed) since logging is not the subject, or add Verify calls for LogWarning/LogError paths.",
+      "effort": "trivial"
+    },
+    {
+      "id": "RA-TE-005",
+      "title": "3 of 5 CalculateScoresFromStrengths tests use ordinal-only assertions where exact values are available",
+      "severity": "low",
+      "category": "assertion-strength",
+      "files": [
+        "tests/ContestJudging.Tests/ScoringStrategyTests.cs:96",
+        "tests/ContestJudging.Tests/ScoringStrategyTests.cs:130",
+        "tests/ContestJudging.Tests/ScoringStrategyTests.cs:142"
+      ],
+      "evidence_snippet": "Assert.True(scores[\"A\"] > scores[\"B\"]);\nAssert.True(scores[\"B\"] > scores[\"C\"]);",
+      "rule_violated": "Testing: prefer exact value assertions over ordinal comparisons when output is deterministic",
+      "remediation": "Replace ordinal assertions with exact Math.Round output values in all three tests.",
+      "effort": "trivial"
+    },
+    {
+      "id": "RA-TE-006",
+      "title": "Percentile and DefinedInterval CalculateScoresFromStrengths tests duplicate LinearSpacing coverage without covering unique paths",
+      "severity": "low",
+      "category": "coverage-gap",
+      "files": [
+        "tests/ContestJudging.Tests/ScoringStrategyTests.cs:123",
+        "tests/ContestJudging.Tests/ScoringStrategyTests.cs:135"
+      ],
+      "evidence_snippet": "// PercentileScoring.CalculateScoresFromStrengths single-entry path (line 45-49): NOT tested\n// PercentileScoring.CalculateScoresFromStrengths empty-dict path (line 44): NOT tested\n// DefinedIntervalScoring.CalculateScoresFromStrengths same-strength path (range < 1e-9): NOT tested",
+      "rule_violated": "Testing: test coverage should target missing edge cases rather than re-testing the same scenario across different strategies",
+      "remediation": "Add single-entry test for Percentile, empty-dict test for Percentile, and same-strength test for DefinedInterval.",
+      "effort": "trivial"
+    }
+  ],
+  "uncovered_critical_paths": [
+    "Repository UpdateAsync — never tested as subject (only as setup in cascade test)",
+    "Repository GetAllAsync — never called in any test",
+    "GraphValidationService LessThan operator path (lines 86-89)",
+    "PartitionService constructor guard clauses (k <= 0, invalid overlapRate)",
+    "Entry.SetScore boundary values (0, MaxScore)",
+    "Web-layer backup orchestration in Setup.razor.cs and Program.cs",
+    "GraphValidationService error message discrimination in tests",
+    "E2E functional judging workflow"
+  ],
+  "new_test_assessment": {
+    "BackupServiceTests": {
+      "test_count": 5,
+      "meaningful": true,
+      "mock_quality": "good",
+      "assertion_strength": "medium",
+      "uncovered_paths": [
+        "null-base64 path (line 44)",
+        "ImportAsync exception path (line 54)",
+        "missing Verify on db_schema_version removal"
+      ]
+    },
+    "ContestManager_ExportImport": {
+      "test_count": 2,
+      "meaningful": true,
+      "mock_quality": "good",
+      "assertion_strength": "strong",
+      "uncovered_paths": []
+    },
+    "ResolutionService_Convergence": {
+      "test_count": 3,
+      "meaningful": true,
+      "mock_quality": "n/a",
+      "assertion_strength": "medium",
+      "uncovered_paths": ["MaxIterations exhaustion path not directly verified"]
+    },
+    "ScoringStrategy_CalculateScoresFromStrengths": {
+      "test_count": 5,
+      "meaningful": true,
+      "mock_quality": "n/a",
+      "assertion_strength": "weak (3 of 5 ordinal-only)",
+      "uncovered_paths": [
+        "Percentile single-entry",
+        "Percentile empty-dict",
+        "DefinedInterval same-strength"
+      ]
+    },
+    "CoreTests_Theory": {
+      "test_count": 3,
+      "meaningful": true,
+      "mock_quality": "n/a",
+      "assertion_strength": "strong",
+      "uncovered_paths": []
+    },
+    "Web_Tests_ModelValidation": {
+      "test_count": 8,
+      "meaningful": "mixed",
+      "mock_quality": "n/a",
+      "assertion_strength": "medium",
+      "weak_tests": [
+        "LeaderboardItem_StoresEntryCorrectly (property setter smoke)"
+      ]
+    }
+  },
+  "files_scanned": 28,
+  "findings_count": 22,
+  "errors": []
+}

@@ -1,34 +1,65 @@
 <!DOCTYPE html>
 <html lang="en">
-
-<head>
+  <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; connect-src 'self'; img-src 'self' data:; font-src 'self';"
+    />
     <title>EOH 2026 Contest Judging</title>
     <base href="/" />
     <link rel="preload" id="webassembly" />
+    <link rel="stylesheet" href="lib/katex/katex.min.css" />
     <link rel="stylesheet" href="lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="css/app.css" />
     <link rel="icon" type="image/x-icon" href="favicon.ico" />
     <link href="ContestJudging.Web.styles.css" rel="stylesheet" />
+    <script src="lib/katex/katex.min.js"></script>
+    <script src="lib/katex/auto-render.min.js"></script>
+    <script>
+      (function () {
+        function render() {
+          try {
+            renderMathInElement(document.body, {
+              delimiters: [{ left: "$$", right: "$$", display: true }, {
+                left: "$",
+                right: "$",
+                display: false,
+              }],
+            });
+          } catch (e) {}
+        }
+        window.addEventListener("enhancedload", render);
+        var obs = new MutationObserver(function () {
+          render();
+        });
+        obs.observe(document.body || document.documentElement, {
+          childList: true,
+          subtree: true,
+        });
+        setTimeout(function () {
+          obs.disconnect();
+        }, 15000);
+      })();
+    </script>
     <script type="importmap"></script>
-</head>
+  </head>
 
-<body>
+  <body>
     <div id="app">
-        <svg class="loading-progress">
-            <circle r="40%" cx="50%" cy="50%" />
-            <circle r="40%" cx="50%" cy="50%" />
-        </svg>
-        <div class="loading-progress-text"></div>
+      <svg class="loading-progress">
+        <circle r="40%" cx="50%" cy="50%" />
+        <circle r="40%" cx="50%" cy="50%" />
+      </svg>
+      <div class="loading-progress-text"></div>
     </div>
 
     <div id="blazor-error-ui">
-        An unhandled error has occurred.
-        <a href="." class="reload">Reload</a>
-        <span class="dismiss">🗙</span>
+      An unhandled error has occurred.
+      <a href="." class="reload">Reload</a>
+      <span class="dismiss">🗙</span>
     </div>
     <script src="_framework/blazor.webassembly#[.{fingerprint}].js"></script>
-</body>
-
+  </body>
 </html>

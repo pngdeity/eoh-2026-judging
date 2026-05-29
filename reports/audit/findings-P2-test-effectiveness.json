@@ -1,0 +1,299 @@
+{
+  "agent_id": "P2-E",
+  "pass": 2,
+  "domain": "test-effectiveness",
+  "status": "success",
+  "findings": [
+    {
+      "id": "TE-001",
+      "title": "PartitionService tests are non-deterministic due to unseeded Random",
+      "severity": "high",
+      "category": "test-isolation",
+      "files": [
+        "src/ContestJudging.Services/Partitioning/PartitionService.cs:9",
+        "tests/ContestJudging.Tests/PartitionServiceTests.cs:22",
+        "tests/ContestJudging.Tests/PartitionServiceTests.cs:31"
+      ],
+      "evidence_snippet": "private readonly Random _random = new(); // PartitionService.cs:9\n// ...\nAssert.Equal(10, common.Count); // PartitionServiceTests.cs:31 — non-deterministic",
+      "rule_violated": "Testing: tests must be deterministic and reproducible; unseeded Random produces different results per run",
+      "remediation": "Inject Random or an IRandomProvider into PartitionService. Tests should use new Random(42) for deterministic shuffling.",
+      "effort": "small",
+      "status": "open",
+      "related_findings": ["TEST-001"]
+    },
+    {
+      "id": "TE-002",
+      "title": "ContestManager ExportDataAsync/ImportDataAsync are structurally untestable due to concrete ContestDbContext dependency",
+      "severity": "high",
+      "category": "mock-quality",
+      "files": [
+        "src/ContestJudging.Services/Managers/ContestManager.cs:23",
+        "src/ContestJudging.Services/Managers/ContestManager.cs:119",
+        "src/ContestJudging.Services/Managers/ContestManager.cs:124",
+        "tests/ContestJudging.Tests/ContestManagerTests.cs:30",
+        "src/ContestJudging.Infrastructure/Persistence/ContestDbContext.cs:66",
+        "src/ContestJudging.Infrastructure/Persistence/ContestDbContext.cs:76"
+      ],
+      "evidence_snippet": "// ContestManager.cs:23 — concrete dependency, not an interface\nprivate readonly ContestDbContext _context;\n\n// ContestManagerTests.cs:30 — null! masks fragility\nvar manager = new ContestManager(... , null!);\n\n// ContestDbContext.cs:66 — hardcoded path makes mocking impossible\nvar path = \"contest.db\";\nreturn await File.ReadAllBytesAsync(path);",
+      "rule_violated": "SOLID:DIP — depending on concrete implementation prevents unit testing of I/O-bound methods",
+      "remediation": "Extract IDatabaseExportImport interface with ExportAsync/ImportAsync, implement in ContestDbContext, inject into ContestManager.",
+      "effort": "medium",
+      "status": "open",
+      "related_findings": ["CQ-003", "TEST-004", "TEST-010"]
+    },
+    {
+      "id": "TE-003",
+      "title": "LocalStorage backup/restore pipeline has zero test coverage across all layers",
+      "severity": "high",
+      "category": "coverage-gap",
+      "files": [
+        "src/ContestJudging.Web/Pages/Setup.razor.cs:49",
+        "src/ContestJudging.Web/Pages/Setup.razor.cs:55",
+        "src/ContestJudging.Web/Pages/Judging.razor.cs:76",
+        "src/ContestJudging.Web/Pages/Judging.razor.cs:82",
+        "src/ContestJudging.Web/Program.cs:39",
+        "src/ContestJudging.Web/Program.cs:46"
+      ],
+      "evidence_snippet": "// Setup.razor.cs:49-57 — BackupDatabase untested\nprivate async Task BackupDatabase()\n{\n    var data = await ContestManager.ExportDataAsync();\n    await LocalStorage.SetItemAsStringAsync(\"db_backup\", Convert.ToBase64String(data));\n}\n\n// Program.cs:39-54 — restore path catches and swallows, untested\ncatch (Exception ex) { Console.WriteLine($\"Failed to restore database: {ex.Message}\"); }",
+      "rule_violated": "Testing: critical data persistence path (only persistence in Blazor WASM) has no coverage",
+      "remediation": "Extract backup/restore to dedicated IBackupService. Add integration test for round-trip: write data, backup, wipe, restore, verify.",
+      "effort": "medium",
+      "status": "open",
+      "related_findings": ["CQ-003", "CQ-002", "TE-002"]
+    },
+    {
+      "id": "TE-004",
+      "title": "BradleyTerryResolutionService convergence and early-exit paths completely untested",
+      "severity": "high",
+      "category": "coverage-gap",
+      "files": [
+        "src/ContestJudging.Services/Resolution/BradleyTerryResolutionService.cs:56",
+        "src/ContestJudging.Services/Resolution/BradleyTerryResolutionService.cs:90",
+        "src/ContestJudging.Services/Resolution/BradleyTerryResolutionService.cs:108",
+        "src/ContestJudging.Services/Resolution/BradleyTerryResolutionService.cs:118",
+        "tests/ContestJudging.Tests/ResolutionServiceTests.cs:13",
+        "tests/ContestJudging.Tests/ResolutionServiceTests.cs:41"
+      ],
+      "evidence_snippet": "// BradleyTerryResolutionService.cs:90-111 — rank-stability early exit never reached\nif (iter > 50 && iter % 10 == 0)\n{\n    if (stable && maxDiff < 1e-3) { gamma = nextGamma; break; }\n}\n// Both existing tests use ≤3 entries and converge in 1 iteration",
+      "rule_violated": "Testing: algorithmic correctness — convergence path with the most complex logic (MLE + rank stability) is unexercised",
+      "remediation": "Add test with 10+ entries and partial rankings requiring 50+ iterations. Add tests for empty input, single entry, and MaxIterations exhaustion.",
+      "effort": "medium",
+      "status": "open",
+      "related_findings": ["CQ-006", "CQ-008"]
+    },
+    {
+      "id": "TE-005",
+      "title": "CalculateScoresFromStrengths untested across all three scoring strategies",
+      "severity": "high",
+      "category": "coverage-gap",
+      "files": [
+        "src/ContestJudging.Services/Scoring/LinearSpacingScoring.cs:38",
+        "src/ContestJudging.Services/Scoring/PercentileScoring.cs:40",
+        "src/ContestJudging.Services/Scoring/DefinedIntervalScoring.cs:38",
+        "tests/ContestJudging.Tests/ScoringStrategyTests.cs:13"
+      ],
+      "evidence_snippet": "// LinearSpacingScoring.cs:52-63 — untested normalization with division-by-zero guard\ndouble range = maxStrength - minStrength;\nif (range < 1e-9) { normalized = 1.0; }\nelse { normalized = (kvp.Value - minStrength) / range; }\n// Called by ContestManager.CalculateGlobalScoresAsync line 104, but never directly tested",
+      "rule_violated": "Testing: IScoringStrategy interface has two methods; only CalculateScores is tested; CalculateScoresFromStrengths exercises different code paths",
+      "remediation": "Add tests for each strategy's CalculateScoresFromStrengths with varied strengths, identical strengths (range < 1e-9), and single entry.",
+      "effort": "small",
+      "status": "open",
+      "related_findings": ["CQ-008", "TE-004"]
+    },
+    {
+      "id": "TE-006",
+      "title": "Repository UpdateAsync and GetAllAsync methods have zero test coverage",
+      "severity": "medium",
+      "category": "coverage-gap",
+      "files": [
+        "src/ContestJudging.Infrastructure/Repositories/SqliteRepositories.cs:41",
+        "src/ContestJudging.Infrastructure/Repositories/SqliteRepositories.cs:28",
+        "src/ContestJudging.Infrastructure/Repositories/SqliteRepositories.cs:101",
+        "src/ContestJudging.Infrastructure/Repositories/SqliteRepositories.cs:143",
+        "tests/ContestJudging.Tests/InfrastructureTests.cs:35"
+      ],
+      "evidence_snippet": "// SqliteRepositories.cs:143-165 — Entry UpdateAsync untested (destructive: removes all scores and rebuilds)\n_context.EntryScores.RemoveRange(entity.Scores);\nforeach (var score in entry.Scores) { entity.Scores.Add(new EntryScoreEntity { ... }); }\n// SqliteRepositories.cs:101-125 — Entry GetAllAsync untested (client-side join pattern)",
+      "rule_violated": "Testing: CRUD operations not covered — UpdateAsync/GetAllAsync are not tested in any repository",
+      "remediation": "Add tests for all UpdateAsync and GetAllAsync methods across all three repositories. Include edge: update non-existent ID, empty table, update with zero scores.",
+      "effort": "small",
+      "status": "open",
+      "related_findings": ["CQ-007", "TEST-009"]
+    },
+    {
+      "id": "TE-007",
+      "title": "ValidatePartitionedGraph tests fail to assert error message content",
+      "severity": "medium",
+      "category": "assertion-strength",
+      "files": [
+        "tests/ContestJudging.Tests/ValidationServiceTests.cs:175",
+        "tests/ContestJudging.Tests/ValidationServiceTests.cs:201",
+        "tests/ContestJudging.Tests/ValidationServiceTests.cs:228",
+        "src/ContestJudging.Services/Validation/GraphValidationService.cs:312"
+      ],
+      "evidence_snippet": "// ValidationServiceTests.cs:175 — checks IsValid/ComponentCount but not ErrorMessage\nAssert.False(result.IsValid);\nAssert.Equal(2, result.ComponentCount);\n// Never asserts result.ErrorMessage — could return false for wrong reason\n\n// GraphValidationService.cs:339 — error message never asserted in any test\nreturn new ValidationResult(false, \"The graph is not fully connected. Bridge nodes failed to overlap correctly.\", componentCount);",
+      "rule_violated": "Testing: assertions must verify the specific failure reason, not just that failure occurred",
+      "remediation": "Add Assert.Equal(...) for result.ErrorMessage in both disconnected and cycle test cases to validate correct error discrimination.",
+      "effort": "trivial",
+      "status": "open"
+    },
+    {
+      "id": "TE-008",
+      "title": "LessThan operator never tested in IsTotalOrder or IsValidOrder",
+      "severity": "medium",
+      "category": "coverage-gap",
+      "files": [
+        "src/ContestJudging.Services/Validation/GraphValidationService.cs:80",
+        "src/ContestJudging.Services/Validation/GraphValidationService.cs:166",
+        "tests/ContestJudging.Tests/ValidationServiceTests.cs:15",
+        "tests/ContestJudging.Tests/ValidationServiceTests.cs:89"
+      ],
+      "evidence_snippet": "// GraphValidationService.cs:80-83 — LessThan branch has zero coverage\nelse if (rel.Operator == Operator.LessThan)\n{\n    u = rootB;\n    v = rootA;\n}\n// All 10 validation tests use only GreaterThan and EqualTo",
+      "rule_violated": "Testing: enum value coverage — Operator.LessThan is used in production (keyboard handler) but not in any validation test",
+      "remediation": "Add one test each for IsTotalOrder and IsValidOrder with a LessThan relation to verify directional inversion.",
+      "effort": "trivial",
+      "status": "open"
+    },
+    {
+      "id": "TE-009",
+      "title": "Non-existent ID and empty-table repository edge cases untested",
+      "severity": "medium",
+      "category": "coverage-gap",
+      "files": [
+        "src/ContestJudging.Infrastructure/Repositories/SqliteRepositories.cs:22",
+        "src/ContestJudging.Infrastructure/Repositories/SqliteRepositories.cs:34",
+        "src/ContestJudging.Infrastructure/Repositories/SqliteRepositories.cs:51",
+        "src/ContestJudging.Infrastructure/Repositories/SqliteRepositories.cs:78",
+        "src/ContestJudging.Infrastructure/Repositories/SqliteRepositories.cs:167",
+        "src/ContestJudging.Infrastructure/Repositories/SqliteRepositories.cs:194",
+        "tests/ContestJudging.Tests/InfrastructureTests.cs:35"
+      ],
+      "evidence_snippet": "// SqliteRepositories.cs:22 — GetByIdAsync with non-existent ID returns null, untested\nvar entity = await _context.Categories.FindAsync(id);\nreturn entity == null ? null : new Category(entity.Id, entity.MaxScore);\n\n// SqliteRepositories.cs:167-182 — DeleteAsync with non-existent ID is no-op, untested",
+      "rule_violated": "Testing: edge case and error path coverage for data access layer",
+      "remediation": "Add tests: GetByIdAsync with non-existent ID returns null, AddAsync with duplicate ID, DeleteAsync with non-existent ID, GetAllAsync on empty table.",
+      "effort": "small",
+      "status": "open",
+      "related_findings": ["TEST-009"]
+    },
+    {
+      "id": "TE-010",
+      "title": "Tests pass null! for ContestDbContext masking null safety and blocking Export/Import testing",
+      "severity": "medium",
+      "category": "mock-quality",
+      "files": [
+        "tests/ContestJudging.Tests/ContestManagerTests.cs:30",
+        "tests/ContestJudging.Tests/ContestManagerTests.cs:64",
+        "tests/ContestJudging.Tests/ContestManagerTests.cs:101",
+        "src/ContestJudging.Services/Managers/ContestManager.cs:23"
+      ],
+      "evidence_snippet": "// ContestManagerTests.cs:30 — all 3 test instantiations pass null\nvar manager = new ContestManager(mockCatRepo.Object, mockEntryRepo.Object, mockRelRepo.Object,\n    mockValidation.Object, mockResolution.Object, mockScoring.Object, null!);\n\n// ContestManager.cs:23 — never null-checked\nprivate readonly ContestDbContext _context;",
+      "rule_violated": "Testing: null! suppression in tests — future code that accesses _context will NullReference in production but not in tests",
+      "remediation": "Abstract ContestDbContext behind an interface for I/O methods (see TE-002) or add a constructor null check and use a Moq mock.",
+      "effort": "small",
+      "status": "open",
+      "related_findings": ["TE-002", "TEST-004"]
+    },
+    {
+      "id": "TE-011",
+      "title": "E2E tests are shallow smoke tests with no functional workflow validation",
+      "severity": "low",
+      "category": "assertion-strength",
+      "files": [
+        "tests/ContestJudging.E2ETests/AppE2ETests.cs:23",
+        "tests/ContestJudging.E2ETests/AppE2ETests.cs:30"
+      ],
+      "evidence_snippet": "// AppE2ETests.cs:30-37 — navigation test with no functional assertions\nawait Page.Locator(\"text=Get Started\").ClickAsync();\nawait Expect(Page.Locator(\"h2:has-text('Contest Setup')\")).ToBeVisibleAsync();\n// Neither test exercises judging workflow, backup/restore, or result calculation",
+      "rule_violated": "Testing: E2E tests should validate critical user workflows, not just page render",
+      "remediation": "Add E2E test for full judging workflow: create category, add entries, record comparisons, calculate results, verify leaderboard. Add backup/restore test.",
+      "effort": "medium",
+      "status": "open",
+      "related_findings": ["TEST-002", "TEST-007"]
+    },
+    {
+      "id": "TE-012",
+      "title": "TrimmingSafetyTests uses fragile string-contains assertions for JSON validation",
+      "severity": "low",
+      "category": "assertion-strength",
+      "files": [
+        "tests/ContestJudging.Tests/TrimmingSafetyTests.cs:33",
+        "tests/ContestJudging.Tests/TrimmingSafetyTests.cs:34"
+      ],
+      "evidence_snippet": "Assert.Contains(\"E1\", json);      // weak: matches anywhere in JSON\nAssert.Contains(\"85.5\", json);    // weak: matches anywhere\n// Deserialized object check at line 38 is sufficient for round-trip validation",
+      "rule_violated": "Testing: string-based assertions on serialized output are fragile and nondeterministic",
+      "remediation": "Remove the string-contains assertions. The deserialized object check on lines 38-39 already validates correct round-trip.",
+      "effort": "trivial",
+      "status": "open"
+    },
+    {
+      "id": "TE-013",
+      "title": "PartitionService constructor validation (k <= 0, invalid overlap) untested",
+      "severity": "low",
+      "category": "coverage-gap",
+      "files": [
+        "src/ContestJudging.Services/Partitioning/PartitionService.cs:16",
+        "src/ContestJudging.Services/Partitioning/PartitionService.cs:17",
+        "tests/ContestJudging.Tests/PartitionServiceTests.cs:13"
+      ],
+      "evidence_snippet": "// PartitionService.cs:16-17 — validation paths untested\nif (kPartitions <= 0) throw new ArgumentException(\"kPartitions must be greater than 0\", nameof(kPartitions));\nif (overlapRate < 0 || overlapRate > 1) throw new ArgumentException(\"overlapRate must be between 0 and 1\", nameof(overlapRate));",
+      "rule_violated": "Testing: constructor guard clauses should be verified with theory/parameterized tests",
+      "remediation": "Add Theory with InlineData for: k=0, k=-1, overlap=-0.1, overlap=1.1 — all should throw ArgumentException.",
+      "effort": "trivial",
+      "status": "open"
+    },
+    {
+      "id": "TE-014",
+      "title": "Duplicate validation code in three methods makes test coverage misleading",
+      "severity": "low",
+      "category": "maintainability",
+      "files": [
+        "src/ContestJudging.Services/Validation/GraphValidationService.cs:43",
+        "src/ContestJudging.Services/Validation/GraphValidationService.cs:129",
+        "src/ContestJudging.Services/Validation/GraphValidationService.cs:214"
+      ],
+      "evidence_snippet": "// IsTotalOrder (line 43) and IsValidOrder (line 129): ~85 identical lines, diff is only line 109\n// GetSortedTiers (line 214): first 60+ lines duplicate union-find + adjacency build\n// Tests pass independently but duplicated code means bugs in shared logic could exist in one method but not others",
+      "rule_violated": "DRY: duplicated validation logic means tests for one method don't prove correctness of duplicate code in another",
+      "remediation": "Extract BuildUnionFindAndAdjacency and TryTopologicalSort as private methods. Re-audit test coverage after refactor.",
+      "effort": "small",
+      "status": "open",
+      "related_findings": ["CQ-002"]
+    },
+    {
+      "id": "TE-015",
+      "title": "ScoringStrategy empty-tiers and single-entry edge cases untested",
+      "severity": "low",
+      "category": "coverage-gap",
+      "files": [
+        "src/ContestJudging.Services/Scoring/LinearSpacingScoring.cs:15",
+        "src/ContestJudging.Services/Scoring/PercentileScoring.cs:16",
+        "src/ContestJudging.Services/Scoring/DefinedIntervalScoring.cs:22",
+        "tests/ContestJudging.Tests/ScoringStrategyTests.cs:13"
+      ],
+      "evidence_snippet": "// All three scoring files: early return for empty tiers untested\nif (k == 0) return assignedScores;           // LinearSpacing, DefinedInterval\nif (totalEntries == 0) return assignedScores; // Percentile\nif (totalEntries == 1 || sortedTiers.Count == 1) { ... }  // Percentile single entry path",
+      "rule_violated": "Testing: edge case and boundary condition coverage for algorithmic methods",
+      "remediation": "Add tests: empty tiers for each strategy, single entry/single tier for PercentileScoring.",
+      "effort": "trivial",
+      "status": "open"
+    },
+    {
+      "id": "TE-016",
+      "title": "Entry.SetScore boundary values (0 and maxScore) never tested",
+      "severity": "low",
+      "category": "coverage-gap",
+      "files": [
+        "src/ContestJudging.Core/Entities/Entry.cs:19",
+        "tests/ContestJudging.Tests/CoreTests.cs:27",
+        "tests/ContestJudging.Tests/CoreTests.cs:36"
+      ],
+      "evidence_snippet": "// Entry.cs:19 — boundary condition: >= 0 && <= MaxScore\nif (score >= 0 && score <= category.MaxScore)\n// CoreTests.cs:27-33 — only tests mid-range value 5 (category.MaxScore=10)\nentry.SetScore(category, 5);\n// Neither boundary tested: score=0 (valid) or score=category.MaxScore (valid)",
+      "rule_violated": "Testing: boundary value analysis — valid edge values at the boundary should be tested",
+      "remediation": "Add Theory with InlineData for SetScore(category, 0) and SetScore(category, category.MaxScore) to validate boundary acceptance.",
+      "effort": "trivial",
+      "status": "open",
+      "related_findings": ["TEST-001"]
+    }
+  ],
+  "metrics": {
+    "files_scanned": 31,
+    "findings_count": 16,
+    "lines_of_code": 2234
+  },
+  "errors": []
+}

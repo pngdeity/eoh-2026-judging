@@ -6,7 +6,7 @@ using ContestJudging.Core.Interfaces;
 
 namespace ContestJudging.Services.Scoring
 {
-    public class PercentileScoring : IScoringStrategy
+    public sealed class PercentileScoring : IScoringStrategy
     {
         public Dictionary<string, double> CalculateScores(List<HashSet<string>> sortedTiers, double maxScore)
         {

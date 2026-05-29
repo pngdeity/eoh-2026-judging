@@ -1,0 +1,88 @@
+{
+  "agent_id": "PA2-B",
+  "pass": 3,
+  "domain": "algorithm-correctness",
+  "status": "success",
+  "remediation_verdict": "PASS",
+  "remediated_findings": [
+    {
+      "id": "ALGO-001",
+      "title": "GetSortedTiers silently ignores contradictory self-loop edges unlike IsTotalOrder/IsValidOrder",
+      "status": "resolved",
+      "notes": "Self-loop now throws InvalidOperationException from shared BuildTopologicalGraph. IsTotalOrder/IsValidOrder catch and return false (preserving original behavior). GetSortedTiers does NOT catch — see RA-ALGO-001."
+    },
+    {
+      "id": "ALGO-002",
+      "title": "Three methods contain 100% duplicated Kahn's Algorithm logic with only minor behavioral differences",
+      "status": "resolved",
+      "notes": "Extracted shared BuildTopologicalGraph (UnionFind + adjacency + in-degree + rootToMembers) and TryTopologicalSort (Kahn BFS with optional uniqueness check). Three thin public wrappers. All algorithmic semantics preserved."
+    },
+    {
+      "id": "ALGO-003",
+      "title": "UnionFind implementation lacks union-by-rank/size for optimal complexity",
+      "status": "open",
+      "notes": "Not addressed in current remediation wave. DFD for practical impact."
+    },
+    {
+      "id": "ALGO-004",
+      "title": "Theoretical division-by-zero in BradleyTerry denominator for crafted zero-gamma entries",
+      "status": "open",
+      "notes": "Out of scope for this re-audit."
+    },
+    {
+      "id": "ALGO-005",
+      "title": "Partition bridge node count can evaluate to zero at small overlap rates, breaking connectivity guarantee",
+      "status": "open",
+      "notes": "Out of scope for this re-audit."
+    }
+  ],
+  "new_findings": [
+    {
+      "id": "RA-ALGO-001",
+      "title": "GetSortedTiers propagates InvalidOperationException for self-loops; IsTotalOrder/IsValidOrder catch and return gracefully",
+      "severity": "low",
+      "category": "consistency",
+      "files": [
+        "src/ContestJudging.Services/Validation/GraphValidationService.cs:173"
+      ],
+      "evidence_snippet": "// IsTotalOrder (line 149) and IsValidOrder (line 160) both wrap in try/catch:\ntry { var (_, adj, inDeg, _) = BuildTopologicalGraph(relations, allEntryIds); ... }\ncatch (InvalidOperationException) { return false; }\n\n// GetSortedTiers (line 173) does NOT catch:\nvar (_, adj, inDeg, rootToMembers) = BuildTopologicalGraph(relations, allEntryIds);",
+      "rule_violated": "Public API consistency — when one method in an interface returns a sentinel value for invalid input, sibling methods should not throw unhandled exceptions for the same condition",
+      "remediation": "Add try/catch in GetSortedTiers returning empty list, or document the throwing behavior in IValidationService XML doc.",
+      "effort": "trivial"
+    },
+    {
+      "id": "RA-ALGO-002",
+      "title": "BuildTopologicalGraph unconditionally constructs rootToMembers even when discarded by callers",
+      "severity": "low",
+      "category": "performance-regression",
+      "files": [
+        "src/ContestJudging.Services/Validation/GraphValidationService.cs:60"
+      ],
+      "evidence_snippet": "// IsTotalOrder and IsValidOrder discard rootToMembers (fourth tuple element):\nvar (_, adj, inDeg, _) = BuildTopologicalGraph(relations, allEntryIds);\n\n// Yet BuildTopologicalGraph always builds it (lines 60-73):\nvar rootToMembers = new Dictionary<string, HashSet<string>>();\n...\nforeach (var entryId in allEntryIdsList) { rootToMembers[root].Add(entryId); }",
+      "rule_violated": "Efficiency — shared utilities should not perform work that known callers will discard",
+      "remediation": "Add a bool includeRootMembers parameter (default true) to BuildTopologicalGraph; skip rootToMembers construction when false. Or accept negligible overhead for contest-scale datasets.",
+      "effort": "trivial"
+    },
+    {
+      "id": "RA-ALGO-003",
+      "title": "ALGO-003 (UnionFind union-by-rank) not addressed in remediation wave",
+      "severity": "low",
+      "category": "performance-algorithm",
+      "files": [
+        "src/ContestJudging.Services/Validation/GraphValidationService.cs:32"
+      ],
+      "evidence_snippet": "public void Union(string i, string j)\n{\n    string rootI = Find(i);\n    string rootJ = Find(j);\n    if (rootI != rootJ)\n    {\n        _parent[rootI] = rootJ; // no rank tracking\n    }\n}",
+      "rule_violated": "Union-Find textbook optimality requires both path compression and union-by-rank",
+      "remediation": "Add _rank field and union-by-rank as specified in original ALGO-003 remediation.",
+      "effort": "trivial"
+    }
+  ],
+  "metrics": {
+    "files_scanned": 3,
+    "findings_count": 3,
+    "lines_of_code_reviewed": 245,
+    "tests_passed": 10,
+    "tests_failed": 0
+  },
+  "errors": []
+}

@@ -1,27 +1,24 @@
+<?xml version="1.0"?>
 <Project Sdk="Microsoft.NET.Sdk">
-
   <PropertyGroup>
     <RootNamespace>ContestJudging.Tests</RootNamespace>
     <AssemblyName>ContestJudging.Tests</AssemblyName>
     <IsPackable>false</IsPackable>
   </PropertyGroup>
-
   <ItemGroup>
-    <PackageReference Include="coverlet.collector" />
-    <PackageReference Include="Microsoft.NET.Test.Sdk" />
-    <PackageReference Include="Moq" />
-    <PackageReference Include="xunit" />
-    <PackageReference Include="xunit.runner.visualstudio" />
+    <PackageReference Include="coverlet.collector"/>
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection"/>
+    <PackageReference Include="Microsoft.NET.Test.Sdk"/>
+    <PackageReference Include="Moq"/>
+    <PackageReference Include="xunit"/>
+    <PackageReference Include="xunit.runner.visualstudio"/>
   </ItemGroup>
-
   <ItemGroup>
-    <Using Include="Xunit" />
+    <Using Include="Xunit"/>
   </ItemGroup>
-
   <ItemGroup>
-    <ProjectReference Include="..\..\src\ContestJudging.Core\ContestJudging.Core.csproj" />
-    <ProjectReference Include="..\..\src\ContestJudging.Services\ContestJudging.Services.csproj" />
-    <ProjectReference Include="..\..\src\ContestJudging.Infrastructure\ContestJudging.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\ContestJudging.Core\ContestJudging.Core.csproj"/>
+    <ProjectReference Include="..\..\src\ContestJudging.Services\ContestJudging.Services.csproj"/>
+    <ProjectReference Include="..\..\src\ContestJudging.Infrastructure\ContestJudging.Infrastructure.csproj"/>
   </ItemGroup>
-
 </Project>

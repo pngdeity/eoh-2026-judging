@@ -1,20 +1,18 @@
+<?xml version="1.0"?>
 <Project Sdk="Microsoft.NET.Sdk">
-
   <PropertyGroup>
     <RootNamespace>ContestJudging.Services</RootNamespace>
     <AssemblyName>ContestJudging.Services</AssemblyName>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <IsPackable>false</IsPackable>
   </PropertyGroup>
-
   <ItemGroup>
-    <ProjectReference Include="..\ContestJudging.Core\ContestJudging.Core.csproj" />
-    <ProjectReference Include="..\ContestJudging.Infrastructure\ContestJudging.Infrastructure.csproj" />
+    <ProjectReference Include="..\ContestJudging.Core\ContestJudging.Core.csproj"/>
+    <ProjectReference Include="..\ContestJudging.Infrastructure\ContestJudging.Infrastructure.csproj"/>
   </ItemGroup>
-
   <ItemGroup>
-    <PackageReference Include="MathNet.Numerics" />
-    <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
+    <PackageReference Include="Blazored.LocalStorage"/>
+    <PackageReference Include="MathNet.Numerics"/>
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection"/>
   </ItemGroup>
-
 </Project>

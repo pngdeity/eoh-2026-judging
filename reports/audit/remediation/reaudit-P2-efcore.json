@@ -1,0 +1,207 @@
+{
+  "agent_id": "PA2-D",
+  "pass": "reaudit",
+  "domain": "efcore",
+  "branch": "fix/audit-remediate",
+  "original_audit": "reports/audit/findings-P2-efcore.json",
+  "status": "partial",
+  "original_findings_count": 12,
+  "resolved_count": 6,
+  "still_open_count": 6,
+  "new_findings_count": 3,
+  "findings": [
+    {
+      "id": "EF-001",
+      "title": "No database migration files; schema managed exclusively via EnsureCreatedAsync()",
+      "severity": "high",
+      "category": "schema-management",
+      "status": "resolved",
+      "resolution": "Schema version cookie implemented via BackupService. CurrentSchemaVersion=1 constant at BackupService.cs:12. SaveBackupAsync stores db_backup + db_schema_version in localStorage. TryRestoreBackupAsync validates version, discards mismatches. Architectural decision for client-only SQLite — EnsureCreatedAsync remains per architecture.",
+      "files": [
+        "src/ContestJudging.Services/Managers/BackupService.cs:12-41",
+        "src/ContestJudging.Web/Program.cs:37"
+      ]
+    },
+    {
+      "id": "EF-002",
+      "title": "Missing foreign key relationships in entity configuration",
+      "severity": "high",
+      "category": "schema-design",
+      "status": "resolved",
+      "resolution": "All FK relationships configured in OnModelCreating (ContestDbContext.cs:59-87). EntryScoreEntity uses composite PK (EntryId, CategoryId). Manual cascade delete code removed from repositories. No references to old surrogate EntryScoreEntity.Id remain.",
+      "files": [
+        "src/ContestJudging.Infrastructure/Persistence/ContestDbContext.cs:51-93",
+        "src/ContestJudging.Infrastructure/Repositories/SqliteRepositories.cs:51-58,160-168"
+      ]
+    },
+    {
+      "id": "EF-003",
+      "title": "Database restore overwrites file with active DbContext connection",
+      "severity": "high",
+      "category": "error-handling",
+      "status": "resolved",
+      "resolution": "Restore (Program.cs:32) happens before scope creation (Program.cs:34). No DbContext exists at restore time. Backup import delegated to DatabaseBackupService.ImportAsync with SQLite magic number validation.",
+      "files": [
+        "src/ContestJudging.Web/Program.cs:31-38",
+        "src/ContestJudging.Services/Managers/BackupService.cs:28-59"
+      ]
+    },
+    {
+      "id": "EF-004",
+      "title": "O(n*m) client-side join in SqliteEntryRepository queries",
+      "severity": "medium",
+      "category": "performance",
+      "status": "open",
+      "reason": "SqliteRepositories.cs:80-88 and 100-113 still perform categories.FirstOrDefault() per score in nested loops. FK relationships exist in OnModelCreating but EntryScoreEntity lacks Category navigation property (RA-EF-003), so .ThenInclude() is not possible.",
+      "files": [
+        "src/ContestJudging.Infrastructure/Repositories/SqliteRepositories.cs:80-88",
+        "src/ContestJudging.Infrastructure/Repositories/SqliteRepositories.cs:100-113"
+      ],
+      "blocked_by": ["RA-EF-003"]
+    },
+    {
+      "id": "EF-005",
+      "title": "Missing .AsNoTracking() on all read-only repository queries",
+      "severity": "medium",
+      "category": "performance",
+      "status": "open",
+      "reason": "Zero .AsNoTracking() calls found in entire src/ directory. No changes from original audit.",
+      "files": [
+        "src/ContestJudging.Infrastructure/Repositories/SqliteRepositories.cs:24,30,74,96,182,186"
+      ]
+    },
+    {
+      "id": "EF-006",
+      "title": "CalculateGlobalScoresAsync performs individual entry updates without transaction wrapping",
+      "severity": "medium",
+      "category": "transactions",
+      "status": "open",
+      "reason": "ContestManager.cs:106-113 still calls UpdateAsync per entry in foreach loop. Each UpdateAsync calls SaveChangesAsync internally. No BeginTransactionAsync, no batched SaveChangesAsync.",
+      "files": [
+        "src/ContestJudging.Services/Managers/ContestManager.cs:106-113"
+      ]
+    },
+    {
+      "id": "EF-007",
+      "title": "Connection string hardcoded in Program.cs rather than sourced from configuration",
+      "severity": "low",
+      "category": "configuration",
+      "status": "open",
+      "reason": "Program.cs:47: \"Data Source=contest.db\" hardcoded. No appsettings.json or environment variable usage.",
+      "files": [
+        "src/ContestJudging.Web/Program.cs:47"
+      ]
+    },
+    {
+      "id": "EF-008",
+      "title": "Missing indexes on frequently queried foreign key columns",
+      "severity": "low",
+      "category": "schema-design",
+      "status": "resolved",
+      "resolution": "Indexes added: RelationEntity.CategoryId, RelationEntity.EntryAId, RelationEntity.EntryBId, EntryScoreEntity.EntryId. ContestDbContext.cs:89-92.",
+      "files": [
+        "src/ContestJudging.Infrastructure/Persistence/ContestDbContext.cs:89-92"
+      ]
+    },
+    {
+      "id": "EF-009",
+      "title": "No error handling around SaveChangesAsync calls in repository methods",
+      "severity": "low",
+      "category": "error-handling",
+      "status": "open",
+      "reason": "All 8 SaveChangesAsync() calls (SqliteRepositories.cs:38,47,57,133,156,166,214,224) lack try/catch for DbUpdateException.",
+      "files": [
+        "src/ContestJudging.Infrastructure/Repositories/SqliteRepositories.cs:38,47,57,133,156,166,214,224"
+      ]
+    },
+    {
+      "id": "EF-010",
+      "title": "EntryScoreEntity has redundant surrogate key alongside natural composite unique constraint",
+      "severity": "low",
+      "category": "schema-design",
+      "status": "resolved",
+      "resolution": "Surrogate Id removed from EntryScoreEntity (ContestDbContext.cs:23-28). Composite PK (EntryId, CategoryId) at line 57. Zero references to old surrogate Id in all source files.",
+      "files": [
+        "src/ContestJudging.Infrastructure.Persistence.ContestDbContext.cs:23-28,57"
+      ]
+    },
+    {
+      "id": "EF-011",
+      "title": "DbContext class holds file I/O methods violating Single Responsibility Principle",
+      "severity": "informational",
+      "category": "architecture",
+      "status": "resolved",
+      "resolution": "File I/O extracted to DatabaseBackupService.cs implementing IDatabaseBackupService. Import includes SQLite magic number validation. ContestDbContext no longer contains filesystem methods.",
+      "files": [
+        "src/ContestJudging.Infrastructure/Persistence/DatabaseBackupService.cs"
+      ]
+    },
+    {
+      "id": "EF-012",
+      "title": "No .IsRequired() or .HasMaxLength() configuration on string entity properties",
+      "severity": "informational",
+      "category": "schema-design",
+      "status": "open",
+      "reason": "No .IsRequired() or .HasMaxLength() calls in entire OnModelCreating. All string PK/FK columns use EF Core defaults.",
+      "files": [
+        "src/ContestJudging.Infrastructure/Persistence/ContestDbContext.cs:51-93"
+      ]
+    },
+    {
+      "id": "RA-EF-001",
+      "title": "SQLite foreign key enforcement not enabled at database level",
+      "severity": "high",
+      "category": "data-integrity",
+      "files": [
+        "src/ContestJudging.Web/Program.cs:47",
+        "src/ContestJudging.Services/Extensions/ServiceCollectionExtensions.cs:23"
+      ],
+      "evidence_snippet": "// Connection string: \"Data Source=contest.db\" — no 'foreign_keys=true'\n// Zero PRAGMA foreign_keys = ON calls anywhere in source\n// SQLite has FK enforcement OFF by default\n// EF Core generates cascading DELETE statements for tracked entities,\n// but raw SQL or external DB access will not enforce referential integrity.",
+      "rule_violated": "SQLite best practice: always enable foreign key enforcement. Without it, the FK relationships configured in OnModelCreating have no physical constraint backing at the storage level.",
+      "remediation": "Change connection string to: 'Data Source=contest.db;foreign_keys=true'. Alternatively, execute PRAGMA foreign_keys = ON at connection open.",
+      "effort": "trivial",
+      "status": "open"
+    },
+    {
+      "id": "RA-EF-002",
+      "title": "Schema change cannot be applied to existing databases; EnsureCreatedAsync blocks migration",
+      "severity": "high",
+      "category": "schema-management",
+      "files": [
+        "src/ContestJudging.Infrastructure/Persistence/ContestDbContext.cs:23-28,57",
+        "src/ContestJudging.Web/Program.cs:37"
+      ],
+      "evidence_snippet": "// EntryScoreEntity changed from surrogate int Id PK to composite (EntryId, CategoryId) PK\n// EnsureCreatedAsync() only creates when DB doesn't exist; won't alter existing tables\n// Users with old contest.db will get EF Core mapping errors at startup\n// db_schema_version cookie catches localStorage backups but NOT disk files",
+      "rule_violated": "Schema evolution must support existing databases. Changing PK types without migration breaks all existing installations.",
+      "remediation": "Option A: Use migrations (revisit EF-001 decision). Option B: Add DB file version marker; on mismatch, backup, delete, and recreate. Option C: Add startup check that detects old schema and offers migration or nuke-and-recreate with user confirmation.",
+      "effort": "medium",
+      "status": "open"
+    },
+    {
+      "id": "RA-EF-003",
+      "title": "EntryScoreEntity lacks CLR navigation properties, blocking .ThenInclude() queries",
+      "severity": "medium",
+      "category": "schema-design",
+      "files": [
+        "src/ContestJudging.Infrastructure/Persistence/ContestDbContext.cs:23-28,59-69"
+      ],
+      "evidence_snippet": "// EntryScoreEntity class has no Category or Entry navigation property:\npublic class EntryScoreEntity\n{\n    public string EntryId { get; set; } = string.Empty;\n    public string CategoryId { get; set; } = string.Empty;\n    public double Score { get; set; }\n}\n// FK config uses type-based HasOne (shadow navigations only):\nmodelBuilder.Entity<EntryScoreEntity>()\n    .HasOne<CategoryEntity>().WithMany(c => c.Scores).HasForeignKey(es => es.CategoryId);\n// .ThenInclude(s => s.Category) is impossible — EF-004 blocked",
+      "rule_violated": "EF Core query efficiency: navigation properties on the entity model are required for .Include()/.ThenInclude() in LINQ queries. Shadow navigations from type-based FK config exist but are invisible to query expressions.",
+      "remediation": "Add 'public CategoryEntity Category { get; set; } = null!;' and 'public EntryEntity Entry { get; set; } = null!;' to EntryScoreEntity. Update FK config to use navigation: .HasOne(es => es.Category).WithMany(c => c.Scores).HasForeignKey(es => es.CategoryId). Then refactor repository queries to use .Include(e => e.Scores).ThenInclude(s => s.Category).",
+      "effort": "small",
+      "status": "open",
+      "blocks": ["EF-004"]
+    }
+  ],
+  "metrics": {
+    "files_scanned": 10,
+    "total_findings": 15,
+    "resolved": 6,
+    "still_open_original": 6,
+    "new": 3,
+    "high_severity_remaining": 2,
+    "medium_severity_remaining": 4,
+    "low_severity_remaining": 3,
+    "informational_remaining": 1
+  }
+}

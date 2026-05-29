@@ -5,7 +5,7 @@ using ContestJudging.Core.Interfaces;
 
 namespace ContestJudging.Services.Scoring
 {
-    public class LinearSpacingScoring : IScoringStrategy
+    public sealed class LinearSpacingScoring : IScoringStrategy
     {
         public Dictionary<string, double> CalculateScores(List<HashSet<string>> sortedTiers, double maxScore)
         {

@@ -1,0 +1,1567 @@
+{
+  "agent_id": "P3-B",
+  "pass": 3,
+  "domain": "prioritization",
+  "status": "success",
+  "metrics": {
+    "files_scanned": 10,
+    "findings_count": 103,
+    "lines_of_code": 0
+  },
+  "conflict_notes": {
+    "CQ-001": "Validator V1-B flagged severity_inconsistent (dead empty class rated high). Original severity retained per policy. Noted for downstream triage.",
+    "P1-E_cicd_gate_override": "7 of 11 CICD findings (CICD-001, CICD-004, CICD-006, CICD-007, CICD-008, CICD-009, CICD-011) rejected by V1-E on schema format violations (line ranges, directory-only paths). Gate override accepted all 11 as PASS — underlying evidence sound, schema too restrictive for CI/CD domain. Schema waiver noted."
+  },
+  "findings": [
+    {
+      "id": "STRUCT-003",
+      "title": "E2E tests reference packages not declared in Directory.Packages.props (central package management violation)",
+      "severity": "critical",
+      "category": "architecture",
+      "files": [
+        "tests/ContestJudging.E2ETests/ContestJudging.E2ETests.csproj:15",
+        "tests/ContestJudging.E2ETests/ContestJudging.E2ETests.csproj:16",
+        "tests/ContestJudging.E2ETests/ContestJudging.E2ETests.csproj:17",
+        "Directory.Packages.props:1"
+      ],
+      "effort": "trivial",
+      "rank": 1,
+      "tier": 1,
+      "blocked_by": []
+    },
+    {
+      "id": "ARCH-004",
+      "title": "ContestDbContext violates Single Responsibility — mixes ORM configuration with raw file I/O export/import",
+      "severity": "medium",
+      "category": "architecture",
+      "files": [
+        "src/ContestJudging.Infrastructure/Persistence/ContestDbContext.cs:66",
+        "src/ContestJudging.Infrastructure/Persistence/ContestDbContext.cs:76"
+      ],
+      "effort": "small",
+      "rank": 2,
+      "tier": 1,
+      "blocked_by": []
+    },
+    {
+      "id": "ARCH-002",
+      "title": "ContestManager (Services/Application layer) directly depends on concrete ContestDbContext from Infrastructure",
+      "severity": "high",
+      "category": "architecture",
+      "files": [
+        "src/ContestJudging.Services/Managers/ContestManager.cs:9",
+        "src/ContestJudging.Services/Managers/ContestManager.cs:23",
+        "src/ContestJudging.Services/Managers/ContestManager.cs:32",
+        "tests/ContestJudging.Tests/ContestManagerTests.cs:30",
+        "tests/ContestJudging.Tests/ContestManagerTests.cs:64",
+        "tests/ContestJudging.Tests/ContestManagerTests.cs:101"
+      ],
+      "effort": "small",
+      "rank": 3,
+      "tier": 1,
+      "blocked_by": ["ARCH-004"]
+    },
+    {
+      "id": "CQ-002",
+      "title": "Near-identical IsTotalOrder and IsValidOrder methods in GraphValidationService",
+      "severity": "high",
+      "category": "duplication",
+      "files": [
+        "src/ContestJudging.Services/Validation/GraphValidationService.cs:43",
+        "src/ContestJudging.Services/Validation/GraphValidationService.cs:129"
+      ],
+      "effort": "small",
+      "rank": 4,
+      "tier": 1,
+      "blocked_by": []
+    },
+    {
+      "id": "CQ-001",
+      "title": "Dead empty class Class1.cs in Infrastructure project",
+      "severity": "high",
+      "category": "dead-code",
+      "files": [
+        "src/ContestJudging.Infrastructure/Class1.cs:1"
+      ],
+      "effort": "trivial",
+      "rank": 5,
+      "tier": 1,
+      "blocked_by": []
+    },
+    {
+      "id": "BW-004",
+      "title": "Bootstrap JavaScript not loaded in index.html — accordion UI in Judging page is non-functional",
+      "severity": "high",
+      "category": "functionality",
+      "files": [
+        "src/ContestJudging.Web/wwwroot/index.html:14",
+        "src/ContestJudging.Web/Pages/Judging.razor:97"
+      ],
+      "effort": "trivial",
+      "rank": 6,
+      "tier": 1,
+      "blocked_by": []
+    },
+    {
+      "id": "CICD-001",
+      "title": "E2E test project excluded from solution — Playwright/NUnit tests never run in CI",
+      "severity": "high",
+      "category": "testing",
+      "files": [
+        "ContestJudging.slnx:8"
+      ],
+      "effort": "small",
+      "rank": 7,
+      "tier": 1,
+      "blocked_by": []
+    },
+    {
+      "id": "CICD-004",
+      "title": "No SAST or CodeQL scanning — only dependency scanning is present",
+      "severity": "high",
+      "category": "security",
+      "files": [
+        ".github/workflows/pipeline.yml:52"
+      ],
+      "effort": "small",
+      "rank": 8,
+      "tier": 1,
+      "blocked_by": []
+    },
+    {
+      "id": "EF-001",
+      "title": "No database migration files; schema managed exclusively via EnsureCreatedAsync()",
+      "severity": "high",
+      "category": "schema-management",
+      "files": [
+        "src/ContestJudging.Infrastructure/Persistence/ContestDbContext.cs:53",
+        "src/ContestJudging.Web/Program.cs:56"
+      ],
+      "effort": "small",
+      "rank": 9,
+      "tier": 1,
+      "blocked_by": []
+    },
+    {
+      "id": "EF-002",
+      "title": "Missing foreign key relationships in entity configuration",
+      "severity": "high",
+      "category": "schema-design",
+      "files": [
+        "src/ContestJudging.Infrastructure/Persistence/ContestDbContext.cs:54"
+      ],
+      "effort": "small",
+      "rank": 10,
+      "tier": 1,
+      "blocked_by": []
+    },
+    {
+      "id": "CQ-003",
+      "title": "Swallowed exception in database restore path",
+      "severity": "high",
+      "category": "error-handling",
+      "files": [
+        "src/ContestJudging.Web/Program.cs:49"
+      ],
+      "effort": "small",
+      "rank": 11,
+      "tier": 1,
+      "blocked_by": []
+    },
+    {
+      "id": "TEST-001",
+      "title": "No parameterized tests (Theories) used — all tests use Fact with sequential Assert.Throws",
+      "severity": "high",
+      "category": "testing",
+      "files": [
+        "tests/ContestJudging.Tests/CoreTests.cs:12",
+        "tests/ContestJudging.Tests/CoreTests.cs:36",
+        "tests/ContestJudging.Tests/ScoringStrategyTests.cs:12",
+        "tests/ContestJudging.Tests/ValidationServiceTests.cs:153",
+        "tests/ContestJudging.Tests/PartitionServiceTests.cs:37"
+      ],
+      "effort": "small",
+      "rank": 12,
+      "tier": 1,
+      "blocked_by": []
+    },
+    {
+      "id": "TE-001",
+      "title": "PartitionService tests are non-deterministic due to unseeded Random",
+      "severity": "high",
+      "category": "test-isolation",
+      "files": [
+        "src/ContestJudging.Services/Partitioning/PartitionService.cs:9",
+        "tests/ContestJudging.Tests/PartitionServiceTests.cs:22",
+        "tests/ContestJudging.Tests/PartitionServiceTests.cs:31"
+      ],
+      "effort": "small",
+      "rank": 13,
+      "tier": 1,
+      "blocked_by": []
+    },
+    {
+      "id": "TE-005",
+      "title": "CalculateScoresFromStrengths untested across all three scoring strategies",
+      "severity": "high",
+      "category": "coverage-gap",
+      "files": [
+        "src/ContestJudging.Services/Scoring/LinearSpacingScoring.cs:38",
+        "src/ContestJudging.Services/Scoring/PercentileScoring.cs:40",
+        "src/ContestJudging.Services/Scoring/DefinedIntervalScoring.cs:38",
+        "tests/ContestJudging.Tests/ScoringStrategyTests.cs:13"
+      ],
+      "effort": "small",
+      "rank": 14,
+      "tier": 1,
+      "blocked_by": []
+    },
+    {
+      "id": "SEC-007",
+      "title": "No authentication on administrative operations",
+      "severity": "medium",
+      "category": "missing-authentication",
+      "files": [
+        "src/ContestJudging.Web/Pages/Setup.razor.cs:59",
+        "src/ContestJudging.Web/Pages/Setup.razor.cs:68",
+        "src/ContestJudging.Web/Pages/Judging.razor.cs:147",
+        "src/ContestJudging.Web/Pages/Judging.razor.cs:180"
+      ],
+      "effort": "small",
+      "rank": 15,
+      "tier": 1,
+      "blocked_by": []
+    },
+    {
+      "id": "EF-003",
+      "title": "Database restore overwrites file with active DbContext connection; swallowed exception masks data loss",
+      "severity": "high",
+      "category": "error-handling",
+      "files": [
+        "src/ContestJudging.Web/Program.cs:35",
+        "src/ContestJudging.Web/Program.cs:47",
+        "src/ContestJudging.Web/Program.cs:49",
+        "src/ContestJudging.Web/Program.cs:56"
+      ],
+      "effort": "medium",
+      "rank": 16,
+      "tier": 1,
+      "blocked_by": []
+    },
+    {
+      "id": "TE-002",
+      "title": "ContestManager ExportDataAsync/ImportDataAsync are structurally untestable due to concrete ContestDbContext dependency",
+      "severity": "high",
+      "category": "mock-quality",
+      "files": [
+        "src/ContestJudging.Services/Managers/ContestManager.cs:23",
+        "src/ContestJudging.Services/Managers/ContestManager.cs:119",
+        "src/ContestJudging.Services/Managers/ContestManager.cs:124",
+        "tests/ContestJudging.Tests/ContestManagerTests.cs:30",
+        "src/ContestJudging.Infrastructure/Persistence/ContestDbContext.cs:66",
+        "src/ContestJudging.Infrastructure/Persistence/ContestDbContext.cs:76"
+      ],
+      "effort": "medium",
+      "rank": 17,
+      "tier": 1,
+      "blocked_by": ["ARCH-002", "ARCH-004"]
+    },
+    {
+      "id": "TE-003",
+      "title": "LocalStorage backup/restore pipeline has zero test coverage across all layers",
+      "severity": "high",
+      "category": "coverage-gap",
+      "files": [
+        "src/ContestJudging.Web/Pages/Setup.razor.cs:49",
+        "src/ContestJudging.Web/Pages/Setup.razor.cs:55",
+        "src/ContestJudging.Web/Pages/Judging.razor.cs:76",
+        "src/ContestJudging.Web/Pages/Judging.razor.cs:82",
+        "src/ContestJudging.Web/Program.cs:39",
+        "src/ContestJudging.Web/Program.cs:46"
+      ],
+      "effort": "medium",
+      "rank": 18,
+      "tier": 1,
+      "blocked_by": ["ARCH-002", "ARCH-004"]
+    },
+    {
+      "id": "TE-004",
+      "title": "BradleyTerryResolutionService convergence and early-exit paths completely untested",
+      "severity": "high",
+      "category": "coverage-gap",
+      "files": [
+        "src/ContestJudging.Services/Resolution/BradleyTerryResolutionService.cs:56",
+        "src/ContestJudging.Services/Resolution/BradleyTerryResolutionService.cs:90",
+        "src/ContestJudging.Services/Resolution/BradleyTerryResolutionService.cs:108",
+        "src/ContestJudging.Services/Resolution/BradleyTerryResolutionService.cs:118",
+        "tests/ContestJudging.Tests/ResolutionServiceTests.cs:13",
+        "tests/ContestJudging.Tests/ResolutionServiceTests.cs:41"
+      ],
+      "effort": "medium",
+      "rank": 19,
+      "tier": 1,
+      "blocked_by": []
+    },
+    {
+      "id": "TEST-002",
+      "title": "ContestJudging.Web project has zero unit tests",
+      "severity": "high",
+      "category": "testing",
+      "files": [
+        "src/ContestJudging.Web/Program.cs:1",
+        "src/ContestJudging.Web/Pages/Setup.razor.cs:1",
+        "src/ContestJudging.Web/Pages/Judging.razor.cs:1",
+        "src/ContestJudging.Web/Pages/Results.razor.cs:1"
+      ],
+      "effort": "large",
+      "rank": 20,
+      "tier": 1,
+      "blocked_by": []
+    },
+    {
+      "id": "STRUCT-001",
+      "title": "Layer isolation violation: Web project directly references Infrastructure layer",
+      "severity": "medium",
+      "category": "architecture",
+      "files": [
+        "src/ContestJudging.Web/ContestJudging.Web.csproj:29",
+        "src/ContestJudging.Web/ContestJudging.Web.csproj:30",
+        "src/ContestJudging.Web/ContestJudging.Web.csproj:36",
+        "src/ContestJudging.Web/Program.cs:5",
+        "src/ContestJudging.Web/Program.cs:12",
+        "src/ContestJudging.Web/Program.cs:21"
+      ],
+      "effort": "medium",
+      "rank": 21,
+      "tier": 2,
+      "blocked_by": []
+    },
+    {
+      "id": "CQ-004",
+      "title": "Widespread var usage violations against .editorconfig mandate",
+      "severity": "medium",
+      "category": "style",
+      "files": [
+        "src/ContestJudging.Services/Validation/GraphValidationService.cs:62",
+        "src/ContestJudging.Services/Validation/GraphValidationService.cs:71",
+        "src/ContestJudging.Services/Validation/GraphValidationService.cs:105",
+        "src/ContestJudging.Services/Resolution/BradleyTerryResolutionService.cs:17",
+        "src/ContestJudging.Services/Resolution/BradleyTerryResolutionService.cs:59",
+        "src/ContestJudging.Services/Resolution/BradleyTerryResolutionService.cs:86",
+        "src/ContestJudging.Infrastructure/Repositories/SqliteRepositories.cs:24",
+        "src/ContestJudging.Infrastructure/Repositories/SqliteRepositories.cs:107",
+        "src/ContestJudging.Web/Pages/Setup.razor.cs:30",
+        "src/ContestJudging.Web/Pages/Setup.razor.cs:33",
+        "src/ContestJudging.Web/Pages/Judging.razor.cs:32",
+        "src/ContestJudging.Web/Pages/Judging.razor.cs:39"
+      ],
+      "effort": "trivial",
+      "rank": 22,
+      "tier": 2,
+      "blocked_by": []
+    },
+    {
+      "id": "CICD-002",
+      "title": "No code coverage collected in CI despite coverlet.collector being configured",
+      "severity": "medium",
+      "category": "testing",
+      "files": [
+        ".github/workflows/pipeline.yml:50"
+      ],
+      "effort": "trivial",
+      "rank": 23,
+      "tier": 2,
+      "blocked_by": []
+    },
+    {
+      "id": "CICD-006",
+      "title": "release/ directory (published Blazor WASM output) is committed to the repository",
+      "severity": "medium",
+      "category": "repo-hygiene",
+      "files": [
+        "release/web.config:1"
+      ],
+      "effort": "trivial",
+      "rank": 24,
+      "tier": 2,
+      "blocked_by": []
+    },
+    {
+      "id": "CICD-007",
+      "title": "No Dependabot configuration for automated dependency updates",
+      "severity": "medium",
+      "category": "dependency-management",
+      "files": [
+        ".github/dependabot.yml:0"
+      ],
+      "effort": "trivial",
+      "rank": 25,
+      "tier": 2,
+      "blocked_by": []
+    },
+    {
+      "id": "STRUCT-007",
+      "title": ".gitignore missing SQLite database file patterns",
+      "severity": "medium",
+      "category": "architecture",
+      "files": [
+        ".gitignore:1"
+      ],
+      "effort": "trivial",
+      "rank": 26,
+      "tier": 2,
+      "blocked_by": []
+    },
+    {
+      "id": "SEC-002",
+      "title": "Insecure random number generation using System.Random in PartitionService",
+      "severity": "medium",
+      "category": "weak-cryptography",
+      "files": [
+        "src/ContestJudging.Services/Partitioning/PartitionService.cs:9",
+        "src/ContestJudging.Services/Partitioning/PartitionService.cs:24"
+      ],
+      "effort": "trivial",
+      "rank": 27,
+      "tier": 2,
+      "blocked_by": []
+    },
+    {
+      "id": "SEC-003",
+      "title": "Hardcoded SQLite connection strings",
+      "severity": "low",
+      "category": "hardcoded-configuration",
+      "files": [
+        "src/ContestJudging.Web/Program.cs:66",
+        "src/ContestJudging.Services/Extensions/ServiceCollectionExtensions.cs:21"
+      ],
+      "effort": "trivial",
+      "rank": 28,
+      "tier": 2,
+      "blocked_by": []
+    },
+    {
+      "id": "EF-007",
+      "title": "Connection string hardcoded in Program.cs rather than sourced from configuration",
+      "severity": "low",
+      "category": "configuration",
+      "files": [
+        "src/ContestJudging.Web/Program.cs:66"
+      ],
+      "effort": "trivial",
+      "rank": 29,
+      "tier": 2,
+      "blocked_by": []
+    },
+    {
+      "id": "SEC-006",
+      "title": "Missing .db and .sqlite patterns in .gitignore",
+      "severity": "medium",
+      "category": "git-hygiene",
+      "files": [
+        ".gitignore:1"
+      ],
+      "effort": "trivial",
+      "rank": 30,
+      "tier": 2,
+      "blocked_by": []
+    },
+    {
+      "id": "SEC-001",
+      "title": "Missing Content-Security-Policy header in index.html",
+      "severity": "medium",
+      "category": "security-misconfiguration",
+      "files": [
+        "src/ContestJudging.Web/wwwroot/index.html:4"
+      ],
+      "effort": "small",
+      "rank": 31,
+      "tier": 2,
+      "blocked_by": []
+    },
+    {
+      "id": "CICD-003",
+      "title": "Six of seven GitHub Actions use floating major-version tags (supply chain risk)",
+      "severity": "medium",
+      "category": "supply-chain",
+      "files": [
+        ".github/workflows/pipeline.yml:18",
+        ".github/workflows/pipeline.yml:21",
+        ".github/workflows/pipeline.yml:27",
+        ".github/workflows/pipeline.yml:73",
+        ".github/workflows/pipeline.yml:79",
+        ".github/workflows/pipeline.yml:100",
+        ".github/workflows/pipeline.yml:103",
+        ".github/workflows/pipeline.yml:108"
+      ],
+      "effort": "small",
+      "rank": 32,
+      "tier": 2,
+      "blocked_by": []
+    },
+    {
+      "id": "CICD-011",
+      "title": "Deploy job redundantly rebuilds from source instead of reusing tested artifacts",
+      "severity": "medium",
+      "category": "ci-optimization",
+      "files": [
+        ".github/workflows/pipeline.yml:62"
+      ],
+      "effort": "small",
+      "rank": 33,
+      "tier": 2,
+      "blocked_by": []
+    },
+    {
+      "id": "SEC-004",
+      "title": "Database backup in localStorage lacks integrity verification",
+      "severity": "medium",
+      "category": "data-integrity",
+      "files": [
+        "src/ContestJudging.Web/Pages/Judging.razor.cs:76",
+        "src/ContestJudging.Web/Pages/Setup.razor.cs:49",
+        "src/ContestJudging.Web/Program.cs:39"
+      ],
+      "effort": "small",
+      "rank": 34,
+      "tier": 2,
+      "blocked_by": []
+    },
+    {
+      "id": "BW-001",
+      "title": "OnInitializedAsync methods lack exception handling in all three page components",
+      "severity": "medium",
+      "category": "lifecycle",
+      "files": [
+        "src/ContestJudging.Web/Pages/Setup.razor.cs:37",
+        "src/ContestJudging.Web/Pages/Judging.razor.cs:44",
+        "src/ContestJudging.Web/Pages/Results.razor.cs:20"
+      ],
+      "effort": "trivial",
+      "rank": 35,
+      "tier": 2,
+      "blocked_by": []
+    },
+    {
+      "id": "BW-002",
+      "title": "BackupDatabase invoked on every Setup page load and every mutation, causing excessive localStorage writes",
+      "severity": "medium",
+      "category": "performance",
+      "files": [
+        "src/ContestJudging.Web/Pages/Setup.razor.cs:42",
+        "src/ContestJudging.Web/Pages/Setup.razor.cs:49",
+        "src/ContestJudging.Web/Pages/Setup.razor.cs:55"
+      ],
+      "effort": "small",
+      "rank": 36,
+      "tier": 2,
+      "blocked_by": []
+    },
+    {
+      "id": "BW-003",
+      "title": "No localStorage quota check before storing multi-MB SQLite backup",
+      "severity": "medium",
+      "category": "data-loss",
+      "files": [
+        "src/ContestJudging.Web/Pages/Setup.razor.cs:55",
+        "src/ContestJudging.Web/Pages/Judging.razor.cs:82"
+      ],
+      "effort": "small",
+      "rank": 37,
+      "tier": 2,
+      "blocked_by": []
+    },
+    {
+      "id": "BW-005",
+      "title": "Interactive div elements missing ARIA roles, keyboard handlers, and tabindex",
+      "severity": "medium",
+      "category": "accessibility",
+      "files": [
+        "src/ContestJudging.Web/Pages/Judging.razor:6",
+        "src/ContestJudging.Web/Pages/Judging.razor:66",
+        "src/ContestJudging.Web/Pages/Judging.razor:74",
+        "src/ContestJudging.Web/Pages/Judging.razor:84",
+        "src/ContestJudging.Web/Layout/NavMenu.razor:4"
+      ],
+      "effort": "small",
+      "rank": 38,
+      "tier": 2,
+      "blocked_by": []
+    },
+    {
+      "id": "BW-006",
+      "title": "Large lists rendered without Virtualize component",
+      "severity": "medium",
+      "category": "performance",
+      "files": [
+        "src/ContestJudging.Web/Pages/Setup.razor:35",
+        "src/ContestJudging.Web/Pages/Setup.razor:67",
+        "src/ContestJudging.Web/Pages/Judging.razor:162",
+        "src/ContestJudging.Web/Pages/Results.razor:55"
+      ],
+      "effort": "small",
+      "rank": 39,
+      "tier": 2,
+      "blocked_by": []
+    },
+    {
+      "id": "BW-007",
+      "title": "DB restore path lacks schema version, integrity, and basic validity checks (SEC-004 follow-up)",
+      "severity": "medium",
+      "category": "data-integrity",
+      "files": [
+        "src/ContestJudging.Web/Program.cs:39",
+        "src/ContestJudging.Web/Program.cs:46",
+        "src/ContestJudging.Web/Program.cs:47",
+        "src/ContestJudging.Web/Program.cs:56",
+        "src/ContestJudging.Infrastructure/Persistence/ContestDbContext.cs:76"
+      ],
+      "effort": "small",
+      "rank": 40,
+      "tier": 2,
+      "blocked_by": ["ARCH-004"]
+    },
+    {
+      "id": "ALGO-001",
+      "title": "GetSortedTiers silently ignores contradictory self-loop edges unlike IsTotalOrder/IsValidOrder",
+      "severity": "medium",
+      "category": "correctness-defense-in-depth",
+      "files": [
+        "src/ContestJudging.Services/Validation/GraphValidationService.cs:264",
+        "src/ContestJudging.Services/Validation/GraphValidationService.cs:90",
+        "src/ContestJudging.Services/Validation/GraphValidationService.cs:176"
+      ],
+      "effort": "small",
+      "rank": 41,
+      "tier": 2,
+      "blocked_by": ["CQ-002"]
+    },
+    {
+      "id": "ALGO-002",
+      "title": "Three methods contain 100% duplicated Kahn's Algorithm logic with only minor behavioral differences",
+      "severity": "medium",
+      "category": "duplication",
+      "files": [
+        "src/ContestJudging.Services/Validation/GraphValidationService.cs:43",
+        "src/ContestJudging.Services/Validation/GraphValidationService.cs:129",
+        "src/ContestJudging.Services/Validation/GraphValidationService.cs:214"
+      ],
+      "effort": "small",
+      "rank": 42,
+      "tier": 2,
+      "blocked_by": ["CQ-002"]
+    },
+    {
+      "id": "EF-005",
+      "title": "Missing .AsNoTracking() on all read-only repository queries",
+      "severity": "medium",
+      "category": "performance",
+      "files": [
+        "src/ContestJudging.Infrastructure/Repositories/SqliteRepositories.cs:30",
+        "src/ContestJudging.Infrastructure/Repositories/SqliteRepositories.cs:80",
+        "src/ContestJudging.Infrastructure/Repositories/SqliteRepositories.cs:103",
+        "src/ContestJudging.Infrastructure/Repositories/SqliteRepositories.cs:200"
+      ],
+      "effort": "trivial",
+      "rank": 43,
+      "tier": 2,
+      "blocked_by": []
+    },
+    {
+      "id": "CQ-005",
+      "title": "No sealed classes anywhere in the codebase",
+      "severity": "medium",
+      "category": "performance",
+      "files": [
+        "src/ContestJudging.Core/Entities/Category.cs:5",
+        "src/ContestJudging.Core/Entities/Entry.cs:7",
+        "src/ContestJudging.Core/Entities/Relation.cs:3",
+        "src/ContestJudging.Infrastructure/Persistence/ContestDbContext.cs:12",
+        "src/ContestJudging.Infrastructure/Persistence/ContestDbContext.cs:18",
+        "src/ContestJudging.Infrastructure/Persistence/ContestDbContext.cs:24",
+        "src/ContestJudging.Infrastructure/Persistence/ContestDbContext.cs:32",
+        "src/ContestJudging.Infrastructure/Repositories/SqliteRepositories.cs:13",
+        "src/ContestJudging.Infrastructure/Repositories/SqliteRepositories.cs:69",
+        "src/ContestJudging.Infrastructure/Repositories/SqliteRepositories.cs:185",
+        "src/ContestJudging.Services/Validation/GraphValidationService.cs:8",
+        "src/ContestJudging.Services/Scoring/PercentileScoring.cs:9",
+        "src/ContestJudging.Services/Scoring/LinearSpacingScoring.cs:8",
+        "src/ContestJudging.Services/Scoring/DefinedIntervalScoring.cs:8",
+        "src/ContestJudging.Services/Resolution/BradleyTerryResolutionService.cs:9",
+        "src/ContestJudging.Services/Partitioning/PartitionService.cs:7",
+        "src/ContestJudging.Services/Managers/ContestManager.cs:15",
+        "src/ContestJudging.Web/Pages/Setup.razor.cs:136",
+        "src/ContestJudging.Web/Pages/Setup.razor.cs:144",
+        "src/ContestJudging.Web/Pages/Results.razor.cs:64"
+      ],
+      "effort": "small",
+      "rank": 44,
+      "tier": 2,
+      "blocked_by": []
+    },
+    {
+      "id": "TE-007",
+      "title": "ValidatePartitionedGraph tests fail to assert error message content",
+      "severity": "medium",
+      "category": "assertion-strength",
+      "files": [
+        "tests/ContestJudging.Tests/ValidationServiceTests.cs:175",
+        "tests/ContestJudging.Tests/ValidationServiceTests.cs:201",
+        "tests/ContestJudging.Tests/ValidationServiceTests.cs:228",
+        "src/ContestJudging.Services/Validation/GraphValidationService.cs:312"
+      ],
+      "effort": "trivial",
+      "rank": 45,
+      "tier": 2,
+      "blocked_by": []
+    },
+    {
+      "id": "TE-008",
+      "title": "LessThan operator never tested in IsTotalOrder or IsValidOrder",
+      "severity": "medium",
+      "category": "coverage-gap",
+      "files": [
+        "src/ContestJudging.Services/Validation/GraphValidationService.cs:80",
+        "src/ContestJudging.Services/Validation/GraphValidationService.cs:166",
+        "tests/ContestJudging.Tests/ValidationServiceTests.cs:15",
+        "tests/ContestJudging.Tests/ValidationServiceTests.cs:89"
+      ],
+      "effort": "trivial",
+      "rank": 46,
+      "tier": 2,
+      "blocked_by": []
+    },
+    {
+      "id": "CQ-007",
+      "title": "Inefficient client-side join in SqliteEntryRepository queries",
+      "severity": "medium",
+      "category": "performance",
+      "files": [
+        "src/ContestJudging.Infrastructure/Repositories/SqliteRepositories.cs:87",
+        "src/ContestJudging.Infrastructure/Repositories/SqliteRepositories.cs:107"
+      ],
+      "effort": "small",
+      "rank": 47,
+      "tier": 2,
+      "blocked_by": []
+    },
+    {
+      "id": "EF-004",
+      "title": "O(n*m) client-side join in SqliteEntryRepository queries",
+      "severity": "medium",
+      "category": "performance",
+      "files": [
+        "src/ContestJudging.Infrastructure/Repositories/SqliteRepositories.cs:87",
+        "src/ContestJudging.Infrastructure/Repositories/SqliteRepositories.cs:91",
+        "src/ContestJudging.Infrastructure/Repositories/SqliteRepositories.cs:107",
+        "src/ContestJudging.Infrastructure/Repositories/SqliteRepositories.cs:115"
+      ],
+      "effort": "small",
+      "rank": 48,
+      "tier": 2,
+      "blocked_by": []
+    },
+    {
+      "id": "EF-006",
+      "title": "CalculateGlobalScoresAsync performs individual entry updates without transaction wrapping",
+      "severity": "medium",
+      "category": "transactions",
+      "files": [
+        "src/ContestJudging.Services/Managers/ContestManager.cs:107",
+        "src/ContestJudging.Services/Managers/ContestManager.cs:112"
+      ],
+      "effort": "small",
+      "rank": 49,
+      "tier": 2,
+      "blocked_by": []
+    },
+    {
+      "id": "TEST-003",
+      "title": "No test categories/traits to distinguish unit tests from integration tests",
+      "severity": "medium",
+      "category": "testing",
+      "files": [
+        "tests/ContestJudging.Tests/InfrastructureTests.cs:18"
+      ],
+      "effort": "trivial",
+      "rank": 50,
+      "tier": 2,
+      "blocked_by": []
+    },
+    {
+      "id": "TEST-004",
+      "title": "ContestManager constructor takes concrete ContestDbContext; tests pass null!",
+      "severity": "medium",
+      "category": "testing",
+      "files": [
+        "src/ContestJudging.Services/Managers/ContestManager.cs:25",
+        "tests/ContestJudging.Tests/ContestManagerTests.cs:30"
+      ],
+      "effort": "medium",
+      "rank": 51,
+      "tier": 2,
+      "blocked_by": ["ARCH-002"]
+    },
+    {
+      "id": "TEST-005",
+      "title": "ServiceCollectionExtensions.AddContestJudgingServices has no test coverage",
+      "severity": "medium",
+      "category": "testing",
+      "files": [
+        "src/ContestJudging.Services/Extensions/ServiceCollectionExtensions.cs:21"
+      ],
+      "effort": "small",
+      "rank": 52,
+      "tier": 2,
+      "blocked_by": []
+    },
+    {
+      "id": "TEST-008",
+      "title": "E2E project package versions missing from central package management",
+      "severity": "medium",
+      "category": "testing",
+      "files": [
+        "tests/ContestJudging.E2ETests/ContestJudging.E2ETests.csproj:11",
+        "Directory.Packages.props:1"
+      ],
+      "effort": "trivial",
+      "rank": 53,
+      "tier": 2,
+      "blocked_by": []
+    },
+    {
+      "id": "STRUCT-002",
+      "title": "E2E test project not included in solution file",
+      "severity": "medium",
+      "category": "architecture",
+      "files": [
+        "tests/ContestJudging.E2ETests/ContestJudging.E2ETests.csproj:1",
+        "ContestJudging.slnx:1"
+      ],
+      "effort": "trivial",
+      "rank": 54,
+      "tier": 2,
+      "blocked_by": []
+    },
+    {
+      "id": "STRUCT-009",
+      "title": "Orphaned testapp scaffold project outside solution",
+      "severity": "medium",
+      "category": "architecture",
+      "files": [
+        "testapp/testapp.csproj:1",
+        "testapp/Program.cs:1"
+      ],
+      "effort": "small",
+      "rank": 55,
+      "tier": 2,
+      "blocked_by": []
+    },
+    {
+      "id": "ARCH-001",
+      "title": "Web project directly references Infrastructure layer — SQLitePCL init and ContestDbContext resolved in UI startup",
+      "severity": "medium",
+      "category": "architecture",
+      "files": [
+        "src/ContestJudging.Web/Program.cs:5",
+        "src/ContestJudging.Web/Program.cs:21",
+        "src/ContestJudging.Web/Program.cs:34",
+        "src/ContestJudging.Web/ContestJudging.Web.csproj:29",
+        "src/ContestJudging.Web/ContestJudging.Web.csproj:30",
+        "src/ContestJudging.Web/ContestJudging.Web.csproj:36"
+      ],
+      "effort": "medium",
+      "rank": 56,
+      "tier": 2,
+      "blocked_by": []
+    },
+    {
+      "id": "ARCH-003",
+      "title": "Service interfaces (IValidationService, IPartitionService, IGlobalRankingService, IContestManager) defined in Services project instead of Core",
+      "severity": "medium",
+      "category": "architecture",
+      "files": [
+        "src/ContestJudging.Services/Validation/IValidationService.cs:1",
+        "src/ContestJudging.Services/Partitioning/IPartitionService.cs:1",
+        "src/ContestJudging.Services/Resolution/IGlobalRankingService.cs:1",
+        "src/ContestJudging.Services/Managers/IContestManager.cs:1",
+        "src/ContestJudging.Web/Pages/Setup.razor.cs:11",
+        "src/ContestJudging.Web/Pages/Judging.razor.cs:11",
+        "src/ContestJudging.Web/Pages/Results.razor.cs:3"
+      ],
+      "effort": "medium",
+      "rank": 57,
+      "tier": 2,
+      "blocked_by": []
+    },
+    {
+      "id": "CQ-006",
+      "title": "Large methods exceeding 50-line maintainability threshold",
+      "severity": "medium",
+      "category": "maintainability",
+      "files": [
+        "src/ContestJudging.Services/Resolution/BradleyTerryResolutionService.cs:14",
+        "src/ContestJudging.Services/Validation/GraphValidationService.cs:43",
+        "src/ContestJudging.Services/Validation/GraphValidationService.cs:129",
+        "src/ContestJudging.Services/Validation/GraphValidationService.cs:214"
+      ],
+      "effort": "medium",
+      "rank": 58,
+      "tier": 2,
+      "blocked_by": []
+    },
+    {
+      "id": "ARCH-005",
+      "title": "Composition root (ServiceCollectionExtensions.AddContestJudgingServices) in Services layer instead of outermost layer",
+      "severity": "low",
+      "category": "architecture",
+      "files": [
+        "src/ContestJudging.Services/Extensions/ServiceCollectionExtensions.cs:5",
+        "src/ContestJudging.Services/Extensions/ServiceCollectionExtensions.cs:6",
+        "src/ContestJudging.Services/Extensions/ServiceCollectionExtensions.cs:21",
+        "src/ContestJudging.Web/Program.cs:7",
+        "src/ContestJudging.Web/Program.cs:64"
+      ],
+      "effort": "medium",
+      "rank": 59,
+      "tier": 3,
+      "blocked_by": ["ARCH-001", "ARCH-002"]
+    },
+    {
+      "id": "ARCH-007",
+      "title": "AddScoped DbContext lifetime in Blazor WASM — DbContext effectively singleton, change tracker grows unbounded",
+      "severity": "informational",
+      "category": "architecture",
+      "files": [
+        "src/ContestJudging.Services/Extensions/ServiceCollectionExtensions.cs:23",
+        "src/ContestJudging.Web/Program.cs:21"
+      ],
+      "effort": "medium",
+      "rank": 60,
+      "tier": 3,
+      "blocked_by": []
+    },
+    {
+      "id": "TE-006",
+      "title": "Repository UpdateAsync and GetAllAsync methods have zero test coverage",
+      "severity": "medium",
+      "category": "coverage-gap",
+      "files": [
+        "src/ContestJudging.Infrastructure/Repositories/SqliteRepositories.cs:41",
+        "src/ContestJudging.Infrastructure/Repositories/SqliteRepositories.cs:28",
+        "src/ContestJudging.Infrastructure/Repositories/SqliteRepositories.cs:101",
+        "src/ContestJudging.Infrastructure/Repositories/SqliteRepositories.cs:143",
+        "tests/ContestJudging.Tests/InfrastructureTests.cs:35"
+      ],
+      "effort": "small",
+      "rank": 61,
+      "tier": 2,
+      "blocked_by": []
+    },
+    {
+      "id": "TE-009",
+      "title": "Non-existent ID and empty-table repository edge cases untested",
+      "severity": "medium",
+      "category": "coverage-gap",
+      "files": [
+        "src/ContestJudging.Infrastructure/Repositories/SqliteRepositories.cs:22",
+        "src/ContestJudging.Infrastructure/Repositories/SqliteRepositories.cs:34",
+        "src/ContestJudging.Infrastructure/Repositories/SqliteRepositories.cs:51",
+        "src/ContestJudging.Infrastructure/Repositories/SqliteRepositories.cs:78",
+        "src/ContestJudging.Infrastructure/Repositories/SqliteRepositories.cs:167",
+        "src/ContestJudging.Infrastructure/Repositories/SqliteRepositories.cs:194",
+        "tests/ContestJudging.Tests/InfrastructureTests.cs:35"
+      ],
+      "effort": "small",
+      "rank": 62,
+      "tier": 2,
+      "blocked_by": []
+    },
+    {
+      "id": "TE-010",
+      "title": "Tests pass null! for ContestDbContext masking null safety and blocking Export/Import testing",
+      "severity": "medium",
+      "category": "mock-quality",
+      "files": [
+        "tests/ContestJudging.Tests/ContestManagerTests.cs:30",
+        "tests/ContestJudging.Tests/ContestManagerTests.cs:64",
+        "tests/ContestJudging.Tests/ContestManagerTests.cs:101",
+        "src/ContestJudging.Services/Managers/ContestManager.cs:23"
+      ],
+      "effort": "small",
+      "rank": 63,
+      "tier": 2,
+      "blocked_by": ["ARCH-002"]
+    },
+    {
+      "id": "EF-008",
+      "title": "Missing indexes on frequently queried foreign key columns",
+      "severity": "low",
+      "category": "schema-design",
+      "files": [
+        "src/ContestJudging.Infrastructure/Persistence/ContestDbContext.cs:54"
+      ],
+      "effort": "trivial",
+      "rank": 64,
+      "tier": 3,
+      "blocked_by": []
+    },
+    {
+      "id": "EF-010",
+      "title": "EntryScoreEntity has redundant surrogate key alongside natural composite unique constraint",
+      "severity": "low",
+      "category": "schema-design",
+      "files": [
+        "src/ContestJudging.Infrastructure/Persistence/ContestDbContext.cs:24",
+        "src/ContestJudging.Infrastructure/Persistence/ContestDbContext.cs:60"
+      ],
+      "effort": "trivial",
+      "rank": 65,
+      "tier": 3,
+      "blocked_by": []
+    },
+    {
+      "id": "EF-012",
+      "title": "No .IsRequired() or .HasMaxLength() configuration on string entity properties",
+      "severity": "informational",
+      "category": "schema-design",
+      "files": [
+        "src/ContestJudging.Infrastructure/Persistence/ContestDbContext.cs:54"
+      ],
+      "effort": "trivial",
+      "rank": 66,
+      "tier": 3,
+      "blocked_by": []
+    },
+    {
+      "id": "ALGO-003",
+      "title": "UnionFind implementation lacks union-by-rank/size for optimal complexity",
+      "severity": "low",
+      "category": "performance-algorithm",
+      "files": [
+        "src/ContestJudging.Services/Validation/GraphValidationService.cs:32"
+      ],
+      "effort": "trivial",
+      "rank": 67,
+      "tier": 3,
+      "blocked_by": []
+    },
+    {
+      "id": "ALGO-004",
+      "title": "Theoretical division-by-zero in BradleyTerry denominator for crafted zero-gamma entries",
+      "severity": "low",
+      "category": "correctness-edge-case",
+      "files": [
+        "src/ContestJudging.Services/Resolution/BradleyTerryResolutionService.cs:69"
+      ],
+      "effort": "trivial",
+      "rank": 68,
+      "tier": 3,
+      "blocked_by": []
+    },
+    {
+      "id": "ALGO-005",
+      "title": "Partition bridge node count can evaluate to zero at small overlap rates, breaking connectivity guarantee",
+      "severity": "low",
+      "category": "correctness-edge-case",
+      "files": [
+        "src/ContestJudging.Services/Partitioning/PartitionService.cs:21"
+      ],
+      "effort": "trivial",
+      "rank": 69,
+      "tier": 3,
+      "blocked_by": []
+    },
+    {
+      "id": "CQ-008",
+      "title": "Magic numbers without named constants",
+      "severity": "low",
+      "category": "maintainability",
+      "files": [
+        "src/ContestJudging.Services/Scoring/LinearSpacingScoring.cs:57",
+        "src/ContestJudging.Services/Scoring/DefinedIntervalScoring.cs:50",
+        "src/ContestJudging.Services/Resolution/BradleyTerryResolutionService.cs:90",
+        "src/ContestJudging.Services/Resolution/BradleyTerryResolutionService.cs:108"
+      ],
+      "effort": "trivial",
+      "rank": 70,
+      "tier": 3,
+      "blocked_by": []
+    },
+    {
+      "id": "CQ-009",
+      "title": "Tuple<string, string> should be ValueTuple (string, string)",
+      "severity": "low",
+      "category": "style",
+      "files": [
+        "src/ContestJudging.Web/Pages/Judging.razor.cs:36"
+      ],
+      "effort": "trivial",
+      "rank": 71,
+      "tier": 3,
+      "blocked_by": []
+    },
+    {
+      "id": "CQ-010",
+      "title": "Missing sealed on private nested UnionFind class",
+      "severity": "low",
+      "category": "performance",
+      "files": [
+        "src/ContestJudging.Services/Validation/GraphValidationService.cs:10"
+      ],
+      "effort": "trivial",
+      "rank": 72,
+      "tier": 3,
+      "blocked_by": []
+    },
+    {
+      "id": "CICD-005",
+      "title": "OSV-Scanner uses --allow-no-lockfiles reducing scan accuracy",
+      "severity": "low",
+      "category": "security",
+      "files": [
+        ".github/workflows/pipeline.yml:60"
+      ],
+      "effort": "trivial",
+      "rank": 73,
+      "tier": 3,
+      "blocked_by": []
+    },
+    {
+      "id": "CICD-008",
+      "title": "No CODEOWNERS file for automated PR review assignment",
+      "severity": "low",
+      "category": "code-review",
+      "files": [
+        ".github/CODEOWNERS:0"
+      ],
+      "effort": "trivial",
+      "rank": 74,
+      "tier": 3,
+      "blocked_by": []
+    },
+    {
+      "id": "CICD-009",
+      "title": "No PR template or issue templates",
+      "severity": "low",
+      "category": "contribution",
+      "files": [
+        ".github/PULL_REQUEST_TEMPLATE.md:0"
+      ],
+      "effort": "trivial",
+      "rank": 75,
+      "tier": 3,
+      "blocked_by": []
+    },
+    {
+      "id": "CICD-010",
+      "title": "dotnet-tools.json manifest has no tools configured",
+      "severity": "informational",
+      "category": "tooling",
+      "files": [
+        "dotnet-tools.json:4"
+      ],
+      "effort": "trivial",
+      "rank": 76,
+      "tier": 3,
+      "blocked_by": []
+    },
+    {
+      "id": "SEC-005",
+      "title": "Exception message exposed to browser console",
+      "severity": "informational",
+      "category": "information-leakage",
+      "files": [
+        "src/ContestJudging.Web/Program.cs:49"
+      ],
+      "effort": "trivial",
+      "rank": 77,
+      "tier": 3,
+      "blocked_by": []
+    },
+    {
+      "id": "SEC-008",
+      "title": "Client-side SQLite — entire database accessible to browser user",
+      "severity": "informational",
+      "category": "architecture-awareness",
+      "files": [
+        "src/ContestJudging.Web/Program.cs:21",
+        "src/ContestJudging.Infrastructure/Persistence/ContestDbContext.cs:41"
+      ],
+      "effort": "trivial",
+      "rank": 78,
+      "tier": 3,
+      "blocked_by": []
+    },
+    {
+      "id": "BW-008",
+      "title": "Console.WriteLine used for error logging instead of ILogger<T>",
+      "severity": "low",
+      "category": "maintainability",
+      "files": [
+        "src/ContestJudging.Web/Program.cs:51"
+      ],
+      "effort": "trivial",
+      "rank": 79,
+      "tier": 3,
+      "blocked_by": []
+    },
+    {
+      "id": "BW-009",
+      "title": "Orphaned weather.json scaffold file in production wwwroot output",
+      "severity": "low",
+      "category": "dead-code",
+      "files": [
+        "src/ContestJudging.Web/wwwroot/sample-data/weather.json:1"
+      ],
+      "effort": "trivial",
+      "rank": 80,
+      "tier": 3,
+      "blocked_by": []
+    },
+    {
+      "id": "BW-010",
+      "title": "STRUCT-001 follow-up: Infrastructure leak is contained to Program.cs only — no page components are contaminated",
+      "severity": "informational",
+      "category": "architecture",
+      "files": [
+        "src/ContestJudging.Web/Program.cs:5",
+        "src/ContestJudging.Web/Program.cs:34",
+        "src/ContestJudging.Web/ContestJudging.Web.csproj:29",
+        "src/ContestJudging.Web/ContestJudging.Web.csproj:30",
+        "src/ContestJudging.Web/ContestJudging.Web.csproj:36"
+      ],
+      "effort": "medium",
+      "rank": 81,
+      "tier": 3,
+      "blocked_by": ["ARCH-001"]
+    },
+    {
+      "id": "STRUCT-006",
+      "title": "Mixed test frameworks across test projects",
+      "severity": "informational",
+      "category": "testing",
+      "files": [
+        "tests/ContestJudging.Tests/ContestJudging.Tests.csproj:13",
+        "tests/ContestJudging.E2ETests/ContestJudging.E2ETests.csproj:15"
+      ],
+      "effort": "small",
+      "rank": 82,
+      "tier": 3,
+      "blocked_by": []
+    },
+    {
+      "id": "STRUCT-010",
+      "title": "Trim analyzer enabled globally but EF Core (Infrastructure) is not trimming-safe",
+      "severity": "informational",
+      "category": "architecture",
+      "files": [
+        "Directory.Build.props:10",
+        "Directory.Build.props:11",
+        "src/ContestJudging.Infrastructure/Persistence/ContestDbContext.cs:48",
+        "src/ContestJudging.Web/ContestJudging.Web.csproj:22"
+      ],
+      "effort": "trivial",
+      "rank": 83,
+      "tier": 3,
+      "blocked_by": []
+    },
+    {
+      "id": "ARCH-006",
+      "title": "Two IScoringStrategy implementations exist but are never registered in DI container",
+      "severity": "low",
+      "category": "architecture",
+      "files": [
+        "src/ContestJudging.Services/Extensions/ServiceCollectionExtensions.cs:33",
+        "src/ContestJudging.Services/Scoring/PercentileScoring.cs:1",
+        "src/ContestJudging.Services/Scoring/DefinedIntervalScoring.cs:1"
+      ],
+      "effort": "trivial",
+      "rank": 84,
+      "tier": 3,
+      "blocked_by": []
+    },
+    {
+      "id": "ARCH-008",
+      "title": "No consistent rule for interface placement — repository interfaces in Core, service interfaces in Services",
+      "severity": "informational",
+      "category": "architecture",
+      "files": [
+        "src/ContestJudging.Core/Interfaces/IScoringStrategy.cs:1",
+        "src/ContestJudging.Core/Interfaces/Repositories/ICategoryRepository.cs:1",
+        "src/ContestJudging.Core/Interfaces/Repositories/IEntryRepository.cs:1",
+        "src/ContestJudging.Core/Interfaces/Repositories/IRelationRepository.cs:1",
+        "src/ContestJudging.Services/Validation/IValidationService.cs:1",
+        "src/ContestJudging.Services/Partitioning/IPartitionService.cs:1",
+        "src/ContestJudging.Services/Resolution/IGlobalRankingService.cs:1",
+        "src/ContestJudging.Services/Managers/IContestManager.cs:1"
+      ],
+      "effort": "small",
+      "rank": 85,
+      "tier": 3,
+      "blocked_by": ["ARCH-003"]
+    },
+    {
+      "id": "TEST-007",
+      "title": "E2E tests use NUnit while unit tests use xUnit — framework inconsistency",
+      "severity": "low",
+      "category": "testing",
+      "files": [
+        "tests/ContestJudging.E2ETests/AppE2ETests.cs:3",
+        "tests/ContestJudging.E2ETests/ContestJudging.E2ETests.csproj:16"
+      ],
+      "effort": "small",
+      "rank": 86,
+      "tier": 3,
+      "blocked_by": []
+    },
+    {
+      "id": "TEST-009",
+      "title": "Repository edge cases untested (non-existent IDs, duplicates, nulls, empty tables)",
+      "severity": "low",
+      "category": "testing",
+      "files": [
+        "tests/ContestJudging.Tests/InfrastructureTests.cs:35"
+      ],
+      "effort": "small",
+      "rank": 87,
+      "tier": 3,
+      "blocked_by": []
+    },
+    {
+      "id": "TEST-010",
+      "title": "ContestManager ExportDataAsync/ImportDataAsync untested",
+      "severity": "low",
+      "category": "testing",
+      "files": [
+        "src/ContestJudging.Services/Managers/ContestManager.cs:119",
+        "tests/ContestJudging.Tests/ContestManagerTests.cs:30"
+      ],
+      "effort": "small",
+      "rank": 88,
+      "tier": 3,
+      "blocked_by": ["ARCH-002"]
+    },
+    {
+      "id": "TEST-013",
+      "title": "No cancellation token support in async tests or underlying async methods",
+      "severity": "informational",
+      "category": "testing",
+      "files": [
+        "tests/ContestJudging.Tests/InfrastructureTests.cs:35",
+        "tests/ContestJudging.Tests/ContestManagerTests.cs:21"
+      ],
+      "effort": "small",
+      "rank": 89,
+      "tier": 3,
+      "blocked_by": []
+    },
+    {
+      "id": "TE-011",
+      "title": "E2E tests are shallow smoke tests with no functional workflow validation",
+      "severity": "low",
+      "category": "assertion-strength",
+      "files": [
+        "tests/ContestJudging.E2ETests/AppE2ETests.cs:23",
+        "tests/ContestJudging.E2ETests/AppE2ETests.cs:30"
+      ],
+      "effort": "medium",
+      "rank": 90,
+      "tier": 3,
+      "blocked_by": []
+    },
+    {
+      "id": "TE-014",
+      "title": "Duplicate validation code in three methods makes test coverage misleading",
+      "severity": "low",
+      "category": "maintainability",
+      "files": [
+        "src/ContestJudging.Services/Validation/GraphValidationService.cs:43",
+        "src/ContestJudging.Services/Validation/GraphValidationService.cs:129",
+        "src/ContestJudging.Services/Validation/GraphValidationService.cs:214"
+      ],
+      "effort": "small",
+      "rank": 91,
+      "tier": 3,
+      "blocked_by": ["CQ-002"]
+    },
+    {
+      "id": "EF-009",
+      "title": "No error handling around SaveChangesAsync calls in repository methods",
+      "severity": "low",
+      "category": "error-handling",
+      "files": [
+        "src/ContestJudging.Infrastructure/Repositories/SqliteRepositories.cs:38",
+        "src/ContestJudging.Infrastructure/Repositories/SqliteRepositories.cs:47",
+        "src/ContestJudging.Infrastructure/Repositories/SqliteRepositories.cs:64",
+        "src/ContestJudging.Infrastructure/Repositories/SqliteRepositories.cs:140",
+        "src/ContestJudging.Infrastructure/Repositories/SqliteRepositories.cs:163",
+        "src/ContestJudging.Infrastructure/Repositories/SqliteRepositories.cs:180",
+        "src/ContestJudging.Infrastructure/Repositories/SqliteRepositories.cs:228",
+        "src/ContestJudging.Infrastructure/Repositories/SqliteRepositories.cs:238"
+      ],
+      "effort": "small",
+      "rank": 92,
+      "tier": 3,
+      "blocked_by": []
+    },
+    {
+      "id": "EF-011",
+      "title": "DbContext class holds file I/O methods violating Single Responsibility Principle",
+      "severity": "informational",
+      "category": "architecture",
+      "files": [
+        "src/ContestJudging.Infrastructure/Persistence/ContestDbContext.cs:65",
+        "src/ContestJudging.Infrastructure/Persistence/ContestDbContext.cs:76"
+      ],
+      "effort": "small",
+      "rank": 93,
+      "tier": 3,
+      "blocked_by": ["ARCH-004"]
+    },
+    {
+      "id": "TE-012",
+      "title": "TrimmingSafetyTests uses fragile string-contains assertions for JSON validation",
+      "severity": "low",
+      "category": "assertion-strength",
+      "files": [
+        "tests/ContestJudging.Tests/TrimmingSafetyTests.cs:33",
+        "tests/ContestJudging.Tests/TrimmingSafetyTests.cs:34"
+      ],
+      "effort": "trivial",
+      "rank": 94,
+      "tier": 3,
+      "blocked_by": []
+    },
+    {
+      "id": "TE-013",
+      "title": "PartitionService constructor validation (k <= 0, invalid overlap) untested",
+      "severity": "low",
+      "category": "coverage-gap",
+      "files": [
+        "src/ContestJudging.Services/Partitioning/PartitionService.cs:16",
+        "src/ContestJudging.Services/Partitioning/PartitionService.cs:17",
+        "tests/ContestJudging.Tests/PartitionServiceTests.cs:13"
+      ],
+      "effort": "trivial",
+      "rank": 95,
+      "tier": 3,
+      "blocked_by": []
+    },
+    {
+      "id": "TE-015",
+      "title": "ScoringStrategy empty-tiers and single-entry edge cases untested",
+      "severity": "low",
+      "category": "coverage-gap",
+      "files": [
+        "src/ContestJudging.Services/Scoring/LinearSpacingScoring.cs:15",
+        "src/ContestJudging.Services/Scoring/PercentileScoring.cs:16",
+        "src/ContestJudging.Services/Scoring/DefinedIntervalScoring.cs:22",
+        "tests/ContestJudging.Tests/ScoringStrategyTests.cs:13"
+      ],
+      "effort": "trivial",
+      "rank": 96,
+      "tier": 3,
+      "blocked_by": []
+    },
+    {
+      "id": "TE-016",
+      "title": "Entry.SetScore boundary values (0 and maxScore) never tested",
+      "severity": "low",
+      "category": "coverage-gap",
+      "files": [
+        "src/ContestJudging.Core/Entities/Entry.cs:19",
+        "tests/ContestJudging.Tests/CoreTests.cs:27",
+        "tests/ContestJudging.Tests/CoreTests.cs:36"
+      ],
+      "effort": "trivial",
+      "rank": 97,
+      "tier": 3,
+      "blocked_by": []
+    },
+    {
+      "id": "STRUCT-004",
+      "title": "E2ETests project missing explicit RootNamespace and AssemblyName properties",
+      "severity": "low",
+      "category": "style",
+      "files": [
+        "tests/ContestJudging.E2ETests/ContestJudging.E2ETests.csproj:1"
+      ],
+      "effort": "trivial",
+      "rank": 98,
+      "tier": 3,
+      "blocked_by": []
+    },
+    {
+      "id": "STRUCT-005",
+      "title": "Orphaned scaffolding placeholder file in Infrastructure project",
+      "severity": "low",
+      "category": "style",
+      "files": [
+        "src/ContestJudging.Infrastructure/Class1.cs:1"
+      ],
+      "effort": "trivial",
+      "rank": 99,
+      "tier": 3,
+      "blocked_by": []
+    },
+    {
+      "id": "STRUCT-008",
+      "title": "Redundant TargetFramework/Nullable/ImplicitUsings overrides in Web.csproj",
+      "severity": "low",
+      "category": "style",
+      "files": [
+        "src/ContestJudging.Web/ContestJudging.Web.csproj:9",
+        "src/ContestJudging.Web/ContestJudging.Web.csproj:10",
+        "src/ContestJudging.Web/ContestJudging.Web.csproj:11",
+        "Directory.Build.props:3",
+        "Directory.Build.props:4",
+        "Directory.Build.props:5"
+      ],
+      "effort": "trivial",
+      "rank": 100,
+      "tier": 3,
+      "blocked_by": []
+    },
+    {
+      "id": "TEST-006",
+      "title": "Vague test class name 'CoreTests' — unclear what it tests",
+      "severity": "low",
+      "category": "style",
+      "files": [
+        "tests/ContestJudging.Tests/CoreTests.cs:9"
+      ],
+      "effort": "trivial",
+      "rank": 101,
+      "tier": 3,
+      "blocked_by": []
+    },
+    {
+      "id": "TEST-011",
+      "title": "Dead placeholder code: Class1.cs in Infrastructure project",
+      "severity": "informational",
+      "category": "testing",
+      "files": [
+        "src/ContestJudging.Infrastructure/Class1.cs:3"
+      ],
+      "effort": "trivial",
+      "rank": 102,
+      "tier": 3,
+      "blocked_by": []
+    },
+    {
+      "id": "TEST-012",
+      "title": "TrimmingSafetyTests suppresses trimming warnings it's meant to validate",
+      "severity": "informational",
+      "category": "testing",
+      "files": [
+        "tests/ContestJudging.Tests/TrimmingSafetyTests.cs:19"
+      ],
+      "effort": "small",
+      "rank": 103,
+      "tier": 3,
+      "blocked_by": []
+    }
+  ],
+  "errors": []
+}
