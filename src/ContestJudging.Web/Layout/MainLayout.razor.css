@@ -13,8 +13,8 @@ main {
 
 .footer {
   background-color: var(--eoh-deep-blue);
-  color: rgba(255, 255, 255, 0.8);
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  color: var(--eoh-warm-neutral);
+  border-top: 1px solid rgba(var(--eoh-warm-neutral-rgb), 0.08);
   z-index: 10;
 }
 
@@ -29,7 +29,7 @@ main {
 }
 
 .text-white-50 {
-  color: rgba(255, 255, 255, 0.6) !important;
+  color: rgba(var(--eoh-warm-neutral-rgb), 0.6) !important;
 }
 
 .smaller {
@@ -43,7 +43,7 @@ main {
     var(--eoh-blue) 0%,
     var(--eoh-abyss) 100%
   );
-  border-right: 1px solid rgba(255, 255, 255, 0.08);
+  border-right: 1px solid rgba(var(--eoh-warm-neutral-rgb), 0.08);
 }
 
 .top-row {
