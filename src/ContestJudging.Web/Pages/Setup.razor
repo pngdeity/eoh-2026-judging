@@ -86,7 +86,7 @@
                 <h4 style="font-family: var(--eoh-font-headings); font-weight: 600; color: var(--eoh-blue); margin-bottom: 1rem;">Bulk Import Entries</h4>
                 <div class="mb-3">
                     <label class="form-label fw-semibold" style="color: var(--eoh-blue);">Entry Names (one per line)</label>
-                    <textarea class="form-control" rows="4" @bind="bulkEntriesText" placeholder="Entry 1&#10;Entry 2&#10;Entry 3"></textarea>
+                    <textarea class="form-control" rows="4" @bind="bulkEntriesText" placeholder="@("Entry 1\nEntry 2\nEntry 3")"></textarea>
                 </div>
                 <button class="btn btn-secondary w-100" @onclick="BulkImportEntries">Import Entries</button>
             </div>
