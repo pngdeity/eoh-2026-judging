@@ -1,107 +1,111 @@
 .page {
-    position: relative;
-    display: flex;
-    flex-direction: column;
+  position: relative;
+  display: flex;
+  flex-direction: column;
 }
 
 main {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    min-height: 100vh;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
 }
 
 .footer {
-    background-color: #0c182b;
-    color: rgba(255, 255, 255, 0.8);
-    border-top: 1px solid rgba(255, 255, 255, 0.08);
-    z-index: 10;
+  background-color: var(--eoh-deep-blue);
+  color: rgba(255, 255, 255, 0.8);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  z-index: 10;
 }
 
 .github-link {
-    transition: all 0.2s ease-in-out;
-    display: inline-block;
+  transition: all 0.2s ease-in-out;
+  display: inline-block;
 }
 
 .github-link:hover {
-    transform: translateY(-3px);
-    color: var(--eoh-orange) !important;
+  transform: translateY(-3px);
+  color: var(--eoh-orange) !important;
 }
 
 .text-white-50 {
-    color: rgba(255, 255, 255, 0.6) !important;
+  color: rgba(255, 255, 255, 0.6) !important;
 }
 
 .smaller {
-    font-size: 0.75rem;
-    letter-spacing: 0.05rem;
+  font-size: 0.75rem;
+  letter-spacing: 0.05rem;
 }
 
 .sidebar {
-    background: linear-gradient(180deg, var(--eoh-blue) 0%, #091424 100%);
-    border-right: 1px solid rgba(255, 255, 255, 0.08);
+  background: linear-gradient(
+    180deg,
+    var(--eoh-blue) 0%,
+    var(--eoh-abyss) 100%
+  );
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .top-row {
-    background-color: var(--eoh-warm-neutral);
-    border-bottom: 1px solid var(--eoh-border);
-    justify-content: flex-end;
-    height: 3.5rem;
-    display: flex;
-    align-items: center;
+  background-color: var(--eoh-warm-neutral);
+  border-bottom: 1px solid var(--eoh-border);
+  justify-content: flex-end;
+  height: 3.5rem;
+  display: flex;
+  align-items: center;
 }
 
-    .top-row ::deep a, .top-row ::deep .btn-link {
-        white-space: nowrap;
-        margin-left: 1.5rem;
-        text-decoration: none;
-    }
+.top-row ::deep a, .top-row ::deep .btn-link {
+  white-space: nowrap;
+  margin-left: 1.5rem;
+  text-decoration: none;
+}
 
-    .top-row ::deep a:hover, .top-row ::deep .btn-link:hover {
-        text-decoration: underline;
-    }
+.top-row ::deep a:hover, .top-row ::deep .btn-link:hover {
+  text-decoration: underline;
+}
 
-    .top-row ::deep a:first-child {
-        overflow: hidden;
-        text-overflow: ellipsis;
-    }
+.top-row ::deep a:first-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 
 @media (max-width: 640.98px) {
-    .top-row {
-        justify-content: space-between;
-    }
+  .top-row {
+    justify-content: space-between;
+  }
 
-    .top-row ::deep a, .top-row ::deep .btn-link {
-        margin-left: 0;
-    }
+  .top-row ::deep a, .top-row ::deep .btn-link {
+    margin-left: 0;
+  }
 }
 
 @media (min-width: 641px) {
-    .page {
-        flex-direction: row;
-    }
+  .page {
+    flex-direction: row;
+  }
 
-    .sidebar {
-        width: 250px;
-        height: 100vh;
-        position: sticky;
-        top: 0;
-    }
+  .sidebar {
+    width: 250px;
+    height: 100vh;
+    position: sticky;
+    top: 0;
+  }
 
-    .top-row {
-        position: sticky;
-        top: 0;
-        z-index: 1;
-    }
+  .top-row {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+  }
 
-    .top-row.auth ::deep a:first-child {
-        flex: 1;
-        text-align: right;
-        width: 0;
-    }
+  .top-row.auth ::deep a:first-child {
+    flex: 1;
+    text-align: right;
+    width: 0;
+  }
 
-    .top-row, article {
-        padding-left: 2rem !important;
-        padding-right: 1.5rem !important;
-    }
+  .top-row, article {
+    padding-left: 2rem !important;
+    padding-right: 1.5rem !important;
+  }
 }
