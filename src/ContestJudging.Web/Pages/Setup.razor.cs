@@ -29,11 +29,11 @@ namespace ContestJudging.Web.Pages
 
         private CategoryModel newCategory = new();
         private EntryModel newEntry = new();
-        private string bulkEntriesText = "";
+        private string bulkEntriesText { get; set; } = "";
         private string errorMessage = "";
 
-        private int kPartitions = 2;
-        private double overlapRate = 0.1;
+        private int kPartitions { get; set; } = 2;
+        private double overlapRate { get; set; } = 0.1;
         private Dictionary<string, HashSet<string>>? generatedPartitions;
 
         public async ValueTask DisposeAsync()

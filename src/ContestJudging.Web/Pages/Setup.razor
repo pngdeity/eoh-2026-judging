@@ -41,7 +41,7 @@
 
             <ul class="list-group list-group-flush shadow-sm rounded-3 p-2" style="background: var(--eoh-warm-neutral); max-height: 300px; overflow-y: auto;">
                 <Virtualize Items="@categories" Context="cat">
-                    <li class="list-group-item d-flex justify-content-between align-items-center py-3 border-0 border-bottom" style="background: transparent; border-color: var(--eoh-border) !important;">
+                    <li @key="cat.Id" class="list-group-item d-flex justify-content-between align-items-center py-3 border-0 border-bottom" style="background: transparent; border-color: var(--eoh-border) !important;">
                         <div>
                             <span class="fw-semibold" style="color: var(--eoh-blue); font-size: 1.05rem;">@cat.Id</span>
                             <span class="ms-2 small" style="color: var(--eoh-charcoal); opacity: 0.65;">(Max: @cat.MaxScore)</span>
@@ -75,7 +75,7 @@
 
             <ul class="list-group list-group-flush shadow-sm rounded-3 p-2 mb-4" style="background: var(--eoh-warm-neutral); max-height: 300px; overflow-y: auto;">
                 <Virtualize Items="@entries" Context="entry">
-                    <li class="list-group-item d-flex justify-content-between align-items-center py-3 border-0 border-bottom" style="background: transparent; border-color: var(--eoh-border) !important;">
+                    <li @key="entry.Id" class="list-group-item d-flex justify-content-between align-items-center py-3 border-0 border-bottom" style="background: transparent; border-color: var(--eoh-border) !important;">
                         <span class="fw-semibold" style="color: var(--eoh-blue); font-size: 1.05rem;">@entry.Id</span>
                         <button class="btn btn-outline-danger btn-sm py-1 px-3" style="border-radius: 20px;" @onclick="() => DeleteEntry(entry.Id)">Delete</button>
                     </li>

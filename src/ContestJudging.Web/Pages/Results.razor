@@ -59,8 +59,8 @@
                             </tr>
                         </thead>
                         <tbody>
-                            <Virtualize Items="@leaderboard" Context="item">
-                                <tr style="@(item.Rank == 1 ? "background: linear-gradient(90deg, rgba(var(--eoh-orange-rgb), 0.06), var(--eoh-warm-neutral))" : "")" class="border-bottom border-light">
+<Virtualize Items="@leaderboard" Context="item">
+                            <tr @key="item.Entry.Id" style="@(item.Rank == 1 ? "background: linear-gradient(90deg, rgba(var(--eoh-orange-rgb), 0.06), var(--eoh-warm-neutral))" : "")" class="border-bottom border-light">
                                     <td class="ps-4 py-3 fw-bold" style="color: @(item.Rank == 1 ? "var(--eoh-altgeld-orange)" : "var(--eoh-blue)"); @(item.Rank == 1 ? "border-left: 4px solid var(--eoh-altgeld-orange);" : "")">
                                         @if (item.Rank == 1)
                                         {

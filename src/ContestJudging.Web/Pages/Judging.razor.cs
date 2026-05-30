@@ -30,15 +30,15 @@ namespace ContestJudging.Web.Pages
         private List<Relation> relations = new();
 
         private Category? selectedCategory;
-        private string entryAId = "";
-        private string entryBId = "";
-        private Operator op = Operator.GreaterThan;
+        private string entryAId { get; set; } = "";
+        private string entryBId { get; set; } = "";
+        private Operator op { get; set; } = Operator.GreaterThan;
         private string errorMessage = "";
         private bool showManualOverride;
         private (string A, string B)? suggestedPair;
 
-        private int kPartitions = 1;
-        private double overlapRate = 0.1;
+        private int kPartitions { get; set; } = 1;
+        private double overlapRate { get; set; } = 0.1;
         private Dictionary<string, HashSet<string>>? currentPartitions;
         private string? selectedPartitionId;
 

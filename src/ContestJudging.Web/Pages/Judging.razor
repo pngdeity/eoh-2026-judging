@@ -176,7 +176,7 @@
                         </thead>
                         <tbody>
                             <Virtualize Items="@relations" Context="rel">
-                                <tr class="border-bottom" style="border-color: var(--eoh-border);">
+                                <tr @key="@(rel.EntryA.Id + '|' + rel.EntryB.Id)" class="border-bottom" style="border-color: var(--eoh-border);">
                                     <td class="ps-4 fw-semibold text-primary py-3" style="font-size: 1.05rem; color: var(--eoh-blue) !important;">@rel.EntryA.Id</td>
                                     <td class="text-center py-3">
                                         <span class="badge py-2 px-3 rounded-pill" style="font-weight: 600; font-size: 0.8rem; background: @(rel.Operator == Operator.EqualTo ? "var(--eoh-light-gray)" : "rgba(var(--eoh-blue-rgb), 0.12)"); color: @(rel.Operator == Operator.EqualTo ? "var(--eoh-charcoal)" : "var(--eoh-blue)");">

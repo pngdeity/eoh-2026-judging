@@ -13,7 +13,7 @@ using Microsoft.Extensions.Logging;
 
 namespace ContestJudging.Web.Pages
 {
-    public partial class Results
+    public partial class Results : IAsyncDisposable
     {
         [Inject] private ICategoryRepository CategoryRepository { get; set; } = default!;
         [Inject] private IEntryRepository EntryRepository { get; set; } = default!;
@@ -100,6 +100,18 @@ namespace ContestJudging.Web.Pages
             }
 
             await BackupDatabase();
+        }
+
+        public async ValueTask DisposeAsync()
+        {
+            try
+            {
+                await BackupDatabase();
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Failed to save backup on dispose");
+            }
         }
 
         private async Task BackupDatabase()

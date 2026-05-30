@@ -43,16 +43,23 @@ if (!string.IsNullOrEmpty(raw))
             await File.WriteAllBytesAsync(Constants.DatabaseFileName, backupBytes);
         }
     }
-    catch
+    catch (Exception)
     {
-        // ignore — app starts with empty database
     }
 }
 
 using (var scope = host.Services.CreateScope())
 {
     var context = scope.ServiceProvider.GetRequiredService<ContestDbContext>();
-    await context.Database.EnsureCreatedAsync();
+    try
+    {
+        await context.Database.EnsureCreatedAsync();
+    }
+    catch
+    {
+        File.Delete(Constants.DatabaseFileName);
+        await context.Database.EnsureCreatedAsync();
+    }
 }
 
 await host.RunAsync();
