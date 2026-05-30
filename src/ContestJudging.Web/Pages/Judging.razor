@@ -23,7 +23,7 @@
     {
         <div class="card p-4 mb-5 border-0 shadow-sm border-start border-4" style="border-left-color: var(--eoh-blue) !important;">
             <h4 class="mb-2" style="font-family: var(--eoh-font-headings); font-weight: 600; color: var(--eoh-blue);"><i class="bi bi-filter-circle-fill me-2"></i>Partition Focus</h4>
-            <p class="text-muted mb-4" style="font-size: 0.95rem;">Filter entries by judging group to focus your comparisons. Bridge nodes will automatically appear in multiple groups.</p>
+            <p class="mb-4" style="color: var(--eoh-charcoal); opacity: 0.65; font-size: 0.95rem;">Filter entries by judging group to focus your comparisons. Bridge nodes will automatically appear in multiple groups.</p>
             
             <div class="row g-3 align-items-end">
                 <div class="col-md-3">
@@ -54,13 +54,13 @@
 
         @if (suggestedPair != null)
         {
-            <div class="quick-judge-container mb-5 shadow-sm rounded-4 p-5 bg-white border border-light" style="border-radius: 16px !important;">
+            <div class="quick-judge-container mb-5 shadow-sm rounded-4 p-5 border" style="background: var(--eoh-warm-neutral); border-color: var(--eoh-border); border-radius: 16px !important;">
                 <div class="text-center mb-5">
-                    <h5 class="fw-bold text-uppercase text-muted" style="font-family: var(--eoh-font-headings); font-size: 0.8rem; letter-spacing: 0.1rem; color: var(--eoh-altgeld-orange) !important;">
-                        <i class="bi bi-lightning-charge-fill me-1 text-warning"></i>Quick-Judge Mode
+                    <h5 class="fw-bold text-uppercase" style="color: var(--eoh-charcoal); opacity: 0.65; font-family: var(--eoh-font-headings); font-size: 0.8rem; letter-spacing: 0.1rem; color: var(--eoh-altgeld-orange) !important;">
+                        <i class="bi bi-lightning-charge-fill me-1" style="color: var(--eoh-orange);"></i>Quick-Judge Mode
                     </h5>
-                    <p class="small text-muted d-none d-md-block" style="font-family: var(--eoh-font-serif); font-style: italic; font-size: 0.95rem; margin-top: 0.5rem;">
-                        Use keyboard: <span class="badge bg-dark-subtle text-dark px-2 py-1 mx-1 border border-secondary-subtle">A</span> (Left Wins), <span class="badge bg-dark-subtle text-dark px-2 py-1 mx-1 border border-secondary-subtle">S</span> (Equal), <span class="badge bg-dark-subtle text-dark px-2 py-1 mx-1 border border-secondary-subtle">D</span> (Right Wins)
+                    <p class="small d-none d-md-block" style="color: var(--eoh-charcoal); opacity: 0.65; font-family: var(--eoh-font-serif); font-style: italic; font-size: 0.95rem; margin-top: 0.5rem;">
+                        Use keyboard: <span class="badge px-2 py-1 mx-1 border" style="background: rgba(12, 24, 43, 0.15); color: var(--eoh-warm-neutral); border-color: var(--eoh-border);">A</span> (Left Wins), <span class="badge px-2 py-1 mx-1 border" style="background: rgba(12, 24, 43, 0.15); color: var(--eoh-warm-neutral); border-color: var(--eoh-border);">S</span> (Equal), <span class="badge px-2 py-1 mx-1 border" style="background: rgba(12, 24, 43, 0.15); color: var(--eoh-warm-neutral); border-color: var(--eoh-border);">D</span> (Right Wins)
                     </p>
                 </div>
 
@@ -77,14 +77,14 @@
                     </div>
 
                     <div class="col-2 col-md-2 d-flex flex-column justify-content-center align-items-center">
-                        <div class="tie-button p-4 rounded-circle bg-white border text-center shadow-sm d-flex flex-column justify-content-center align-items-center"
-                             role="button" tabindex="0" aria-label="Mark @suggestedPair.Value.A and @suggestedPair.Value.B as equal"
-                             @onclick="() => RecordResult(Operator.EqualTo)"
-                             @onkeydown="(KeyboardEventArgs e) => HandleCardKeyDown(e, Operator.EqualTo)"
-                             title="They are equal in quality"
-                             style="width: 80px; height: 80px; border-color: var(--eoh-border) !important;">
-                            <i class="bi bi-repeat fs-3 text-muted"></i>
-                            <div class="smaller fw-bold text-muted mt-1" style="font-size: 0.65rem; letter-spacing: 0.05rem;">TIE</div>
+                        <div class="tie-button p-4 rounded-circle border text-center shadow-sm d-flex flex-column justify-content-center align-items-center"
+                              role="button" tabindex="0" aria-label="Mark @suggestedPair.Value.A and @suggestedPair.Value.B as equal"
+                              @onclick="() => RecordResult(Operator.EqualTo)"
+                              @onkeydown="(KeyboardEventArgs e) => HandleCardKeyDown(e, Operator.EqualTo)"
+                              title="They are equal in quality"
+                              style="width: 80px; height: 80px; border-color: var(--eoh-border) !important; background: var(--eoh-warm-neutral);">
+                            <i class="bi bi-repeat fs-3" style="color: var(--eoh-charcoal); opacity: 0.65;"></i>
+                            <div class="smaller fw-bold mt-1" style="color: var(--eoh-charcoal); opacity: 0.65; font-size: 0.65rem; letter-spacing: 0.05rem;">TIE</div>
                         </div>
                     </div>
 
@@ -104,11 +104,11 @@
 
         <div class="mb-4">
             <div class="card border-0 shadow-sm" style="overflow: hidden;">
-                <div class="card-header bg-white border-0 py-3">
-                    <button class="accordion-button @(showManualOverride ? "" : "collapsed") bg-white fw-bold text-uppercase shadow-none w-100 btn text-start border-0 p-0 d-flex justify-content-between align-items-center"
+                <div class="card-header border-0 py-3" style="background: var(--eoh-warm-neutral);">
+                    <button class="accordion-button @(showManualOverride ? "" : "collapsed") fw-bold text-uppercase shadow-none w-100 btn text-start border-0 p-0 d-flex justify-content-between align-items-center"
                             type="button"
                             @onclick="() => showManualOverride = !showManualOverride"
-                            style="color: var(--eoh-blue); font-family: var(--eoh-font-headings); font-size: 0.9rem; letter-spacing: 0.05rem;">
+                            style="background: var(--eoh-warm-neutral); color: var(--eoh-blue); font-family: var(--eoh-font-headings); font-size: 0.9rem; letter-spacing: 0.05rem;">
                         <span><i class="bi bi-pencil-square me-2" style="color: var(--eoh-altgeld-orange);"></i> Manual Override / Correction</span>
                     </button>
                 </div>
@@ -166,8 +166,8 @@
             <div class="card-body p-0">
                 <div class="table-responsive">
                     <table class="table table-hover align-middle mb-0">
-                        <thead class="table-light">
-                            <tr style="background-color: #fcfcfc;">
+                        <thead style="background: var(--eoh-light-gray);">
+                            <tr style="background-color: var(--eoh-warm-neutral);">
                                 <th class="ps-4 py-3" style="font-family: var(--eoh-font-headings); font-size: 0.85rem; letter-spacing: 0.03rem; text-transform: uppercase; color: var(--eoh-blue);">Exhibit A</th>
                                 <th class="text-center py-3" style="font-family: var(--eoh-font-headings); font-size: 0.85rem; letter-spacing: 0.03rem; text-transform: uppercase; color: var(--eoh-blue);">Relationship</th>
                                 <th class="py-3" style="font-family: var(--eoh-font-headings); font-size: 0.85rem; letter-spacing: 0.03rem; text-transform: uppercase; color: var(--eoh-blue);">Exhibit B</th>
@@ -176,10 +176,10 @@
                         </thead>
                         <tbody>
                             <Virtualize Items="@relations" Context="rel">
-                                <tr class="border-bottom border-light">
+                                <tr class="border-bottom" style="border-color: var(--eoh-border);">
                                     <td class="ps-4 fw-semibold text-primary py-3" style="font-size: 1.05rem; color: var(--eoh-blue) !important;">@rel.EntryA.Id</td>
                                     <td class="text-center py-3">
-                                        <span class="badge py-2 px-3 rounded-pill @(rel.Operator == Operator.EqualTo ? "bg-secondary-subtle text-secondary" : "bg-primary-subtle text-primary")" style="font-weight: 600; font-size: 0.8rem;">
+                                        <span class="badge py-2 px-3 rounded-pill" style="font-weight: 600; font-size: 0.8rem; background: @(rel.Operator == Operator.EqualTo ? "var(--eoh-light-gray)" : "rgba(var(--eoh-blue-rgb), 0.12)"); color: @(rel.Operator == Operator.EqualTo ? "var(--eoh-charcoal)" : "var(--eoh-blue)");">
                                             @GetOpText(rel.Operator)
                                         </span>
                                     </td>
@@ -207,16 +207,16 @@
     .judge-card {
         cursor: pointer;
         transition: var(--eoh-transition);
-        background-color: #ffffff;
+        background-color: var(--eoh-warm-neutral);
         border: 1px solid var(--eoh-border) !important;
         border-radius: 12px !important;
     }
 
     .judge-card:hover {
-        background-color: #fdfcfb;
+        background-color: var(--eoh-warm-neutral);
         transform: translateY(-4px);
         border-color: var(--eoh-altgeld-orange) !important;
-        box-shadow: 0 12px 24px rgba(30, 34, 41, 0.08) !important;
+        box-shadow: 0 12px 24px rgba(var(--eoh-charcoal-rgb), 0.08) !important;
     }
 
     .judge-card:active {
@@ -229,10 +229,10 @@
     }
 
     .tie-button:hover {
-        background-color: #fdfcfb !important;
+        background-color: var(--eoh-warm-neutral) !important;
         transform: scale(1.1);
         border-color: var(--eoh-altgeld-orange) !important;
-        box-shadow: 0 4px 10px rgba(30, 34, 41, 0.08) !important;
+        box-shadow: 0 4px 10px rgba(var(--eoh-charcoal-rgb), 0.08) !important;
     }
 
     .tie-button:active {

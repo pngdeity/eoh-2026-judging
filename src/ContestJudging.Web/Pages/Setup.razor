@@ -8,7 +8,7 @@
 
     @if (!string.IsNullOrEmpty(errorMessage))
     {
-        <div class="alert alert-danger border-start border-4 shadow-sm mb-4" style="border-left-color: var(--eoh-red) !important; border-radius: var(--eoh-radius);">
+        <div class="alert alert-danger border-start border-4 shadow-sm mb-4" style="border-left-color: var(--eoh-altgeld-orange) !important; border-radius: var(--eoh-radius);">
             <i class="bi bi-exclamation-circle-fill me-2"></i>@errorMessage
         </div>
     }
@@ -39,12 +39,12 @@
                 </EditForm>
             </div>
 
-            <ul class="list-group list-group-flush shadow-sm rounded-3 bg-white p-2" style="max-height: 300px; overflow-y: auto;">
+            <ul class="list-group list-group-flush shadow-sm rounded-3 p-2" style="background: var(--eoh-warm-neutral); max-height: 300px; overflow-y: auto;">
                 <Virtualize Items="@categories" Context="cat">
                     <li class="list-group-item d-flex justify-content-between align-items-center py-3 border-0 border-bottom" style="background: transparent; border-color: var(--eoh-border) !important;">
                         <div>
-                            <span class="fw-semibold text-primary" style="font-size: 1.05rem;">@cat.Id</span>
-                            <span class="text-muted ms-2 small">(Max: @cat.MaxScore)</span>
+                            <span class="fw-semibold" style="color: var(--eoh-blue); font-size: 1.05rem;">@cat.Id</span>
+                            <span class="ms-2 small" style="color: var(--eoh-charcoal); opacity: 0.65;">(Max: @cat.MaxScore)</span>
                         </div>
                         <button class="btn btn-outline-danger btn-sm py-1 px-3" style="border-radius: 20px;" @onclick="() => DeleteCategory(cat.Id)">Delete</button>
                     </li>
@@ -73,10 +73,10 @@
                 </EditForm>
             </div>
 
-            <ul class="list-group list-group-flush shadow-sm rounded-3 bg-white p-2 mb-4" style="max-height: 300px; overflow-y: auto;">
+            <ul class="list-group list-group-flush shadow-sm rounded-3 p-2 mb-4" style="background: var(--eoh-warm-neutral); max-height: 300px; overflow-y: auto;">
                 <Virtualize Items="@entries" Context="entry">
                     <li class="list-group-item d-flex justify-content-between align-items-center py-3 border-0 border-bottom" style="background: transparent; border-color: var(--eoh-border) !important;">
-                        <span class="fw-semibold text-primary" style="font-size: 1.05rem;">@entry.Id</span>
+                        <span class="fw-semibold" style="color: var(--eoh-blue); font-size: 1.05rem;">@entry.Id</span>
                         <button class="btn btn-outline-danger btn-sm py-1 px-3" style="border-radius: 20px;" @onclick="() => DeleteEntry(entry.Id)">Delete</button>
                     </li>
                 </Virtualize>
@@ -97,7 +97,7 @@
         <div class="col-12">
             <div class="card p-4 border-0 shadow-sm border-start border-4" style="border-left-color: var(--eoh-blue) !important;">
                 <h4 class="mb-3" style="font-family: var(--eoh-font-headings); font-weight: 600; color: var(--eoh-blue);"><i class="bi bi-diagram-2-fill me-2"></i>Partition Planning</h4>
-                <p class="text-muted mb-4" style="font-size: 0.95rem;">Divide exhibits into groups with "bridge nodes" to ensure statistical connectivity while reducing judge workload.</p>
+                <p class="mb-4" style="color: var(--eoh-charcoal); opacity: 0.65; font-size: 0.95rem;">Divide exhibits into groups with "bridge nodes" to ensure statistical connectivity while reducing judge workload.</p>
                 
                 <div class="row g-3 align-items-end">
                     <div class="col-md-4">
@@ -122,16 +122,16 @@
                         {
                             <div class="col-md-4 mb-3">
                                 <div class="card h-100 border-0 shadow-sm">
-                                    <div class="card-header fw-bold text-primary py-3" style="background-color: var(--eoh-light-gray); border-bottom: 1px solid var(--eoh-border);">Group @p.Key</div>
+                                    <div class="card-header fw-bold py-3" style="color: var(--eoh-blue); background-color: var(--eoh-light-gray); border-bottom: 1px solid var(--eoh-border);">Group @p.Key</div>
                                     <div class="card-body py-3">
                                         <ul class="list-unstyled mb-0">
                                             @foreach (var entryId in p.Value)
                                             {
                                                 var isBridge = generatedPartitions.Values.Count(v => v.Contains(entryId)) > 1;
-                                                <li class="py-2 border-bottom border-light d-flex align-items-center @(isBridge ? "text-primary fw-bold" : "")" style="font-size: 0.95rem;">
+                                                <li class="py-2 border-bottom border-light d-flex align-items-center @(isBridge ? "fw-bold" : "")" style="font-size: 0.95rem;@(isBridge ? " color: var(--eoh-blue);" : "")">
                                                     @if (isBridge) 
                                                     { 
-                                                        <i class="bi bi-link-45deg me-2 text-orange"></i> 
+                                                        <i class="bi bi-link-45deg me-2" style="color: var(--eoh-orange);"></i> 
                                                     }
                                                     else
                                                     {

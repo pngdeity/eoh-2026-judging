@@ -1,9 +1,13 @@
 :root {
   --eoh-blue: #13294b;
+  --eoh-blue-rgb: 19, 41, 75;
   --eoh-orange: #ff5f05;
+  --eoh-orange-rgb: 255, 95, 5;
   --eoh-altgeld-orange: #c84113;
+  --eoh-altgeld-orange-rgb: 200, 65, 19;
   --eoh-warm-neutral: #fbf9f6;
   --eoh-charcoal: #1e2229;
+  --eoh-charcoal-rgb: 30, 34, 41;
   --eoh-deep-blue: #0c182b;
   --eoh-abyss: #091424;
   --eoh-purple: #71426c;
@@ -11,6 +15,7 @@
   --eoh-red: #923838; /* Official Judge Color */
   --eoh-light-gray: #f2ede4; /* Warm neutral gray */
   --eoh-border: #e9e3db; /* Refined warmer border */
+  --eoh-border-rgb: 233, 227, 219;
   --eoh-radius: 8px; /* Soft geometry */
   --eoh-transition: all 250ms ease-in-out;
 
@@ -110,15 +115,15 @@ a:hover {
 }
 
 .btn-secondary:hover {
-  background-color: #0c1c36;
-  border-color: #0c1c36;
+  background-color: var(--eoh-deep-blue);
+  border-color: var(--eoh-deep-blue);
 }
 
 /* Premium Cards: "The Story Host" */
 .card {
   border-radius: var(--eoh-radius);
   border: 1px solid var(--eoh-border);
-  background-color: white;
+  background-color: var(--eoh-warm-neutral);
   box-shadow: 0 4px 12px rgba(30, 34, 41, 0.03);
   transition: var(--eoh-transition);
 }
@@ -156,7 +161,7 @@ a:hover {
 
 /* Warm Light Accent */
 .bg-light {
-  background-color: #f6f1e9 !important;
+  background-color: var(--eoh-warm-neutral) !important;
   border-left: 4px solid var(--eoh-altgeld-orange);
   border-radius: var(--eoh-radius);
 }
@@ -232,14 +237,14 @@ body::before {
 
 .loading-progress circle {
   fill: none;
-  stroke: #e0e0e0;
+  stroke: var(--eoh-border);
   stroke-width: 0.6rem;
   transform-origin: 50% 50%;
   transform: rotate(-90deg);
 }
 
 .loading-progress circle:last-child {
-  stroke: #1b6ec2;
+  stroke: var(--eoh-azure);
   stroke-dasharray:
     calc(3.141 * var(--blazor-load-percentage, 0%) * 0.8),
     500%;
