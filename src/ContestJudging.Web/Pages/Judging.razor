@@ -41,7 +41,7 @@
                 {
                     <div class="col-md-3">
                         <label class="form-label fw-semibold" style="color: var(--eoh-blue); font-size: 0.9rem;">Active Group</label>
-                        <select class="form-select bg-light fw-bold" @onchange="OnPartitionChanged">
+                        <select class="form-select bg-light fw-bold" value="@selectedPartitionId" @onchange="OnPartitionChanged">
                             @foreach (var pId in currentPartitions.Keys)
                             {
                                 <option value="@pId">Group @pId</option>
@@ -56,7 +56,7 @@
         {
             <div class="quick-judge-container mb-5 shadow-sm rounded-4 p-5 border" style="background: var(--eoh-warm-neutral); border-color: var(--eoh-border); border-radius: 16px !important;">
                 <div class="text-center mb-5">
-                    <h5 class="fw-bold text-uppercase" style="color: var(--eoh-charcoal); opacity: 0.65; font-family: var(--eoh-font-headings); font-size: 0.8rem; letter-spacing: 0.1rem; color: var(--eoh-altgeld-orange) !important;">
+                    <h5 class="fw-bold text-uppercase" style="opacity: 0.65; font-family: var(--eoh-font-headings); font-size: 0.8rem; letter-spacing: 0.1rem; color: var(--eoh-altgeld-orange) !important;">
                         <i class="bi bi-lightning-charge-fill me-1" style="color: var(--eoh-orange);"></i>Quick-Judge Mode
                     </h5>
                     <p class="small d-none d-md-block" style="color: var(--eoh-charcoal); opacity: 0.65; font-family: var(--eoh-font-serif); font-style: italic; font-size: 0.95rem; margin-top: 0.5rem;">

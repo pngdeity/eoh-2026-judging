@@ -28,10 +28,6 @@ main {
   color: var(--eoh-orange) !important;
 }
 
-.text-white-50 {
-  color: rgba(var(--eoh-warm-neutral-rgb), 0.6) !important;
-}
-
 .smaller {
   font-size: 0.75rem;
   letter-spacing: 0.05rem;
@@ -104,7 +100,7 @@ main {
     width: 0;
   }
 
-  .top-row, article {
+  .top-row, .content {
     padding-left: 2rem !important;
     padding-right: 1.5rem !important;
   }

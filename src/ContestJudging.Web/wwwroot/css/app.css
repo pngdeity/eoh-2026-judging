@@ -276,3 +276,7 @@ code {
 .form-floating > .form-control:focus::placeholder {
   text-align: start;
 }
+
+.text-white-50 {
+  color: rgba(var(--eoh-warm-neutral-rgb), 0.6) !important;
+}
