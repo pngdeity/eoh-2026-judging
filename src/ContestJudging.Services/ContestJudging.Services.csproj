@@ -12,7 +12,6 @@
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Blazored.LocalStorage"/>
-    <PackageReference Include="MathNet.Numerics"/>
     <PackageReference Include="Microsoft.Extensions.DependencyInjection"/>
   </ItemGroup>
 </Project>
